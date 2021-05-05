@@ -9,7 +9,7 @@
 
 -export([start/2, stop/1]).
 
--record(state, {table = users_table}).
+-include("records.hrl").
 
 start(_StartType, _StartArgs) ->
     Dispatch = cowboy_router:compile([

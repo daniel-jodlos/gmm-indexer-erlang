@@ -18,7 +18,7 @@
   lookup_id/3
 ]).
 
--record(state, {table = users_table}).
+-include("records.hrl").
 
 %%
 %% init/2
