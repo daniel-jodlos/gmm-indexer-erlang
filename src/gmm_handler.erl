@@ -48,7 +48,6 @@ get_method_reply(listing, Table) ->
     end, ets:tab2list(Table)),
   List = lists:map(fun({Id, _}) -> Id end, UsersList),
   jiffy:encode({[{<<"users">>, List}]});
-
 get_method_reply(Id, Table) ->
   case ets:lookup(Table, Id) of
     [] -> empty_json();
@@ -60,9 +59,9 @@ post_method_reaction("name", Name, State) ->
   Id = ets:lookup_element(State#state.table, next_id, 2),
   ets:insert(State#state.table, {Id, Name}),
   ets:update_element(State#state.table, next_id, {2, Id+1}),
-  jiffy:encode({[{<<"id">>, Id}]});
+  {true, jiffy:encode({[{<<"id">>, Id}]})};
 post_method_reaction(_, _, _) ->
-  empty_json().
+  {false, nil}.
 
 %%
 %% cowboy_rest callbacks
@@ -81,6 +80,9 @@ content_types_accepted(Req, State) ->
   {[
     {<<"application/json">>, from_text}
   ], Req, State}.
+
+delete_completed(Req, State) ->
+  {false, Req, State}.
 
 % inner function of resource_exists callback
 lookup_id(undefined, Req, State) ->
@@ -101,16 +103,26 @@ resource_exists(Req, State) ->
        end,
   lookup_id(Id, Req, State).
 
-%% POST
+%% DELETE callback
+delete_resource(Req, State) ->
+  IdRaw = cowboy_req:binding(id, Req),
+  Id = bin_to_num(IdRaw),
+  ets:delete(State#state.table, Id),
+  {true, Req, State}.
+
+%% POST handler
 from_text(Req0, State) ->
   {ok, DataRaw, Req} = cowboy_req:read_body(Req0),
   {[{FieldBin, NameBin} | _]} = jiffy:decode(DataRaw),
   Field = binary:bin_to_list(FieldBin),
   Name = binary:bin_to_list(NameBin),
-  Body = post_method_reaction(Field, Name, State),
-  {{true, Body}, Req, State}.
+  {Flag, Body} = post_method_reaction(Field, Name, State),
+  case Flag of
+    true -> {{true, Body}, Req, State};
+    false -> {false, Req, State}
+  end.
 
-%% GET
+%% GET handler
 to_text(Req, State) ->
   IdRaw = cowboy_req:binding(id, Req),
   Id = case IdRaw of
@@ -118,13 +130,3 @@ to_text(Req, State) ->
          Bin -> bin_to_num(Bin)
        end,
   {get_method_reply(Id, State#state.table), Req, State}.
-
-delete_completed(Req, State) ->
-  {false, Req, State}.
-
-%% DELETE
-delete_resource(Req, State) ->
-  IdRaw = cowboy_req:binding(id, Req),
-  Id = bin_to_num(IdRaw),
-  ets:delete(State#state.table, Id),
-  {true, Req, State}.
