@@ -16,7 +16,7 @@
 
 start_server() ->
     Dispatch = cowboy_router:compile([
-        {'_', [{"/users[/:id]", gmm_rest_handler, #state{}}]}
+        {'_', [{"/users[/:id]", gmm_rest_handler, []}]}
     ]),
     {ok, _} = cowboy:start_clear(my_http_listener,
         [{port, os:getenv("PORT", 8080)}],

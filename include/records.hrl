@@ -8,4 +8,6 @@
 %%%-------------------------------------------------------------------
 -author("pawel").
 
--record(state, {table = users_table}).
+%%-record(state, {table = users_table}).
+
+-define(USERS_TABLE, users_table).

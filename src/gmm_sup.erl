@@ -36,11 +36,11 @@ init([]) ->
           start => {ping_pong, start_link, [ping]}
          }
         ],
-    ets:new(#state{}#state.table, [
+    ets:new(?USERS_TABLE, [
         ordered_set, public, named_table,
         {keypos,1}, {heir,none}, {write_concurrency,false},
         {read_concurrency,false}, {decentralized_counters,false}]),
-    ets:insert(#state{}#state.table, {next_id, 0}),
+    ets:insert(?USERS_TABLE, {next_id, 0}),
     {ok, {SupFlags, ChildSpecs}}.
 
 %% internal functions

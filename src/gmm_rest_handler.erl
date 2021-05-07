@@ -53,7 +53,7 @@ resource_exists(Req, State) ->
 delete_resource(Req, State) ->
     IdRaw = cowboy_req:binding(id, Req),
     Id = binary_to_integer(IdRaw),
-    ets:delete(State#state.table, Id),
+    ets:delete(?USERS_TABLE, Id),
     {true, Req, State}.
 
 delete_completed(Req, State) ->
@@ -75,31 +75,31 @@ id_exists(Id) ->
     end.
 
 %% POST handler
-handle_post(Name, State) ->
-    Id = ets:lookup_element(State#state.table, next_id, 2),
-    ets:insert(State#state.table, {Id, Name}),
-    ets:update_element(State#state.table, next_id, {2, Id+1}),
+handle_post(Name) ->
+    Id = ets:lookup_element(?USERS_TABLE, next_id, 2),
+    ets:insert(?USERS_TABLE, {Id, Name}),
+    ets:update_element(?USERS_TABLE, next_id, {2, Id+1}),
     json_utils:encode(#{<<"id">> => Id}).
 
 from_text(Req0, State) ->
     {ok, DataRaw, Req} = cowboy_req:read_body(Req0),
     case json_utils:decode(DataRaw) of
-        #{<<"name">> := Name} -> {{true, handle_post(Name, State)}, Req, State};
+        #{<<"name">> := Name} -> {{true, handle_post(Name)}, Req, State};
         _ -> {false, Req, State}
     end.
 
 %% GET handler
-handle_get(listing, Table) ->
+handle_get(listing) ->
     UsersList = lists:filter(
         fun(Elem) -> case Elem of
                          {next_id, _} -> false;
                          _Any -> true
                      end
-        end, ets:tab2list(Table)),
+        end, ets:tab2list(?USERS_TABLE)),
     {UsersIds, _} = lists:unzip(UsersList),
     json_utils:encode(#{<<"users">> => UsersIds});
-handle_get(Id, Table) ->
-    case ets:lookup(Table, Id) of
+handle_get(Id) ->
+    case ets:lookup(?USERS_TABLE, Id) of
         [] -> json_utils:empty_json();
         [{_, Name} | _] -> json_utils:encode({[{<<"id">>, Id}, {<<"name">>, Name}]})
     end.
@@ -110,4 +110,4 @@ to_text(Req, State) ->
              undefined -> listing;
              Bin -> binary_to_integer(Bin)
          end,
-    {handle_get(Id, State#state.table), Req, State}.
+    {handle_get(Id), Req, State}.
