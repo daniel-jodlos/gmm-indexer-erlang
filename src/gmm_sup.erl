@@ -40,7 +40,6 @@ init([]) ->
         ordered_set, public, named_table,
         {keypos,1}, {heir,none}, {write_concurrency,false},
         {read_concurrency,false}, {decentralized_counters,false}]),
-    ets:insert(?USERS_TABLE, {next_id, 0}),
     {ok, {SupFlags, ChildSpecs}}.
 
 %% internal functions
