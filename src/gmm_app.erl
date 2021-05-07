@@ -9,16 +9,8 @@
 
 -export([start/2, stop/1]).
 
--include("records.hrl").
-
 start(_StartType, _StartArgs) ->
-    Dispatch = cowboy_router:compile([
-            {'_', [{"/users[/:id]", gmm_handler, #state{}}]}
-        ]),
-    {ok, _} = cowboy:start_clear(my_http_listener,
-        [{port, os:getenv("PORT", 8080)}],
-        #{env => #{dispatch => Dispatch}}
-        ),    
+    gmm_http_server:start_server(),
     gmm_sup:start_link().
 
 stop(_State) ->
