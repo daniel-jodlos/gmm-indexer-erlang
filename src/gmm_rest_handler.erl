@@ -93,5 +93,5 @@ handle_get(listing) ->
 handle_get(Id) ->
     case ets:lookup(?USERS_TABLE, Id) of
         [] -> json_utils:empty_json();
-        [{_, Name} | _] -> json_utils:encode({[{<<"id">>, Id}, {<<"name">>, Name}]})
+        [{_, Name} | _] -> json_utils:encode(#{<<"id">> => Id, <<"name">> => Name})
     end.
