@@ -7,17 +7,32 @@ on:
     branches: [ main ]
 
 jobs:
-
-  build:
-
+  test:
     runs-on: ubuntu-latest
-
     container:
-      image: erlang:22.0.7
-
+      image: erlang:23
     steps:
     - uses: actions/checkout@v2
     - name: Compile
       run: rebar3 compile
     - name: Run tests
       run: rebar3 do eunit
+  
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    -
+      name: Login to DockerHub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    -
+      name: Build and push zone
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: true
+        tags: danieljodlos/gmm-indexer-erlang:latest
+        
