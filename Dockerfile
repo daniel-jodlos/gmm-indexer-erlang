@@ -1,13 +1,15 @@
-FROM erlang:23-alpine
+FROM erlang:23
 
 RUN mkdir /buildroot
 WORKDIR /buildroot
 
 COPY src src/
+COPY include include/
 COPY rebar.config .
 RUN rebar3 as prod release
 
 FROM alpine
+
 RUN apk add --no-cache openssl && \
     apk add --no-cache ncurses-libs
 
