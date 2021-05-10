@@ -13,6 +13,8 @@
 
 -define(SERVER, ?MODULE).
 
+-include("records.hrl").
+
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
@@ -34,6 +36,10 @@ init([]) ->
           start => {ping_pong, start_link, [ping]}
          }
         ],
+    ets:new(?USERS_TABLE, [
+        ordered_set, public, named_table,
+        {keypos,1}, {heir,none}, {write_concurrency,false},
+        {read_concurrency,false}, {decentralized_counters,false}]),
     {ok, {SupFlags, ChildSpecs}}.
 
 %% internal functions

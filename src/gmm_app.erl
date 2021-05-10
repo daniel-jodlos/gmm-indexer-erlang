@@ -10,15 +10,8 @@
 -export([start/2, stop/1]).
 
 start(_StartType, _StartArgs) ->
-    Dispatch = cowboy_router:compile([
-            {'_', [{"/", gmm_handler, []}]}
-        ]),
-    {ok, _} = cowboy:start_clear(my_http_listener,
-        [{port, os:getenv("PORT", 8080)}],
-        #{env => #{dispatch => Dispatch}}
-        ),    
+    gmm_http_server:start_server(),
     gmm_sup:start_link().
-
 
 stop(_State) ->
     ok.
