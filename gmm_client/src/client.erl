@@ -19,16 +19,17 @@
 % CONST
 -define(URL, "localhost:8080/").
 
+simple_request(Method, Url) -> request(Method, Url, [], <<>>, []).
+
 request(Method, Url, Headers, Payload, Options )->
-  {ok, StatusCode, RepsHeaders, ClientRef} = hackney:request(Method, Url, Headers, Payload, Options),
-  {ok, StatusCode, RepsHeaders, ClientRef}.
+  {ok, _, _, _} = hackney:request(Method, Url, Headers, Payload, Options).
 
 % Get Id List Section
 
 get_id_list() ->
   application:ensure_all_started(hackney),
   Url = ?URL++"users",
-  {ok, _, _, ClientRef} = request(get, Url, [], <<>>, []),
+  {ok, _, _, ClientRef} = simple_request(get, Url),
   {ok, Body} = hackney:body(ClientRef),
   list_body_elements(binary:bin_to_list(Body)).
 
@@ -37,7 +38,7 @@ get_id_list() ->
 get_user_info(Id)->
   application:ensure_all_started(hackney),
   Url = ?URL++"users/"++Id,
-  {ok, _, _, ClientRef} = request(get, Url, [], <<>>, []),
+  {ok, _, _, ClientRef} = simple_request(get, Url),
   {ok, Body} = hackney:body(ClientRef),
   binary:bin_to_list(Body).
 
@@ -51,7 +52,7 @@ list_body_elements(Body) ->
 delete_user(Id)->
   application:ensure_all_started(hackney),
   Url = ?URL++"users/"++Id,
-  {ok, _, _, _} = request(delete, Url, [], <<>>, []).
+  {ok, _, _, _} = simple_request(delete, Url).
 
 % Add User Section
 add_user(Name)->
