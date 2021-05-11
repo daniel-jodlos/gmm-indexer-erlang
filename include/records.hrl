@@ -10,4 +10,4 @@
 
 %%-record(state, {table = users_table}).
 
--define(USERS_TABLE, users_table).
+-define(REDIS_SERVER, redis_server).
