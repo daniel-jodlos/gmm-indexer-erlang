@@ -6,13 +6,13 @@
 -module(persistence).
 -behaviour(gen_server).
 
--export([start/1, stop/1, start_link/1]).
--export([get_user/2, get_users/2, add_user/2, delete_user/2]).
+-export([stop/1, start_link/1]).
+-export([get_user/2, get_users/1, add_user/2, delete_user/2]).
 
 %% gen_server api
 
-start(Name) ->
-    _sup:start_child(Name).
+% start(Name) ->
+%     _sup:start_child(Name).
 
 stop(Name) ->
     gen_server:call(Name, stop).
@@ -77,7 +77,7 @@ redis_keys(Name, Pattern) ->
 get_user(Name, Id) ->
     redis_get(Name, integer_to_binary(Id)).
 
-get_users(Name, ) ->
+get_users(Name) ->
     redis_keys(Name, "*").
 
 add_user(Name, Json) ->
