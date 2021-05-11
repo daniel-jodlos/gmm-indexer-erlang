@@ -42,13 +42,9 @@ get_user_info(Id)->
   binary:bin_to_list(Body).
 
 list_body_elements(Body) ->
-  case Body of
-    [] -> [];
-    Body ->
-      [Head | Tail] = string:split(Body, ","),
-      io:format("~s~n", [Head]),
-      list_body_elements(Tail)
-  end.
+  Format = fun(Element) -> io:format("~s~n", [Element]) end,
+  lists:foreach(Format, string:split(Body, ",")).
+
 
 % Delete User Section
 
