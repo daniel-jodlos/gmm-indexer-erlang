@@ -1,5 +1,5 @@
 %%%-------------------------------------------------------------------
-%%% @author Svatopluk
+%%% @author Piotr Świderski
 %%% @copyright (C) 2021, <COMPANY>
 %%% @doc
 %%%
@@ -7,64 +7,38 @@
 %%% Created : 10. maj 2021 16:54
 %%%-------------------------------------------------------------------
 -module(client).
--author("Svatopluk").
+-author("Piotr Świderski").
 
 
 %% API
--export([get_id_list/0, get_id_number/0, get_user_info/1, delete_user/1, add_user/1, test/0]).
+-export([get_id_list/0, 
+          get_user_info/1, 
+          delete_user/1, 
+          add_user/1]).
 
-test()->
-  ok.
+% CONST
+-define(URL, "localhost:8080/").
 
-url_address() ->
-  "localhost:8080/".
-
-% 
-
-get_request(URL)->
-  Method = get,
-  Headers = [],
-  Payload = <<>>,
-  Options = [],
-  {ok, StatusCode, RepsHeaders, ClientRef} = hackney:request(Method, URL, Headers, Payload, Options),
+request(Method, Url, Headers, Payload, Options )->
+  {ok, StatusCode, RepsHeaders, ClientRef} = hackney:request(Method, Url, Headers, Payload, Options),
   {ok, StatusCode, RepsHeaders, ClientRef}.
-
-% reads body of get request
-read_body(ClientRef) ->
-  {ok, _} = hackney:body(ClientRef).
-
 
 % Get Id List Section
 
 get_id_list() ->
   application:ensure_all_started(hackney),
-  URL = url_address()++"users",
-  {ok, _, _, ClientRef} = get_request(URL),
-  {ok, Body} = read_body(ClientRef),
+  Url = ?URL++"users",
+  {ok, _, _, ClientRef} = request(get, Url, [], <<>>, []),
+  {ok, Body} = hackney:body(ClientRef),
   list_body_elements(binary:bin_to_list(Body)).
-
-get_id_number()->
-  application:ensure_all_started(hackney),
-  URL = url_address()++"users",
-  {ok, _, _, ClientRef} = get_request(URL),
-  {ok, Body} = read_body(ClientRef),
-  count_body_elements(binary:bin_to_list(Body), 0).
-
-count_body_elements(Body, Acc) ->
-  case Body of
-    [] -> Acc;
-    Body ->
-      [_ | Tail] = string:split(Body, ","),
-      count_body_elements(Tail, Acc + 1)
-  end.
 
 % Get User Info Section
 
 get_user_info(Id)->
   application:ensure_all_started(hackney),
-  URL = url_address()++"users/"++Id,
-  {ok, _, _, ClientRef} = get_request(URL),
-  {ok, Body} = read_body(ClientRef),
+  Url = ?URL++"users/"++Id,
+  {ok, _, _, ClientRef} = request(get, Url, [], <<>>, []),
+  {ok, Body} = hackney:body(ClientRef),
   binary:bin_to_list(Body).
 
 list_body_elements(Body) ->
@@ -77,18 +51,11 @@ list_body_elements(Body) ->
   end.
 
 % Delete User Section
-delete_request(URL)->
-  Method = delete,
-  Headers = [],
-  Payload = <<>>,
-  Options = [],
-  {ok, StatusCode, RepsHeaders, ClientRef} = hackney:request(Method, URL, Headers, Payload, Options),
-  {ok, StatusCode, RepsHeaders, ClientRef}.
 
 delete_user(Id)->
   application:ensure_all_started(hackney),
-  URL = url_address()++"users/"++Id,
-  {ok, _, _, _} = delete_request(URL).
+  Url = ?URL++"users/"++Id,
+  {ok, _, _, _} = request(delete, Url, [], <<>>, []).
 
 % Add User Section
 add_user(Name)->
@@ -98,8 +65,8 @@ add_user(Name)->
   ReqBody = list_to_binary(PostBody),
   ReqHeaders = [{<<"Content-Type">>, <<"application/json">>}],
   Path = <<"localhost:8080/users">>,
-  Method = post,
-  {ok, ClientRef} = hackney:request(Method, Path, ReqHeaders, stream, []),
+  {ok, ClientRef} = hackney:request(post, Path, ReqHeaders, stream, []),
   ok  = hackney:send_body(ClientRef, ReqBody),
   {ok, _Status, _Headers, ClientRef} = hackney:start_response(ClientRef),
   {ok, _} = hackney:body(ClientRef).
+
