@@ -28,15 +28,21 @@ start_link() ->
 %%                  type => worker(),       % optional
 %%                  modules => modules()}   % optional
 init([]) ->
-    SupFlags = #{strategy => one_for_one,
-                 intensity => 0,
-                 period => 1},
+    SupFlags = #{
+        strategy => one_for_one,
+        intensity => 0,
+        period => 1
+    },
     ChildSpecs = [
-        #{id => ping,
-          start => {ping_pong, start_link, [ping]}
-         }
-        ],
-    persistence:start_link(?REDIS_SERVER),
+        #{
+            id => ping,
+            start => {ping_pong, start_link, [ping]}
+        },
+        #{
+            id => ?REDIS_SERVER,
+            start => {persistence, start_link, [?REDIS_SERVER]}
+        }  
+    ],
     {ok, {SupFlags, ChildSpecs}}.
 
 %% internal functions
