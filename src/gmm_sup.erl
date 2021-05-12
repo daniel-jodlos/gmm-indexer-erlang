@@ -28,18 +28,21 @@ start_link() ->
  %%                  type => worker(),       % optional
  %%                  modules => modules()}   % optional
 init([]) ->
-    SupFlags = #{strategy => one_for_one,
-                 intensity => 0,
-                 period => 1},
+    SupFlags = #{
+        strategy => one_for_one,
+        intensity => 0,
+        period => 1
+    },
     ChildSpecs = [
-        #{id => ping,
-          start => {ping_pong, start_link, [ping]}
-         }
-        ],
-    ets:new(?USERS_TABLE, [
-        ordered_set, public, named_table,
-        {keypos,1}, {heir,none}, {write_concurrency,false},
-        {read_concurrency,false}, {decentralized_counters,false}]),
+        #{
+            id => ping,
+            start => {ping_pong, start_link, [ping]}
+        },
+        #{
+            id => ?REDIS_SERVER,
+            start => {persistence, start_link, [?REDIS_SERVER]}
+        }  
+    ],
     {ok, {SupFlags, ChildSpecs}}.
 
 %% internal functions
