@@ -6,6 +6,8 @@
 -module(persistence).
 -behaviour(gen_server).
 
+-include("records.hrl").
+
 -export([
     stop/1, 
     start_link/1, 
@@ -21,7 +23,11 @@
     get_users/1, 
     add_user/2, 
     delete_user/2, 
-    update_user/3
+    update_user/3,
+    add_user_to_group/2,
+    is_member_of_group/2,
+    list_group_users/1,
+    remove_user_from_group/2
 ]).
 
 %% gen_server api
@@ -54,8 +60,24 @@ handle_call({keys, Pattern}, _From, RedisClient) ->
     Reply = eredis:q(RedisClient, ["KEYS", Pattern]),
     {reply, Reply, RedisClient};
 
+handle_call({set_add, Key, Value}, _From, RedisClient) ->
+    Reply = eredis:q(RedisClient, ["SADD", Key, Value]),
+    {reply, Reply, RedisClient};
+
+handle_call({set_remove, Key, Value}, _From, RedisClient) ->
+    Reply = eredis:q(RedisClient, ["SREM", Key, Value]),
+    {reply, Reply, RedisClient};
+
+handle_call({set_is_member, Key, Value}, _From, RedisClient) ->
+    Reply = eredis:q(RedisClient, ["SISMEMBER", Key, Value]),
+    {reply, Reply, RedisClient};
+
+handle_call({set_list_members, Key}, _From, RedisClient) ->
+    Reply = eredis:q(RedisClient, ["SMEMBERS", Key]),
+    {reply, Reply, RedisClient};
+
 handle_call(_Request, _From, RedisClient) ->
-    {reply, ok, RedisClient}.
+    {reply, unknown, RedisClient}.
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -82,6 +104,18 @@ del(ServerName, Key) ->
 
 keys(ServerName, Pattern) ->
     gen_server:call(ServerName, {keys, Pattern}).
+
+set_add(Key, Value) ->
+    gen_server:call(?REDIS_SERVER, {set_add, Key, Value}).
+
+set_remove(Key, Value) ->
+    gen_server:call(?REDIS_SERVER, {set_remove, Key, Value}).
+
+set_is_member(Key, Value) ->
+    gen_server:call(?REDIS_SERVER, {set_is_member, Key, Value}).
+
+set_list_members(Key) ->
+    gen_server:call(?REDIS_SERVER, {set_list_members, Key}).
 
 %% persistence higher level api
 
@@ -114,3 +148,21 @@ delete_user(ServerName, Id) ->
         {error, Reason} -> {error, Reason};
         {ok, _Result} -> ok
     end.
+
+children_key(Key) when is_binary(Key) == true ->
+    <<Key/binary, "/children">>;
+children_key(Key) -> children_key(binary:list_to_bin(Key)).
+
+add_user_to_group(User, Group) ->
+    set_add(children_key(Group), User).
+
+remove_user_from_group(User, Group) ->
+    set_remove(children_key(Group), User).
+
+is_member_of_group(User, Group) ->
+    {ok, Result} = set_is_member(children_key(Group), User),
+    Result.
+
+list_group_users(Group) ->
+    {ok, Result} = set_list_members(children_key(Group)),
+    Result.
