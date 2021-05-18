@@ -33,7 +33,7 @@ start_link(ServerName) ->
     gen_server:start_link({local, ServerName}, ?MODULE, [], []).
 
 init(_Args) ->
-    eredis:start_link().
+    eredis:start_link([{host, os:getenv("GMM_REDIS_HOST", "localhost")}, {port, list_to_integer(os:getenv("GMM_REDIS_PORT", 6379))}]).
 
 handle_call(stop, _From, RedisClient) ->
     {stop, normal, stopped, RedisClient};
