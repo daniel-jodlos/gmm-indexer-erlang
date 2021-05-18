@@ -47,7 +47,7 @@ resource_exists(Req, State) ->
 %% DELETE callback
 delete_resource(Req, State) ->
     Id = cowboy_req:binding(id, Req),
-    persistence:delete_user(?REDIS_SERVER, Id),
+    graph:delete_user(Id),
     {true, Req, State}.
 
 delete_completed(Req, State) ->
@@ -61,7 +61,7 @@ delete_completed(Req, State) ->
 id_exists(undefined) ->
     true;
 id_exists(Id) ->
-    case persistence:get_user(?REDIS_SERVER, Id) of
+    case graph:get_user(Id) of
         {ok, undefined} -> false;
         {ok, _Result} -> true
     end.
@@ -75,7 +75,7 @@ from_text(Req0, State) ->
     end.
 
 handle_post(Name) ->
-    {ok, Id} = persistence:add_user(?REDIS_SERVER, Name),
+    {ok, Id} = graph:add_user( Name),
     json_utils:encode(#{<<"id">> => Id}).
 
 %% GET handler
@@ -87,10 +87,10 @@ to_text(Req, State) ->
     {handle_get(Id), Req, State}.
 
 handle_get(listing) ->
-    {ok, UsersIds} = persistence:get_users(?REDIS_SERVER),
+    {ok, UsersIds} = persistence:get_users(),
     json_utils:encode(#{<<"users">> => UsersIds});
 handle_get(Id) ->
-    case persistence:get_user(?REDIS_SERVER, Id) of
+    case persistence:get_user(Id) of
         {ok, undefined} -> json_utils:empty_json();
         {ok, Result} -> Result
     end.
