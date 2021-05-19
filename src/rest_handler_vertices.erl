@@ -41,7 +41,10 @@ init(Req, State) ->
 
 resource_exists(Req, State) ->
     Method = maps:get(method, State),
-    Id = maps:get(id, State),
+    Id = case is_map_key(id, State) of
+             true -> maps:get(id, State);
+             _ -> undefined
+         end,
     Result = case {Method, Id} of
                  {<<"GET">>, undefined} -> true;
                  {<<"GET">>, _} -> graph:vertex_exists(Id);
