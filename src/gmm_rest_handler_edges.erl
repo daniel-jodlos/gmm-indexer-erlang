@@ -34,8 +34,11 @@ init(Req, _State) ->
     ParametersMap = case Method of
                         <<"GET">> ->
                             case cowboy_req:match_qs([parent, child, vertex, which_edges], Req) of
-                                Map when Map =:= #{parent := _, child := _}; Map =:= #{vertex := _, which_edges := _};
-                                             Map =:= #{vertex := _} -> maps:put(method, Method, Map)
+                                Map when
+                                    is_map_key(parent, Map), is_map_key(child, Map);
+                                    is_map_key(vertex, Map), is_map_key(which_edges, Map);
+                                    is_map_key(vertex, Map) ->
+                                        maps:put(method, Method, Map)
                             end;
                         <<"POST">> ->
                             maps:put(method, Method, cowboy_req:match_qs([
