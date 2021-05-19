@@ -37,13 +37,13 @@ content_types_provided(Req, State) ->
 
 content_types_accepted(Req, State) ->
     {[
+        {<<"application/xml">>, from_json},
         {<<"application/json">>, from_json}
     ], Req, State}.
 
 resource_exists(Req, _State) ->
     Method = cowboy_req:method(Req),
     #{id := Id} = cowboy_req:match_qs([{id, [], undefined}], Req),
-%%    io:format("Method: ~p, Id: ~p\n", [Method, Id]),
     Result = case {Method, Id} of
                  {<<"GET">>, undefined} -> true;
                  {<<"GET">>, _} -> id_exists(Id);
@@ -60,7 +60,7 @@ resource_exists(Req, _State) ->
 %% DELETE callback
 delete_resource(Req, State) ->
     {ok, Id} = maps:find(id, State),
-    graph:delete(Id),
+    graph:remove_vertex(Id),
     {true, Req, State}.
 
 delete_completed(Req, State) ->
@@ -85,13 +85,10 @@ id_exists(Id) ->
 % callback
 from_json(Req0, State) ->
     {ok, DataRaw, Req} = cowboy_req:read_body(Req0),
-%%    io:format("DataRaw: ~p\n", [DataRaw]),
     Parsed = case json_utils:decode(DataRaw) of
-                 #{<<"type">> := Type, <<"name">> := Name} when
-                     Type =:= <<"user">>; Type =:= <<"group">> -> {Type, Name};
+                 #{<<"type">> := Type, <<"name">> := Name} -> {Type, Name};
                  _ -> undefined
              end,
-%%    io:format("Parsed: ~p\n", [Parsed]),
     {handle_post(Parsed), Req, State}.
 
 % inner handler
@@ -99,18 +96,12 @@ from_json(Req0, State) ->
 handle_post(undefined) ->
     false;
 
-handle_post({<<"user">>, Name}) ->
-%%    io:format("Adding user...\n", []),
-%%    io:format("Result: ~p\n", [graph:add_user(Name)]),
-    {ok, Id} = graph:add_user(Name),
-%%    io:format("User added\n", []),
+handle_post({Type, Name}) when Type =:= <<"user">>; Type =:= <<"group">>; Type =:= <<"space">>; Type =:= <<"provider">> ->
+    {ok, Id} = graph:create_vertex(Type, Name),
     {true, json_utils:encode(#{<<"id">> => Id})};
-%%    {true, json_utils:encode(#{<<"id">> => 0})};
 
-%% @todo implement adding groups -> graph:add_group(Name)
-handle_post({<<"group">>, Name}) ->
-    {ok, Id} = graph:add_user(Name),
-    {true, json_utils:encode(#{<<"id">> => Id})}.
+handle_post(_) ->
+    false.
 
 
 %% GET
@@ -126,10 +117,9 @@ to_json(Req, State) ->
 % inner handler
 
 handle_get(listing) ->
-    {ok, NodesIds} = graph:get_vertices(),
-    json_utils:encode(#{<<"nodes">> => NodesIds});
+    {ok, VerticesMap} = graph:list_vertices(),
+    json_utils:encode(VerticesMap);
 
-%% @todo implement getting info about node, not only about user
 handle_get(Id) ->
     case graph:get_vertex(Id) of
         {ok, undefined} -> json_utils:empty_json();

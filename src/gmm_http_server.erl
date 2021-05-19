@@ -15,10 +15,10 @@
 start_server() ->
     Dispatch = cowboy_router:compile([
         %% nodes
-        {'_', [{"/graph/vertices", gmm_rest_handler_nodes, []}]},
+        {'_', [{"/graph/vertices", gmm_rest_handler_nodes, #{}}]},
 
         %% edges
-        {'_', [{"/graph/edges", gmm_rest_handler_edges, []}]}
+        {'_', [{"/graph/edges", gmm_rest_handler_edges, #{}}]}
     ]),
     {ok, _} = cowboy:start_clear(my_http_listener,
         [{port, os:getenv("PORT", 8080)}],

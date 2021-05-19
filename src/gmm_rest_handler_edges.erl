@@ -11,124 +11,131 @@
 
 %% API
 -export([
-%%    init/2,
-%%    allowed_methods/2,
-%%    content_types_provided/2,
-%%    content_types_accepted/2,
-%%    resource_exists/2,
-%%    delete_resource/2,
-%%    delete_completed/2
+    init/2,
+    allowed_methods/2,
+    content_types_provided/2,
+    content_types_accepted/2,
+    resource_exists/2,
+    delete_resource/2,
+    delete_completed/2
 ]).
 
 -export([
-%%    from_json/2,
-%%    to_json/2
+    from_json/2,
+    to_json/2
 ]).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%% cowboy_rest callbacks
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%
-%%init(Req, State) ->
-%%    {cowboy_rest, Req, State}.
-%%
-%%allowed_methods(Req, State) ->
-%%    Methods = [<<"GET">>, <<"POST">>, <<"DELETE">>],
-%%    {Methods, Req, State}.
-%%
-%%content_types_provided(Req, State) ->
-%%    {[
-%%        {<<"application/json">>, to_json}
-%%    ], Req, State}.
-%%
-%%content_types_accepted(Req, State) ->
-%%    {[
-%%        {<<"application/json">>, from_json}
-%%    ], Req, State}.
-%%
-%%resource_exists(Req, State) ->
-%%    Id = parse_id_binding(Req),
-%%    WhichEdges = parse_which_edges_binding(Req),
-%%    case lists:any(fun(Bind) -> Bind =:= error end, [Id, WhichEdges]) of
-%%        true -> {false, Req, State};
-%%        _ -> {id_exists(Id), Req, State}
-%%    end.
-%%
-%%%% DELETE callback
-%%%% @todo implement removing an edge
-%%delete_resource(Req, State) ->
-%%    Id = cowboy_req:binding(id, Req),
-%%    graph:delete_user(Id),
-%%    {true, Req, State}.
-%%
-%%delete_completed(Req, State) ->
-%%    {false, Req, State}.
-%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%% internal functions
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%
-%%parse_id_binding(Req) ->
-%%    case cowboy_req:binding(id, Req) of
-%%        undefined -> error;
-%%        Id -> Id
-%%    end.
-%%
-%%parse_which_edges_binding(Req) ->
-%%    case cowboy_req:binding(which_edges, Req) of
-%%        undefined -> all;
-%%        <<"parents">> -> parents;
-%%        <<"children">> -> children;
-%%        _ -> error
-%%    end.
-%%
-%%% inner function of resource_exists callback
-%%id_exists(Id) ->
-%%    case graph:get_user(Id) of
-%%        {ok, undefined} -> false;
-%%        {ok, _Result} -> true
-%%    end.
-%%
-%%%% POST handler
-%%
-%%%% @todo add permissions
-%%from_json(Req0, State) ->
-%%    {ok, DataRaw, Req} = cowboy_req:read_body(Req0),
-%%    case json_utils:decode(DataRaw) of
-%%        %% @todo
-%%%%        #{<<"parent">> := Parent, <<"child">> := Child, <<"permissions">> := Permissions} ->
-%%        #{<<"parent">> := Parent, <<"child">> := Child} ->
-%%            {add_edge(Parent, Child, nil), Req, State};
-%%        _ -> {false, Req, State}
-%%    end.
-%%
-%%%% @todo refactor this to create double-oriented coupling between nodes
-%%add_edge(Parent, Child, _Permissions) ->
-%%    case graph:add_user_to_group/2(Child, Parent) of
-%%        {error, Reason} -> false;
-%%        ok -> true
-%%    end.
-%%
-%%%% GET handler
-%%
-%%to_json(Req, State) ->
-%%    Id = parse_id_binding(Req),
-%%    WhichEdges = parse_which_edges_binding(Req),
-%%    {handle_get(Id, WhichEdges), Req, State}.
-%%
-%%% get response about edges of given node
-%%%% @todo implement getting parents in graph module
-%%handle_get(Id, all) ->
-%%    ListChildren = graph:list_group_users(Id),
-%%    %% @todo
-%%    % ListParents = graph:list_node_parents(Id)
-%%    json_utils:encode(#{<<"parents">> => [], <<"children">> => ListChildren});
-%%
-%%handle_get(_Id, parents) ->
-%%    %% @todo
-%%    % ListParents = graph_list_node_parents(Id)
-%%    json_utils:encode(#{<<"parents">> => []});
-%%
-%%handle_get(Id, children) ->
-%%    ListChildren = graph:list_group_users(Id),
-%%    json_utils:encode(#{<<"children">> => ListChildren}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% cowboy_rest callbacks
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+init(Req, _State) ->
+    Method = cowboy_req:method(Req),
+    ParametersMap = case Method of
+                        <<"GET">> ->
+                            case cowboy_req:match_qs([parent, child, vertex, which_edges], Req) of
+                                Map when Map =:= #{parent := _, child := _}; Map =:= #{node := _, which_edges := _};
+                                             Map =:= #{node := _} -> maps:put(method, Method, Map)
+                            end;
+                        <<"POST">> ->
+                            maps:put(method, Method, cowboy_req:match_qs([
+                                {parent, nonempty}, {child, nonempty}, {permissions, nonempty}], Req));
+                        <<"DELETE">> ->
+                            maps:put(method, Method, cowboy_req:match_qs([{parent, nonempty}, {child, nonempty}], Req))
+                    end,
+    {cowboy_rest, Req, ParametersMap}.
+
+allowed_methods(Req, State) ->
+    Methods = [<<"GET">>, <<"POST">>, <<"DELETE">>],
+    {Methods, Req, State}.
+
+content_types_provided(Req, State) ->
+    {[
+        {<<"application/json">>, to_json}
+    ], Req, State}.
+
+content_types_accepted(Req, State) ->
+    {[
+        {<<"application/xml">>, from_json},
+        {<<"application/json">>, from_json}
+    ], Req, State}.
+
+resource_exists(Req, State) ->
+    #{method := Method} = State,
+    Result = case Method of
+                 <<"GET">> ->
+                    case State of
+                        #{parent := Parent, child := Child} -> graph:edge_exists(Parent, Child);
+                        #{node := Node} -> graph:vertex_exists(Node);
+                        _ -> false
+                    end;
+                 <<"POST">> -> false;
+                 <<"DELETE">> ->
+                     case State of
+                         #{parent := Parent, child := Child} -> graph:edge_exists(Parent, Child);
+                         _ -> false
+                     end
+             end,
+    {Result, Req, State}.
+
+%% DELETE callback
+delete_resource(Req, State) ->
+    #{parent := Parent, child := Child} = State,
+    case graph:remove_edge(Parent, Child) of
+        ok -> {true, Req, State};
+        _ -> {false, Req, State}
+    end.
+
+delete_completed(Req, State) ->
+    {false, Req, State}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% internal functions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%% POST handler
+
+from_json(Req, State) ->
+    #{parent := Parent, child := Child, permissions := Permissions} = State,
+    Result = case graph:edge_exists(Parent, Child) of
+                 false -> graph:create_edge(Parent, Child, Permissions);
+                 true -> graph:update_edge(Parent, Child, Permissions)
+             end,
+    case Result of
+        ok -> {true, Req, State};
+        _ -> {false, Req, State}
+    end.
+
+
+%% GET handler
+
+to_json(Req, State) ->
+    Result = case State of
+                 #{parent := Parent, child := Child} -> get_edge_info(Parent, Child);
+                 #{node := Node, which_edges := WhichEdges} -> get_neighbours(Node, WhichEdges);
+                 #{node := Node} -> get_neighbours(Node, all)
+             end,
+    {Result, Req, State}.
+
+
+% get info about an edge
+get_edge_info(Parent, Child) ->
+    {ok, Result} = graph:get_edge(Parent, Child),
+    json_utils:encode(Result).
+
+
+% get response about edges of given node
+get_neighbours(Node, <<"parents">>) ->
+    {ok, Result} = graph:list_parents(Node),
+    json_utils:encode(Result);
+
+get_neighbours(Node, <<"children">>) ->
+    {ok, Result} = graph:list_children(Node),
+    json_utils:encode(Result);
+
+get_neighbours(Node, all) ->
+    {ok, Parents} = graph:list_parents(Node),
+    {ok, Children} = graph:list_children(Node),
+    json_utils:encode(#{<<"parents">> => Parents, <<"children">> => Children}).
