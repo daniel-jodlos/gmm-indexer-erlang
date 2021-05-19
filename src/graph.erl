@@ -142,6 +142,24 @@ create_edge(_Arg0, _Arg1, _Arg2) ->
 update_edge(_Arg0, _Arg1, _Arg2) ->
     erlang:error(not_implemented).
 
+remove_edge(_Arg0, _Arg1) ->
+    erlang:error(not_implemented).
+
+edge_exists(_Arg0, _Arg1) ->
+    erlang:error(not_implemented).
+
+get_edge(_Arg0, _Arg1) ->
+    erlang:error(not_implemented).
+
+list_neighbours(_Arg0) ->
+    erlang:error(not_implemented).
+
+list_parents(_Arg0) ->
+    erlang:error(not_implemented).
+
+list_children(_Arg0) ->
+    erlang:error(not_implemented).
+
 %% vertices api
 
 generate_id() ->
@@ -243,54 +261,4 @@ list_vertices(Type) ->
     Keys = persistence:keys("*"),
     get_vertices_of_type(Type, [], Keys).
 
-%% edges api
-
-remove_edge(Parent, Child) ->
-    {ok, ParentVertex} = get_vertex(Parent),
-    ParentData = json_utils:decode(ParentVertex),
-    Children = maps:get(<<"children">>, ParentData),
-    NewParentData = maps:update(<<"children">>, maps:remove(Child, Children), ParentData),
-    persistence:set(Parent, NewParentData)
-    {ok, ChildVertex} = get_vertex(Child),
-    ChildData = json_utils:decode(ChildVertex),
-    Parents = maps:get(<<"parents">>, ChildData),
-    NewChildData = maps:update(<<"parents">>, maps:remove(Parent, Parents), ChildData),
-    persistence:set(Child, NewChildData)
-    ok.
-
-get_edge(Parent, Child) ->
-    case edge_exists(Parent, Child) of
-        false -> {error, nonexisting_edge};
-        true ->
-            {ok, Vertex} = get_vertex(Parent),
-            Data = json_utils:decode(Vertex),
-            Children = maps:get(<<"children">>, Data),
-            Permissions = maps:get(Child, Children),
-            {ok, #{
-                <<"parent">> => Parent,
-                <<"child">> => Child,
-                <<"permissions">> => Permissions
-            }}
-    end.
-
-edge_exists(Parent, Child) ->
-    {ok, Vertex} = get_vertex(Parent),
-    Data = json_utils:decode(Vertex),
-    Children = maps:get(<<"children">>, Data),
-    lists:member(Child, maps:keys(Children)).
-
-list_parents(NodeId) ->
-    {ok, Vertex} = get_vertex(NodeId),
-    Data = json_utils:decode(Vertex),
-    maps:keys(maps:get(<<"parents">>, Data)).
-
-list_children(NodeId) ->
-    {ok, Vertex} = get_vertex(NodeId),
-    Data = json_utils:decode(Vertex),
-    maps:keys(maps:get(<<"children">>, Data)).
-
-list_neighbours(NodeId) ->
-    #{
-        <<"parents">> => list_parents(NodeId),
-        <<"children">> => list_children(NodeId)
-    }.
+%% edges api - todo
