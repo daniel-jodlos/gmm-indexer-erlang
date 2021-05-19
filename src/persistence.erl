@@ -27,7 +27,8 @@
     set_add/2,
     set_remove/2,
     set_is_member/2,
-    set_list_members/1
+    set_list_members/1,
+    if_exists/1 %% @todo Added by Pawel, probably remove it
 ]).
 
 %% gen_server api
@@ -76,6 +77,10 @@ handle_call({set_list_members, Key}, _From, RedisClient) ->
     Reply = eredis:q(RedisClient, ["SMEMBERS", Key]),
     {reply, Reply, RedisClient};
 
+handle_call({exists, Key}, _From, RedisClient) ->
+    Reply = eredis:q(RedisClient, ["EXISTS", Key]),
+    {reply, Reply, RedisClient};
+
 handle_call(_Request, _From, RedisClient) ->
     {reply, unknown, RedisClient}.
 
@@ -116,3 +121,7 @@ set_is_member(Key, Value) ->
 
 set_list_members(Key) ->
     gen_server:call(?REDIS_SERVER, {set_list_members, Key}).
+
+%%%% @todo Added By Pawel
+if_exists(Key) ->
+    gen_server:call(?REDIS_SERVER, {exists, Key}).

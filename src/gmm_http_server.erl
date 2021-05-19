@@ -9,14 +9,16 @@
 -module(gmm_http_server).
 -author("pawel").
 
--include("records.hrl").
-
 %% API
 -export([start_server/0]).
 
 start_server() ->
     Dispatch = cowboy_router:compile([
-        {'_', [{"/users[/:id]", gmm_rest_handler, []}]}
+        %% nodes
+        {'_', [{"/graph/vertices", gmm_rest_handler_nodes, []}]},
+
+        %% edges
+        {'_', [{"/graph/edges", gmm_rest_handler_edges, []}]}
     ]),
     {ok, _} = cowboy:start_clear(my_http_listener,
         [{port, os:getenv("PORT", 8080)}],
