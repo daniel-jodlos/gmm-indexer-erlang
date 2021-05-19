@@ -47,11 +47,19 @@ children_key(Key) when is_binary(Key) == true ->
     <<Key/binary, "/children">>;
 children_key(Key) -> children_key(binary:list_to_bin(Key)).
 
+
+parents_key(Key) when is_binary(Key) == true ->
+    <<Key/binary, "/parents">>;
+parents_key(Key) -> parents_key(binary:list_to_bin(Key)).
+
+
 add_user_to_group(User, Group) ->
-    persistence:set_add(children_key(Group), User).
+    persistence:set_add(children_key(Group), User),
+    persistence:set_add(parents_key(User), Group).
 
 remove_user_from_group(User, Group) ->
-    persistence:set_remove(children_key(Group), User).
+    persistence:set_remove(children_key(Group), User),
+    persistence:set_remove(parents_key(User), Group).
 
 is_member_of_group(User, Group) ->
     {ok, Result} = persistence:set_is_member(children_key(Group), User),
