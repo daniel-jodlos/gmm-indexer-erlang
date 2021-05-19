@@ -134,29 +134,39 @@
 %%        _ -> error
 %%    end.
 
-%%%% @todo Here we go
+%%% Parent, Child, Vertex to wszystko ID-ki, jesli wolisz mozesz zmienic nazwy na ParentId itd., jak uwazasz
 
+-spec create_edge(Parent::nonempty_binary(), Child::nonempty_binary(), Permissions::nonempty_binary()) -> ok | {error, string()}.
 create_edge(_Arg0, _Arg1, _Arg2) ->
     erlang:error(not_implemented).
 
+-spec update_edge(Parent::nonempty_binary(), Child::nonempty_binary(), Permissions::nonempty_binary()) -> ok | {error, string()}.
 update_edge(_Arg0, _Arg1, _Arg2) ->
     erlang:error(not_implemented).
 
+-spec remove_edge(Parent::nonempty_binary(), Child::nonempty_binary()) -> ok | {error, string()}.
 remove_edge(_Arg0, _Arg1) ->
     erlang:error(not_implemented).
 
+-spec edge_exists(Parent::nonempty_binary(), Child::nonempty_binary()) -> true | false | {error, string()}.
 edge_exists(_Arg0, _Arg1) ->
     erlang:error(not_implemented).
 
+-spec get_edge(Parent::nonempty_binary(), Child::nonempty_binary()) -> {ok, map()} | {error, string()}.
 get_edge(_Arg0, _Arg1) ->
     erlang:error(not_implemented).
 
+%% @todo pierwszy klucz w mapie to <<"parents">>, a drugi to <<"children">>, ale nie wiem jak to przekazac w -spec
+-spec list_neighbours(Vertex::nonempty_binary()) ->
+    {ok, #{nonempty_binary() := list(nonempty_binary()), nonempty_binary() := list(nonempty_binary())}} | {error, string()}.
 list_neighbours(_Arg0) ->
     erlang:error(not_implemented).
 
+-spec list_parents(Vertex::nonempty_binary()) -> {ok, list(nonempty_binary())} | {error, string()}.
 list_parents(_Arg0) ->
     erlang:error(not_implemented).
 
+-spec list_children(Vertex::nonempty_binary()) -> {ok, list(nonempty_binary())} | {error, string()}.
 list_children(_Arg0) ->
     erlang:error(not_implemented).
 

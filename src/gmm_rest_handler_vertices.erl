@@ -1,4 +1,4 @@
--module(gmm_rest_handler_nodes).
+-module(gmm_rest_handler_vertices).
 
 -behavior(cowboy_handler).
 

@@ -34,8 +34,8 @@ init(Req, _State) ->
     ParametersMap = case Method of
                         <<"GET">> ->
                             case cowboy_req:match_qs([parent, child, vertex, which_edges], Req) of
-                                Map when Map =:= #{parent := _, child := _}; Map =:= #{node := _, which_edges := _};
-                                             Map =:= #{node := _} -> maps:put(method, Method, Map)
+                                Map when Map =:= #{parent := _, child := _}; Map =:= #{vertex := _, which_edges := _};
+                                             Map =:= #{vertex := _} -> maps:put(method, Method, Map)
                             end;
                         <<"POST">> ->
                             maps:put(method, Method, cowboy_req:match_qs([
@@ -66,7 +66,7 @@ resource_exists(Req, State) ->
                  <<"GET">> ->
                     case State of
                         #{parent := Parent, child := Child} -> graph:edge_exists(Parent, Child);
-                        #{node := Node} -> graph:vertex_exists(Node);
+                        #{vertex := Vertex} -> graph:vertex_exists(Vertex);
                         _ -> false
                     end;
                  <<"POST">> -> false;
@@ -114,8 +114,8 @@ from_json(Req, State) ->
 to_json(Req, State) ->
     Result = case State of
                  #{parent := Parent, child := Child} -> get_edge_info(Parent, Child);
-                 #{node := Node, which_edges := WhichEdges} -> get_neighbours(Node, WhichEdges);
-                 #{node := Node} -> get_neighbours(Node, all)
+                 #{vertex := Vertex, which_edges := WhichEdges} -> get_neighbours(Vertex, WhichEdges);
+                 #{vertex := Vertex} -> get_neighbours(Vertex, all)
              end,
     {Result, Req, State}.
 
@@ -126,16 +126,16 @@ get_edge_info(Parent, Child) ->
     json_utils:encode(Result).
 
 
-% get response about edges of given node
-get_neighbours(Node, <<"parents">>) ->
-    {ok, Result} = graph:list_parents(Node),
+% get response about edges of given vertex
+get_neighbours(Vertex, <<"parents">>) ->
+    {ok, Result} = graph:list_parents(Vertex),
     json_utils:encode(Result);
 
-get_neighbours(Node, <<"children">>) ->
-    {ok, Result} = graph:list_children(Node),
+get_neighbours(Vertex, <<"children">>) ->
+    {ok, Result} = graph:list_children(Vertex),
     json_utils:encode(Result);
 
-get_neighbours(Node, all) ->
-    {ok, Parents} = graph:list_parents(Node),
-    {ok, Children} = graph:list_children(Node),
+get_neighbours(Vertex, all) ->
+    {ok, Parents} = graph:list_parents(Vertex),
+    {ok, Children} = graph:list_children(Vertex),
     json_utils:encode(#{<<"parents">> => Parents, <<"children">> => Children}).

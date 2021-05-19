@@ -14,8 +14,8 @@
 
 start_server() ->
     Dispatch = cowboy_router:compile([
-        %% nodes
-        {'_', [{"/graph/vertices", gmm_rest_handler_nodes, #{}}]},
+        %% vertices
+        {'_', [{"/graph/vertices", gmm_rest_handler_vertices, #{}}]},
 
         %% edges
         {'_', [{"/graph/edges", gmm_rest_handler_edges, #{}}]}
