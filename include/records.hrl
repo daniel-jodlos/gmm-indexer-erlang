@@ -11,3 +11,12 @@
 %%-record(state, {table = users_table}).
 
 -define(REDIS_SERVER, redis_server).
+
+-define(ZONE_ID, os:getenv("ZONE_ID", "zone0")).
+
+-record(vertex_type, {
+    user = <<"user">>,
+    group = <<"group">>,
+    space = <<"space">>,
+    provider = <<"provider">>
+}).

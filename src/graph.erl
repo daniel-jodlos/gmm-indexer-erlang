@@ -41,6 +41,8 @@
     list_children/1
 ]).
 
+-include("records.hrl").
+
 %%%% @todo You can use/rename any of those, your business
 
 %%generate_id() ->
@@ -134,47 +136,161 @@
 
 %%%% @todo Here we go
 
-create_vertex(_Arg0, _Arg1) ->
-    erlang:error(not_implemented).
-
-update_vertex(_Arg0, _Arg1) ->
-    erlang:error(not_implemented).
-
-remove_vertex(_Arg0) ->
-    erlang:error(not_implemented).
-
-vertex_exists(_Arg0) ->
-    erlang:error(not_implemented).
-
-get_vertex(_Arg0) ->
-    erlang:error(not_implemented).
-
-list_vertices() ->
-    erlang:error(not_implemented).
-
-list_vertices(_Arg0) ->
-    erlang:error(not_implemented).
-
 create_edge(_Arg0, _Arg1, _Arg2) ->
     erlang:error(not_implemented).
 
 update_edge(_Arg0, _Arg1, _Arg2) ->
     erlang:error(not_implemented).
 
-remove_edge(_Arg0, _Arg1) ->
-    erlang:error(not_implemented).
+%% vertices api
 
-edge_exists(_Arg0, _Arg1) ->
-    erlang:error(not_implemented).
+generate_id() ->
+    Id = << <<Y>> ||<<X:4>> <= crypto:hash(md5, term_to_binary(make_ref())), Y <- integer_to_list(X,16)>>,
+    Zone = list_to_binary(?ZONE_ID),
+    IdWithZone = << Zone/binary, <<"/">>, Id/binary >>,
+    case persistence:if_exists(IdWithZone) of
+        {ok, 0} -> Id;
+        {ok, 1} -> generate_id();
+        {error, Reason} -> {error, Reason}
+    end.
 
-get_edge(_Arg0, _Arg1) ->
-    erlang:error(not_implemented).
+create_vertex(Type, Name) ->
+    Id = generate_id(),
+    Json = json_utils:encode(#{
+        <<"type">> => Type,
+        <<"id">> => Id,
+        <<"name">> => Name,
+        <<"zone">> => list_to_binary(?ZONE_ID),
+        <<"parents">> => #{},
+        <<"children">> => #{}
+    }),
+    Response = persistence:set(Id, Json),
+    case Response of
+        {error, Reason} -> {error, Reason};
+        {ok, _Result} -> {ok, Id}
+    end.
 
-list_neighbours(_Arg0) ->
-    erlang:error(not_implemented).
+update_vertex(Id, NewName) ->
+    {ok, Vertex} = get_vertex(Id),
+    Data = json_utils:decode(Vertex),
+    Json = json_utils:encode(maps:update(<<"name">>, NewName, Data)),
+    Response = persistence:set(Id, Json),
+    case Response of
+        {error, Reason} -> {error, Reason};
+        {ok, _Result} -> ok
+    end.
 
-list_parents(_Arg0) ->
-    erlang:error(not_implemented).
+remove_vertex(Id) ->
+    Response = persistence:del(Id),
+    case Response of
+        {error, Reason} -> {error, Reason};
+        {ok, _Result} -> ok
+    end.
 
-list_children(_Arg0) ->
-    erlang:error(not_implemented).
+vertex_exists(Key) ->
+    case persistence:if_exists(Key) of
+        {ok, 0} -> false;
+        {ok, 1} -> true;
+        {error, Reason} -> {error, Reason}
+    end.
+
+get_vertex(Id) ->
+    case vertex_exists(Id) of
+        false -> {error, nonexisting_vertex};
+        true -> persistence:get(Id)
+    end.
+
+vertices_to_types(IdsMap, []) ->
+    IdsMap;
+vertices_to_types(IdsMap, [Key | Rest]) ->
+    {ok, Vertex} = get_vertex(Key),
+    Data = json_utils:decode(Vertex),
+    case maps:get(<<"type">>, Data) of
+        #vertex_type.user ->
+            Users = maps:get(<<"users">>, IdsMap),
+            vertices_to_types(maps:update(<<"users">>, Users ++ [maps:get(<<"id">>, Data)], IdsMap), Rest);
+        #vertex_type.group ->
+            Groups = maps:get(<<"groups">>, IdsMap),
+            vertices_to_types(maps:update(<<"groups">>, Groups ++ [maps:get(<<"id">>, Data)], IdsMap), Rest);
+        #vertex_type.space ->
+            Spaces = maps:get(<<"spaces">>, IdsMap),
+            vertices_to_types(maps:update(<<"spaces">>, Spaces ++ [maps:get(<<"id">>, Data)], IdsMap), Rest);
+        #vertex_type.provider ->
+            Providers = maps:get(<<"providers">>, IdsMap),
+            vertices_to_types(maps:update(<<"providers">>, Providers ++ [maps:get(<<"id">>, Data)], IdsMap), Rest)
+    end.
+
+list_vertices() ->
+    Keys = persistence:keys("*"),
+    vertices_to_types(#{
+        <<"users">> => [],
+        <<"groups">> => [],
+        <<"spaces">> => [],
+        <<"providers">> => []
+    }, Keys).
+
+get_vertices_of_type(_Type, IdsList, []) ->
+    IdsList;
+get_vertices_of_type(Type, IdsList, [Key | Rest]) ->
+    {ok, Vertex} = get_vertex(Key),
+    Data = json_utils:decode(Vertex),
+    case maps:get(<<"type">>, Data) of
+        Type -> get_vertices_of_type(Type, IdsList ++ [maps:get(<<"id">>, Data)], Rest);
+        _ -> get_vertices_of_type(Type, IdsList, Rest)
+    end.
+
+list_vertices(Type) ->
+    Keys = persistence:keys("*"),
+    get_vertices_of_type(Type, [], Keys).
+
+%% edges api
+
+remove_edge(Parent, Child) ->
+    {ok, ParentVertex} = get_vertex(Parent),
+    ParentData = json_utils:decode(ParentVertex),
+    Children = maps:get(<<"children">>, ParentData),
+    NewParentData = maps:update(<<"children">>, maps:remove(Child, Children), ParentData),
+    persistence:set(Parent, NewParentData)
+    {ok, ChildVertex} = get_vertex(Child),
+    ChildData = json_utils:decode(ChildVertex),
+    Parents = maps:get(<<"parents">>, ChildData),
+    NewChildData = maps:update(<<"parents">>, maps:remove(Parent, Parents), ChildData),
+    persistence:set(Child, NewChildData)
+    ok.
+
+get_edge(Parent, Child) ->
+    case edge_exists(Parent, Child) of
+        false -> {error, nonexisting_edge};
+        true ->
+            {ok, Vertex} = get_vertex(Parent),
+            Data = json_utils:decode(Vertex),
+            Children = maps:get(<<"children">>, Data),
+            Permissions = maps:get(Child, Children),
+            {ok, #{
+                <<"parent">> => Parent,
+                <<"child">> => Child,
+                <<"permissions">> => Permissions
+            }}
+    end.
+
+edge_exists(Parent, Child) ->
+    {ok, Vertex} = get_vertex(Parent),
+    Data = json_utils:decode(Vertex),
+    Children = maps:get(<<"children">>, Data),
+    lists:member(Child, maps:keys(Children)).
+
+list_parents(NodeId) ->
+    {ok, Vertex} = get_vertex(NodeId),
+    Data = json_utils:decode(Vertex),
+    maps:keys(maps:get(<<"parents">>, Data)).
+
+list_children(NodeId) ->
+    {ok, Vertex} = get_vertex(NodeId),
+    Data = json_utils:decode(Vertex),
+    maps:keys(maps:get(<<"children">>, Data)).
+
+list_neighbours(NodeId) ->
+    #{
+        <<"parents">> => list_parents(NodeId),
+        <<"children">> => list_children(NodeId)
+    }.
