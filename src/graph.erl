@@ -175,7 +175,7 @@ list_children(_Arg0) ->
 generate_id() ->
     Id = << <<Y>> ||<<X:4>> <= crypto:hash(md5, term_to_binary(make_ref())), Y <- integer_to_list(X,16)>>,
     Zone = list_to_binary(?ZONE_ID),
-    IdWithZone = << Zone/binary, <<"/">>, Id/binary >>,
+    IdWithZone = << Zone/binary, <<"/">>/binary, Id/binary >>,
     case persistence:if_exists(IdWithZone) of
         {ok, 0} -> Id;
         {ok, 1} -> generate_id();
@@ -249,7 +249,7 @@ vertices_to_types(IdsMap, [Key | Rest]) ->
     end.
 
 list_vertices() ->
-    Keys = persistence:keys("*"),
+    {ok, Keys} = persistence:keys("*"),
     vertices_to_types(#{
         <<"users">> => [],
         <<"groups">> => [],
