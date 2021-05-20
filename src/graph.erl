@@ -177,9 +177,9 @@ list_children(_Arg0) ->
 generate_id() ->
     Id = << <<Y>> ||<<X:4>> <= crypto:hash(md5, term_to_binary(make_ref())), Y <- integer_to_list(X,16)>>,
     Zone = list_to_binary(?ZONE_ID),
-    IdWithZone = << Zone/binary, "/", Id/binary >>,
+    IdWithZone = << Zone/binary, "_", Id/binary >>,
     case persistence:if_exists(IdWithZone) of
-        {ok, <<"0">>} -> {ok, Id};
+        {ok, <<"0">>} -> {ok, IdWithZone};
         {ok, <<"1">>} -> generate_id();
         {error, Reason} -> {error, Reason}
     end.
@@ -221,8 +221,8 @@ vertex_exists(Key) ->
 
 get_vertex(Id) ->
     case vertex_exists(Id) of
-        false -> {error, nonexisting_vertex};
-        true -> persistence:get(Id)
+        true -> persistence:get(Id);
+        _ -> {error, cannot_get_vertex}
     end.
 
 vertices_to_types(IdsMap, []) ->
@@ -233,16 +233,16 @@ vertices_to_types(IdsMap, [Key | Rest]) ->
         {ok, Vertex} ->
             Data = json_utils:decode(Vertex),
             case maps:get(<<"type">>, Data) of
-                #vertex_type.user ->
+                <<"user">> ->
                     Users = maps:get(<<"users">>, IdsMap),
                     vertices_to_types(maps:update(<<"users">>, Users ++ [maps:get(<<"id">>, Data)], IdsMap), Rest);
-                #vertex_type.group ->
+                <<"group">> ->
                     Groups = maps:get(<<"groups">>, IdsMap),
                     vertices_to_types(maps:update(<<"groups">>, Groups ++ [maps:get(<<"id">>, Data)], IdsMap), Rest);
-                #vertex_type.space ->
+                <<"space">> ->
                     Spaces = maps:get(<<"spaces">>, IdsMap),
                     vertices_to_types(maps:update(<<"spaces">>, Spaces ++ [maps:get(<<"id">>, Data)], IdsMap), Rest);
-                #vertex_type.provider ->
+                <<"provider">> ->
                     Providers = maps:get(<<"providers">>, IdsMap),
                     vertices_to_types(maps:update(<<"providers">>, Providers ++ [maps:get(<<"id">>, Data)], IdsMap), Rest)
             end;
