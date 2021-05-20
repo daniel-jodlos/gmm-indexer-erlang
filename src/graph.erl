@@ -177,25 +177,22 @@ list_children(_Arg0) ->
 generate_id() ->
     Id = << <<Y>> ||<<X:4>> <= crypto:hash(md5, term_to_binary(make_ref())), Y <- integer_to_list(X,16)>>,
     Zone = list_to_binary(?ZONE_ID),
-    IdWithZone = << Zone/binary, <<"/">>/binary, Id/binary >>,
+    IdWithZone = << Zone/binary, "/", Id/binary >>,
     case persistence:if_exists(IdWithZone) of
-        {ok, 0} -> Id;
-        {ok, 1} -> generate_id();
+        {ok, <<"0">>} -> {ok, Id};
+        {ok, <<"1">>} -> generate_id();
         {error, Reason} -> {error, Reason}
     end.
 
 create_vertex(Type, Name) ->
-    Id = generate_id(),
+    {ok, Id} = generate_id(),
     Json = json_utils:encode(#{
         <<"type">> => Type,
         <<"id">> => Id,
         <<"name">> => Name,
-        <<"zone">> => list_to_binary(?ZONE_ID),
-        <<"parents">> => #{},
-        <<"children">> => #{}
+        <<"zone">> => list_to_binary(?ZONE_ID)
     }),
-    Response = persistence:set(Id, Json),
-    case Response of
+    case persistence:set(Id, Json) of
         {error, Reason} -> {error, Reason};
         {ok, _Result} -> {ok, Id}
     end.
@@ -204,23 +201,21 @@ update_vertex(Id, NewName) ->
     {ok, Vertex} = get_vertex(Id),
     Data = json_utils:decode(Vertex),
     Json = json_utils:encode(maps:update(<<"name">>, NewName, Data)),
-    Response = persistence:set(Id, Json),
-    case Response of
+    case persistence:set(Id, Json) of
         {error, Reason} -> {error, Reason};
         {ok, _Result} -> ok
     end.
 
 remove_vertex(Id) ->
-    Response = persistence:del(Id),
-    case Response of
+    case persistence:del(Id) of
         {error, Reason} -> {error, Reason};
         {ok, _Result} -> ok
     end.
 
 vertex_exists(Key) ->
     case persistence:if_exists(Key) of
-        {ok, 0} -> false;
-        {ok, 1} -> true;
+        {ok, <<"0">>} -> false;
+        {ok, <<"1">>} -> true;
         {error, Reason} -> {error, Reason}
     end.
 
@@ -231,23 +226,27 @@ get_vertex(Id) ->
     end.
 
 vertices_to_types(IdsMap, []) ->
-    IdsMap;
+    {ok, IdsMap};
 vertices_to_types(IdsMap, [Key | Rest]) ->
     {ok, Vertex} = get_vertex(Key),
-    Data = json_utils:decode(Vertex),
-    case maps:get(<<"type">>, Data) of
-        #vertex_type.user ->
-            Users = maps:get(<<"users">>, IdsMap),
-            vertices_to_types(maps:update(<<"users">>, Users ++ [maps:get(<<"id">>, Data)], IdsMap), Rest);
-        #vertex_type.group ->
-            Groups = maps:get(<<"groups">>, IdsMap),
-            vertices_to_types(maps:update(<<"groups">>, Groups ++ [maps:get(<<"id">>, Data)], IdsMap), Rest);
-        #vertex_type.space ->
-            Spaces = maps:get(<<"spaces">>, IdsMap),
-            vertices_to_types(maps:update(<<"spaces">>, Spaces ++ [maps:get(<<"id">>, Data)], IdsMap), Rest);
-        #vertex_type.provider ->
-            Providers = maps:get(<<"providers">>, IdsMap),
-            vertices_to_types(maps:update(<<"providers">>, Providers ++ [maps:get(<<"id">>, Data)], IdsMap), Rest)
+    case get_vertex(Key) of
+        {ok, Vertex} ->
+            Data = json_utils:decode(Vertex),
+            case maps:get(<<"type">>, Data) of
+                #vertex_type.user ->
+                    Users = maps:get(<<"users">>, IdsMap),
+                    vertices_to_types(maps:update(<<"users">>, Users ++ [maps:get(<<"id">>, Data)], IdsMap), Rest);
+                #vertex_type.group ->
+                    Groups = maps:get(<<"groups">>, IdsMap),
+                    vertices_to_types(maps:update(<<"groups">>, Groups ++ [maps:get(<<"id">>, Data)], IdsMap), Rest);
+                #vertex_type.space ->
+                    Spaces = maps:get(<<"spaces">>, IdsMap),
+                    vertices_to_types(maps:update(<<"spaces">>, Spaces ++ [maps:get(<<"id">>, Data)], IdsMap), Rest);
+                #vertex_type.provider ->
+                    Providers = maps:get(<<"providers">>, IdsMap),
+                    vertices_to_types(maps:update(<<"providers">>, Providers ++ [maps:get(<<"id">>, Data)], IdsMap), Rest)
+            end;
+        {error, Reason} -> {error, Reason}
     end.
 
 list_vertices() ->
@@ -260,13 +259,16 @@ list_vertices() ->
     }, Keys).
 
 get_vertices_of_type(_Type, IdsList, []) ->
-    IdsList;
+    {ok, IdsList};
 get_vertices_of_type(Type, IdsList, [Key | Rest]) ->
-    {ok, Vertex} = get_vertex(Key),
-    Data = json_utils:decode(Vertex),
-    case maps:get(<<"type">>, Data) of
-        Type -> get_vertices_of_type(Type, IdsList ++ [maps:get(<<"id">>, Data)], Rest);
-        _ -> get_vertices_of_type(Type, IdsList, Rest)
+    case get_vertex(Key) of
+        {ok, Vertex} ->
+            Data = json_utils:decode(Vertex),
+            case maps:get(<<"type">>, Data) of
+                Type -> get_vertices_of_type(Type, IdsList ++ [maps:get(<<"id">>, Data)], Rest);
+                _ -> get_vertices_of_type(Type, IdsList, Rest)
+            end;
+        {error, Reason} -> {error, Reason}
     end.
 
 list_vertices(Type) ->
