@@ -49,7 +49,6 @@ content_types_provided(Req, State) ->
 
 content_types_accepted(Req, State) ->
     {[
-        {<<"application/xml">>, from_json},
         {<<"application/json">>, from_json}
     ], Req, State}.
 

@@ -3,23 +3,6 @@
 
 %%%% @todo Add function that retrieves zone from the vertex's ID
 
-%%%% @todo Old API, you can remove it
-
-%%-export([
-%%    vertex_exists/1,
-%%    get_vertex/1,
-%%    get_vertices/0,
-%%    add_user/1,
-%%    delete/1,
-%%    update_user/2,
-%%    add_group/1,
-%%    add_user_to_group/2,
-%%    is_member_of_group/2,
-%%    list_group_users/1,
-%%    remove_user_from_group/2,
-%%    create_edge/3
-%%]).
-
 %% API for vertices
 -export([
     create_vertex/2,
@@ -136,39 +119,40 @@
 %%        _ -> error
 %%    end.
 
-%%% Parent, Child, Vertex to wszystko ID-ki, jesli wolisz mozesz zmienic nazwy na ParentId itd., jak uwazasz
 
--spec create_edge(Parent::binary(), Child::binary(), Permissions::binary()) -> ok | {error, string()}.
+%%%% Parent, Child, Vertex to wszystko ID-ki, jesli wolisz mozesz zmienic nazwy na ParentId itd., jak uwazasz
+
+-spec create_edge(Parent::binary(), Child::binary(), Permissions::binary()) -> ok | {error, any()}.
 create_edge(_Arg0, _Arg1, _Arg2) ->
     erlang:error(not_implemented).
 
--spec update_edge(Parent::binary(), Child::binary(), Permissions::binary()) -> ok | {error, string()}.
+-spec update_edge(Parent::binary(), Child::binary(), Permissions::binary()) -> ok | {error, any()}.
 update_edge(_Arg0, _Arg1, _Arg2) ->
     erlang:error(not_implemented).
 
--spec remove_edge(Parent::binary(), Child::binary()) -> ok | {error, string()}.
+-spec remove_edge(Parent::binary(), Child::binary()) -> ok | {error, any()}.
 remove_edge(_Arg0, _Arg1) ->
     erlang:error(not_implemented).
 
--spec edge_exists(Parent::binary(), Child::binary()) -> true | false | {error, string()}.
+-spec edge_exists(Parent::binary(), Child::binary()) -> true | false | {error, any()}.
 edge_exists(_Arg0, _Arg1) ->
     erlang:error(not_implemented).
 
--spec get_edge(Parent::binary(), Child::binary()) -> {ok, map()} | {error, string()}.
+-spec get_edge(Parent::binary(), Child::binary()) -> {ok, map()} | {error, any()}.
 get_edge(_Arg0, _Arg1) ->
     erlang:error(not_implemented).
 
 %% @todo pierwszy klucz w mapie to <<"parents">>, a drugi to <<"children">>, ale nie wiem jak to przekazac w -spec
 -spec list_neighbours(Vertex::binary()) ->
-    {ok, #{binary() := list(binary()), binary() := list(binary())}} | {error, string()}.
+    {ok, #{binary() := list(binary()), binary() := list(binary())}} | {error, any()}.
 list_neighbours(_Arg0) ->
     erlang:error(not_implemented).
 
--spec list_parents(Vertex::binary()) -> {ok, list(binary())} | {error, string()}.
+-spec list_parents(Vertex::binary()) -> {ok, list(binary())} | {error, any()}.
 list_parents(_Arg0) ->
     erlang:error(not_implemented).
 
--spec list_children(Vertex::binary()) -> {ok, list(binary())} | {error, string()}.
+-spec list_children(Vertex::binary()) -> {ok, list(binary())} | {error, any()}.
 list_children(_Arg0) ->
     erlang:error(not_implemented).
 
@@ -184,6 +168,7 @@ generate_id() ->
         {error, Reason} -> {error, Reason}
     end.
 
+-spec create_vertex(Type::binary(), Name::binary()) -> {ok, binary()} | {error, any()}.
 create_vertex(Type, Name) ->
     {ok, Id} = generate_id(),
     Json = json_utils:encode(#{
@@ -197,6 +182,7 @@ create_vertex(Type, Name) ->
         {ok, _Result} -> {ok, Id}
     end.
 
+-spec update_vertex(Id::binary(), NewName::binary()) -> ok | {error, any()}.
 update_vertex(Id, NewName) ->
     {ok, Vertex} = get_vertex(Id),
     Data = json_utils:decode(Vertex),
@@ -206,12 +192,14 @@ update_vertex(Id, NewName) ->
         {ok, _Result} -> ok
     end.
 
+-spec remove_vertex(Id::binary()) -> ok | {error, any()}.
 remove_vertex(Id) ->
     case persistence:del(Id) of
         {error, Reason} -> {error, Reason};
         {ok, _Result} -> ok
     end.
 
+-spec vertex_exists(Key::binary()) -> true | false | {error, any()}.
 vertex_exists(Key) ->
     case persistence:if_exists(Key) of
         {ok, <<"0">>} -> false;
@@ -219,6 +207,7 @@ vertex_exists(Key) ->
         {error, Reason} -> {error, Reason}
     end.
 
+-spec get_vertex(Id::binary()) -> {ok, map()} | {error, any()}.
 get_vertex(Id) ->
     case vertex_exists(Id) of
         true -> persistence:get(Id);
@@ -250,6 +239,7 @@ vertices_to_types(IdsMap, [Key | Rest]) ->
         {error, Reason} -> {error, Reason}
     end.
 
+-spec list_vertices() -> {ok, map()} | {error, any()}.
 list_vertices() ->
     {ok, Keys} = persistence:keys("*"),
     vertices_to_types(#{
@@ -272,6 +262,7 @@ get_vertices_of_type(Type, IdsList, [Key | Rest]) ->
         {error, Reason} -> {error, Reason}
     end.
 
+-spec list_vertices(Type::binary()) -> {ok, list()} | {error, any()}.
 list_vertices(Type) ->
     Keys = persistence:keys("*"),
     get_vertices_of_type(Type, [], Keys).
