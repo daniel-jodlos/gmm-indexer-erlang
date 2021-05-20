@@ -32,7 +32,10 @@
 %% cowboy_rest callbacks
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+init(_Req, #{handler := unimplemented}) ->
+    erlang:error("Unimplemented handler\n");
 init(Req, State) ->
+    io:format("Handler: ~p\n\n", [maps:get(handler, State)]),
     (maps:get(handler, State)):init(Req, State).
 
 allowed_methods(Req, State) ->
@@ -52,6 +55,7 @@ content_types_accepted(Req, State) ->
 
 resource_exists(Req, State) ->
     (maps:get(handler, State)):resource_exists(Req, State).
+
 
 %% DELETE callback
 delete_resource(Req, State) ->

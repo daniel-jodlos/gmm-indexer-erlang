@@ -31,14 +31,7 @@ init(Req, State) ->
     TempState = maps:put(method, Method, State),
     NewState = maps:merge(TempState, case Method of
                                          <<"GET">> ->
-                                             case cowboy_req:match_qs([parent, child, vertex, which_edges], Req) of
-                                                 Map when
-                                                     is_map_key(parent, Map), is_map_key(child, Map);
-                                                     is_map_key(vertex, Map), is_map_key(which_edges, Map);
-                                                     is_map_key(vertex, Map) ->
-
-                                                     Map
-                                             end;
+                                             parse_get_parameters([[parent, child], [vertex, which_edges], [vertex]], Req);
                                          <<"POST">> ->
                                              cowboy_req:match_qs([{parent, nonempty},
                                                  {child, nonempty}, {permissions, nonempty}], Req);
@@ -77,6 +70,17 @@ delete_resource(Req, State) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% internal functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+parse_get_parameters([], _Req) ->
+    erlang:error("None of the parameters where found");
+parse_get_parameters([List | Rest], Req) ->
+    Zipped = lists:map(fun(Field) -> {Field, [], undefined} end, List),
+    Results = cowboy_req:match_qs(Zipped, Req),
+    UndefinedFields = maps:filter(fun(_K, V) -> V =:= undefined end, Results),
+    case map_size(UndefinedFields) of
+        0 -> Results;
+        _ -> parse_get_parameters(Rest, Req)
+    end.
 
 %% POST handler
 
