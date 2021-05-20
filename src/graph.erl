@@ -222,7 +222,8 @@ vertex_exists(Key) ->
 get_vertex(Id) ->
     case vertex_exists(Id) of
         true -> persistence:get(Id);
-        _ -> {error, cannot_get_vertex}
+        false -> {error, vertex_not_existing};
+        {error, Reason} -> {error, Reason}
     end.
 
 vertices_to_types(IdsMap, []) ->
