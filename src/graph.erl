@@ -1,6 +1,8 @@
 -module(graph).
 -author("Daniel Jodłoś").
 
+%%%% @todo Add function that retrieves zone from the vertex's ID
+
 %%%% @todo Old API, you can remove it
 
 %%-export([

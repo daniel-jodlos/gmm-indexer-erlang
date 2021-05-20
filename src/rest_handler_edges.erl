@@ -29,23 +29,22 @@
 init(Req, State) ->
     Method = cowboy_req:method(Req),
     TempState = maps:put(method, Method, State),
-    NewState = case Method of
-                        <<"GET">> ->
-                            case cowboy_req:match_qs([parent, child, vertex, which_edges], Req) of
-                                Map when
-                                    is_map_key(parent, Map), is_map_key(child, Map);
-                                    is_map_key(vertex, Map), is_map_key(which_edges, Map);
-                                    is_map_key(vertex, Map) ->
+    NewState = maps:merge(TempState, case Method of
+                                         <<"GET">> ->
+                                             case cowboy_req:match_qs([parent, child, vertex, which_edges], Req) of
+                                                 Map when
+                                                     is_map_key(parent, Map), is_map_key(child, Map);
+                                                     is_map_key(vertex, Map), is_map_key(which_edges, Map);
+                                                     is_map_key(vertex, Map) ->
 
-                                    maps:merge(TempState, Map)
-                            end;
-                        <<"POST">> ->
-                            maps:merge(TempState, cowboy_req:match_qs([
-                                {parent, nonempty}, {child, nonempty}, {permissions, nonempty}], Req));
-                        <<"DELETE">> ->
-                            maps:merge(TempState, cowboy_req:match_qs([
-                                {parent, nonempty}, {child, nonempty}], Req))
-                    end,
+                                                     Map
+                                             end;
+                                         <<"POST">> ->
+                                             cowboy_req:match_qs([{parent, nonempty},
+                                                 {child, nonempty}, {permissions, nonempty}], Req);
+                                         <<"DELETE">> ->
+                                             cowboy_req:match_qs([{parent, nonempty}, {child, nonempty}], Req)
+                                     end),
     {cowboy_rest, Req, NewState}.
 
 resource_exists(Req, State) ->
@@ -68,9 +67,7 @@ resource_exists(Req, State) ->
 
 %% DELETE callback
 delete_resource(Req, State) ->
-    Parent = maps:get(parent, State),
-    Child = maps:get(child, State),
-%%    #{parent := Parent, child := Child} = State,
+    #{parent := Parent, child := Child} = State,
     case graph:remove_edge(Parent, Child) of
         ok -> {true, Req, State};
         _ -> {false, Req, State}
@@ -84,10 +81,7 @@ delete_resource(Req, State) ->
 %% POST handler
 
 from_json(Req, State) ->
-    Parent = maps:get(parent, State),
-    Child = maps:get(child, State),
-    Permissions = maps:get(child, State),
-%%    #{parent := Parent, child := Child, permissions := Permissions} = State,
+    #{parent := Parent, child := Child, permissions := Permissions} = State,
     Result = case graph:edge_exists(Parent, Child) of
                  false -> graph:create_edge(Parent, Child, Permissions);
                  true -> graph:update_edge(Parent, Child, Permissions)

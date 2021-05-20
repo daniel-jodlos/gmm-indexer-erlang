@@ -33,10 +33,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 init(Req, State) ->
-    case maps:get(handler, State) of
-        vertices -> rest_handler_vertices:init(Req, State);
-        edges -> rest_handler_edges:init(Req, State)
-    end.
+    (maps:get(handler, State)):init(Req, State).
 
 allowed_methods(Req, State) ->
     Methods = [<<"GET">>, <<"POST">>, <<"DELETE">>],
@@ -54,17 +51,11 @@ content_types_accepted(Req, State) ->
     ], Req, State}.
 
 resource_exists(Req, State) ->
-    case maps:get(handler, State) of
-        vertices -> rest_handler_vertices:resource_exists(Req, State);
-        edges -> rest_handler_edges:resource_exists(Req, State)
-    end.
+    (maps:get(handler, State)):resource_exists(Req, State).
 
 %% DELETE callback
 delete_resource(Req, State) ->
-    case maps:get(handler, State) of
-        vertices -> rest_handler_vertices:delete_resource(Req, State);
-        edges -> rest_handler_edges:delete_resource(Req, State)
-    end.
+    (maps:get(handler, State)):delete_resource(Req, State).
 
 delete_completed(Req, State) ->
     {false, Req, State}.
@@ -76,14 +67,8 @@ delete_completed(Req, State) ->
 
 %% POST handler
 from_json(Req, State) ->
-    case maps:get(handler, State) of
-        vertices -> rest_handler_vertices:from_json(Req, State);
-        edges -> rest_handler_edges:from_json(Req, State)
-    end.
+    (maps:get(handler, State)):from_json(Req, State).
 
 %% GET handler
 to_json(Req, State) ->
-    case maps:get(handler, State) of
-        vertices -> rest_handler_vertices:to_json(Req, State);
-        edges -> rest_handler_edges:to_json(Req, State)
-    end.
+    (maps:get(handler, State)):to_json(Req, State).

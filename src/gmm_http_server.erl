@@ -16,11 +16,11 @@ start_server() ->
     Dispatch = cowboy_router:compile([
         %% vertices
 %%        {'_', [{"/graph/vertices", gmm_rest_handler_vertices, #{}}]},
-        {'_', [{"/graph/vertices", gmm_rest_handler, #{handler => vertices}}]},
+        {'_', [{"/graph/vertices", gmm_rest_handler, #{handler => rest_handler_vertices}}]},
 
         %% edges
 %%        {'_', [{"/graph/edges", gmm_rest_handler_edges, #{}}]}
-        {'_', [{"/graph/edges", gmm_rest_handler, #{handler => edges}}]}
+        {'_', [{"/graph/edges", gmm_rest_handler, #{handler => rest_handler_edges}}]}
 
     ]),
     {ok, _} = cowboy:start_clear(my_http_listener,
