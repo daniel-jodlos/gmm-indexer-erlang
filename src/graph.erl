@@ -28,133 +28,6 @@
 
 -include("records.hrl").
 
-%%%% @todo You can use/rename any of those, your business
-
-%%generate_id() ->
-%%    Id = << <<Y>> ||<<X:4>> <= crypto:hash(md5, term_to_binary(make_ref())), Y <- integer_to_list(X,16)>>,
-%%    case persistence:if_exists(Id) of
-%%        {ok, 0} -> Id;
-%%        {ok, 1} -> generate_id();
-%%        {error, Reason} -> {error, Reason}
-%%    end.
-%%
-%%get_vertex(Id) ->
-%%    persistence:get(Id).
-%%
-%%get_vertices()->
-%%    persistence:keys("*").
-%%
-%%add_user(Name) ->
-%%    Id = generate_id(),
-%%    Json = json_utils:encode(#{<<"type">> => <<"user">>, <<"id">> => Id, <<"name">> => Name}),
-%%    Response = persistence:set(Id, Json),
-%%    case Response of
-%%        {error, Reason} -> {error, Reason};
-%%        {ok, _Result} -> {ok, Id}
-%%    end.
-%%
-%%update_user(Id, NewName) ->
-%%    Json = json_utils:encode(#{<<"type">> => <<"user">>, <<"id">> => Id, <<"Name">> => NewName}),
-%%    Response = persistence:set(Id, Json),
-%%    case Response of
-%%        {error, Reason} -> {error, Reason};
-%%        {ok, _Result} -> ok
-%%    end.
-%%
-%%delete(Id) ->
-%%    Response = persistence:del(Id),
-%%    case Response of
-%%        {error, Reason} -> {error, Reason};
-%%        {ok, _Result} -> ok
-%%    end.
-%%
-%%children_key(Key) when is_binary(Key) == true ->
-%%    <<Key/binary, "/children">>;
-%%children_key(Key) -> children_key(binary:list_to_bin(Key)).
-%%
-%%add_user_to_group(User, Group) ->
-%%    persistence:set_add(children_key(Group), User).
-%%
-%%remove_user_from_group(User, Group) ->
-%%    persistence:set_remove(children_key(Group), User).
-%%
-%%is_member_of_group(User, Group) ->
-%%    {ok, Result} = persistence:set_is_member(children_key(Group), User),
-%%    Result.
-%%
-%%list_group_users(Group) ->
-%%    {ok, Result} = persistence:set_list_members(children_key(Group)),
-%%    Result.
-%%
-%%
-%%add_group(Name) ->
-%%    Id = generate_id(),
-%%    Json = json_utils:encode(#{<<"type">> => <<"group">>, <<"id">> => Id, <<"name">> => Name}),
-%%    Response = persistence:set(Id, Json),
-%%    case Response of
-%%        {error, Reason} -> {error, Reason};
-%%        {ok, _Result} -> {ok, Id}
-%%    end.
-%%
-%%
-%%
-%%create_edge(Parent, Child, Permissions) ->
-%%    Flag = case {vertex_exists(Parent), vertex_exists(Child)} of
-%%               {false, _} -> false;
-%%               {_, false} -> false;
-%%               _ -> true
-%%           end,
-%%    case Flag of
-%%        false -> {error, "At least one of nodes doesn't exist"};
-%%        true ->
-%%            persistence:add_parent(Child, Parent, Permissions),
-%%            persistence:add_child(Parent, Child, Permissions),
-%%            ok
-%%    end.
-%%
-%%vertex_exists(Key) ->
-%%    case persistence:if_exists(Key) of
-%%        {ok, 0} -> false;
-%%        {ok, 1} -> true;
-%%        _ -> error
-%%    end.
-
-
-%%%% Parent, Child, Vertex to wszystko ID-ki, jesli wolisz mozesz zmienic nazwy na ParentId itd., jak uwazasz
-
--spec create_edge(Parent::binary(), Child::binary(), Permissions::binary()) -> ok | {error, any()}.
-create_edge(_Arg0, _Arg1, _Arg2) ->
-    erlang:error(not_implemented).
-
--spec update_edge(Parent::binary(), Child::binary(), Permissions::binary()) -> ok | {error, any()}.
-update_edge(_Arg0, _Arg1, _Arg2) ->
-    erlang:error(not_implemented).
-
--spec remove_edge(Parent::binary(), Child::binary()) -> ok | {error, any()}.
-remove_edge(_Arg0, _Arg1) ->
-    erlang:error(not_implemented).
-
--spec edge_exists(Parent::binary(), Child::binary()) -> true | false | {error, any()}.
-edge_exists(_Arg0, _Arg1) ->
-    erlang:error(not_implemented).
-
--spec get_edge(Parent::binary(), Child::binary()) -> {ok, map()} | {error, any()}.
-get_edge(_Arg0, _Arg1) ->
-    erlang:error(not_implemented).
-
-%% @todo pierwszy klucz w mapie to <<"parents">>, a drugi to <<"children">>, ale nie wiem jak to przekazac w -spec
--spec list_neighbours(Vertex::binary()) ->
-    {ok, #{binary() := list(binary()), binary() := list(binary())}} | {error, any()}.
-list_neighbours(_Arg0) ->
-    erlang:error(not_implemented).
-
--spec list_parents(Vertex::binary()) -> {ok, list(binary())} | {error, any()}.
-list_parents(_Arg0) ->
-    erlang:error(not_implemented).
-
--spec list_children(Vertex::binary()) -> {ok, list(binary())} | {error, any()}.
-list_children(_Arg0) ->
-    erlang:error(not_implemented).
 
 %% vertices api
 
@@ -162,7 +35,7 @@ generate_id() ->
     Id = << <<Y>> ||<<X:4>> <= crypto:hash(md5, term_to_binary(make_ref())), Y <- integer_to_list(X,16)>>,
     Zone = list_to_binary(?ZONE_ID),
     IdWithZone = << Zone/binary, "_", Id/binary >>,
-    case persistence:if_exists(IdWithZone) of
+    case persistence:exists(IdWithZone) of
         {ok, <<"0">>} -> {ok, IdWithZone};
         {ok, <<"1">>} -> generate_id();
         {error, Reason} -> {error, Reason}
@@ -199,9 +72,9 @@ remove_vertex(Id) ->
         {ok, _Result} -> ok
     end.
 
--spec vertex_exists(Key::binary()) -> true | false | {error, any()}.
+-spec vertex_exists(Key::binary()) -> boolean() | {error, any()}.
 vertex_exists(Key) ->
-    case persistence:if_exists(Key) of
+    case persistence:exists(Key) of
         {ok, <<"0">>} -> false;
         {ok, <<"1">>} -> true;
         {error, Reason} -> {error, Reason}
@@ -267,4 +140,41 @@ list_vertices(Type) ->
     Keys = persistence:keys("*"),
     get_vertices_of_type(Type, [], Keys).
 
+
 %% edges api - todo
+
+%%%% Parent, Child, Vertex to wszystko ID-ki, jesli wolisz mozesz zmienic nazwy na ParentId itd., jak uwazasz
+
+-spec create_edge(Parent::binary(), Child::binary(), Permissions::binary()) -> ok | {error, any()}.
+create_edge(_Arg0, _Arg1, _Arg2) ->
+    erlang:error(not_implemented).
+
+-spec update_edge(Parent::binary(), Child::binary(), Permissions::binary()) -> ok | {error, any()}.
+update_edge(_Arg0, _Arg1, _Arg2) ->
+    erlang:error(not_implemented).
+
+-spec remove_edge(Parent::binary(), Child::binary()) -> ok | {error, any()}.
+remove_edge(_Arg0, _Arg1) ->
+    erlang:error(not_implemented).
+
+-spec edge_exists(Parent::binary(), Child::binary()) -> boolean() | {error, any()}.
+edge_exists(_Arg0, _Arg1) ->
+    erlang:error(not_implemented).
+
+-spec get_edge(Parent::binary(), Child::binary()) -> {ok, map()} | {error, any()}.
+get_edge(_Arg0, _Arg1) ->
+    erlang:error(not_implemented).
+
+%% #{<<"parents">> => list(binary()), <<"children">> => list(binary())}
+-spec list_neighbours(Vertex::binary()) ->
+    {ok, #{binary() := list(binary()), binary() := list(binary())}} | {error, any()}.
+list_neighbours(_Arg0) ->
+    erlang:error(not_implemented).
+
+-spec list_parents(Vertex::binary()) -> {ok, list(binary())} | {error, any()}.
+list_parents(_Arg0) ->
+    erlang:error(not_implemented).
+
+-spec list_children(Vertex::binary()) -> {ok, list(binary())} | {error, any()}.
+list_children(_Arg0) ->
+    erlang:error(not_implemented).
