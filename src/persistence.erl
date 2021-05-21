@@ -27,8 +27,7 @@
     set_add/2,
     set_remove/2,
     set_is_member/2,
-    set_list_members/1,
-    exists/1 %% @todo Added by Pawel, probably remove it
+    set_list_members/1
 ]).
 
 %% gen_server api
@@ -121,7 +120,3 @@ set_is_member(Key, Value) ->
 
 set_list_members(Key) ->
     gen_server:call(?REDIS_SERVER, {set_list_members, Key}).
-
-%%%% @todo Added By Pawel
-exists(Key) ->
-    gen_server:call(?REDIS_SERVER, {exists, Key}).

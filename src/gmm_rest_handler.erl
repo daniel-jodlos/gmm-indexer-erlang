@@ -35,7 +35,6 @@
 init(_Req, #{handler := unimplemented}) ->
     erlang:error("Unimplemented handler\n");
 init(Req, State) ->
-    io:format("Handler: ~p\n\n", [maps:get(handler, State)]),
     (maps:get(handler, State)):init(Req, State).
 
 allowed_methods(Req, State) ->
