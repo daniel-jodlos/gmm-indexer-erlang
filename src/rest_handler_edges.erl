@@ -45,14 +45,20 @@ resource_exists(Req, State) ->
     Result = case Method of
                  <<"GET">> ->
                      case State of
-                         #{parent := Parent, child := Child} -> graph:edge_exists(Parent, Child);
-                         #{vertex := Vertex} -> graph:vertex_exists(Vertex);
+                         #{parent := Parent, child := Child} ->
+                             {ok, Bool} = graph:edge_exists(Parent, Child),
+                             Bool;
+                         #{vertex := Vertex} ->
+                             {ok, Bool} = graph:vertex_exists(Vertex),
+                             Bool;
                          _ -> false
                      end;
                  <<"POST">> -> false;
                  <<"DELETE">> ->
                      case State of
-                         #{parent := Parent, child := Child} -> graph:edge_exists(Parent, Child);
+                         #{parent := Parent, child := Child} ->
+                             {ok, Bool} = graph:edge_exists(Parent, Child),
+                             Bool;
                          _ -> false
                      end
              end,
@@ -87,8 +93,8 @@ parse_get_parameters([List | Rest], Req) ->
 from_json(Req, State) ->
     #{parent := Parent, child := Child, permissions := Permissions} = State,
     Result = case graph:edge_exists(Parent, Child) of
-                 false -> graph:create_edge(Parent, Child, Permissions);
-                 true -> graph:update_edge(Parent, Child, Permissions)
+                 {ok, false} -> graph:create_edge(Parent, Child, Permissions);
+                 {ok, true} -> graph:update_edge(Parent, Child, Permissions)
              end,
     case Result of
         ok -> {true, Req, State};

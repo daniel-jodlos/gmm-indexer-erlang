@@ -24,6 +24,7 @@
     set/2,
     del/1,
     keys/1,
+    exists/1,
     set_add/2,
     set_remove/2,
     set_is_member/2,
@@ -108,6 +109,9 @@ del(Key) ->
 
 keys(Pattern) ->
     gen_server:call(?REDIS_SERVER, {keys, Pattern}).
+
+exists(Key) ->
+    gen_server:call(?REDIS_SERVER, {exists, Key}).
 
 set_add(Key, Value) ->
     gen_server:call(?REDIS_SERVER, {set_add, Key, Value}).

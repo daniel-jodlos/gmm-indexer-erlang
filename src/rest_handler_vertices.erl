@@ -47,9 +47,13 @@ resource_exists(Req, State) ->
          end,
     Result = case {Method, Id} of
                  {<<"GET">>, undefined} -> true;
-                 {<<"GET">>, _} -> graph:vertex_exists(Id);
+                 {<<"GET">>, _} ->
+                     {ok, Bool} = graph:vertex_exists(Id),
+                     Bool;
                  {<<"DELETE">>, undefined} -> false;
-                 {<<"DELETE">>, _} -> graph:vertex_exists(Id);
+                 {<<"DELETE">>, _} ->
+                     {ok, Bool} = graph:vertex_exists(Id),
+                     Bool;
                  {<<"POST">>, _} -> false
              end,
     {Result, Req, State}.

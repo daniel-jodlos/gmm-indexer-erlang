@@ -72,19 +72,19 @@ remove_vertex(Id) ->
         {ok, _Result} -> ok
     end.
 
--spec vertex_exists(Key::binary()) -> boolean() | {error, any()}.
+-spec vertex_exists(Key::binary()) -> {ok, boolean()} | {error, any()}.
 vertex_exists(Key) ->
     case persistence:exists(Key) of
-        {ok, <<"0">>} -> false;
-        {ok, <<"1">>} -> true;
+        {ok, <<"0">>} -> {ok, false};
+        {ok, <<"1">>} -> {ok, true};
         {error, Reason} -> {error, Reason}
     end.
 
 -spec get_vertex(Id::binary()) -> {ok, map()} | {error, any()}.
 get_vertex(Id) ->
     case vertex_exists(Id) of
-        true -> persistence:get(Id);
-        false -> {error, vertex_not_existing};
+        {ok, true} -> persistence:get(Id);
+        {ok, false} -> {error, vertex_not_existing};
         {error, Reason} -> {error, Reason}
     end.
 
@@ -157,7 +157,7 @@ update_edge(_Arg0, _Arg1, _Arg2) ->
 remove_edge(_Arg0, _Arg1) ->
     erlang:error(not_implemented).
 
--spec edge_exists(Parent::binary(), Child::binary()) -> boolean() | {error, any()}.
+-spec edge_exists(Parent::binary(), Child::binary()) -> {ok, boolean()} | {error, any()}.
 edge_exists(_Arg0, _Arg1) ->
     erlang:error(not_implemented).
 
