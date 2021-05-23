@@ -6,6 +6,8 @@
 -module(persistence).
 -behaviour(gen_server).
 
+-include("records.hrl").
+
 -export([
     stop/1, 
     start_link/1, 
@@ -16,12 +18,17 @@
     terminate/2, 
     code_change/3
 ]).
+
 -export([
-    get_user/2, 
-    get_users/1, 
-    add_user/2, 
-    delete_user/2, 
-    update_user/3
+    get/1,
+    set/2,
+    del/1,
+    keys/1,
+    exists/1,
+    set_add/2,
+    set_remove/2,
+    set_is_member/2,
+    set_list_members/1
 ]).
 
 %% gen_server api
@@ -54,8 +61,28 @@ handle_call({keys, Pattern}, _From, RedisClient) ->
     Reply = eredis:q(RedisClient, ["KEYS", Pattern]),
     {reply, Reply, RedisClient};
 
+handle_call({set_add, Key, Value}, _From, RedisClient) ->
+    Reply = eredis:q(RedisClient, ["SADD", Key, Value]),
+    {reply, Reply, RedisClient};
+
+handle_call({set_remove, Key, Value}, _From, RedisClient) ->
+    Reply = eredis:q(RedisClient, ["SREM", Key, Value]),
+    {reply, Reply, RedisClient};
+
+handle_call({set_is_member, Key, Value}, _From, RedisClient) ->
+    Reply = eredis:q(RedisClient, ["SISMEMBER", Key, Value]),
+    {reply, Reply, RedisClient};
+
+handle_call({set_list_members, Key}, _From, RedisClient) ->
+    Reply = eredis:q(RedisClient, ["SMEMBERS", Key]),
+    {reply, Reply, RedisClient};
+
+handle_call({exists, Key}, _From, RedisClient) ->
+    Reply = eredis:q(RedisClient, ["EXISTS", Key]),
+    {reply, Reply, RedisClient};
+
 handle_call(_Request, _From, RedisClient) ->
-    {reply, ok, RedisClient}.
+    {reply, unknown, RedisClient}.
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -71,46 +98,29 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% redis api
 
-get(ServerName, Key) ->
-    gen_server:call(ServerName, {get, Key}).
+get(Key) ->
+    gen_server:call(?REDIS_SERVER, {get, Key}).
 
-set(ServerName, Key, Value) ->
-    gen_server:call(ServerName, {set, Key, Value}).
+set(Key, Value) ->
+    gen_server:call(?REDIS_SERVER, {set, Key, Value}).
 
-del(ServerName, Key) ->
-    gen_server:call(ServerName, {del, Key}).
+del(Key) ->
+    gen_server:call(?REDIS_SERVER, {del, Key}).
 
-keys(ServerName, Pattern) ->
-    gen_server:call(ServerName, {keys, Pattern}).
+keys(Pattern) ->
+    gen_server:call(?REDIS_SERVER, {keys, Pattern}).
 
-%% persistence higher level api
+exists(Key) ->
+    gen_server:call(?REDIS_SERVER, {exists, Key}).
 
-get_user(ServerName, Id) ->
-    get(ServerName, Id).
+set_add(Key, Value) ->
+    gen_server:call(?REDIS_SERVER, {set_add, Key, Value}).
 
-get_users(ServerName) ->
-    keys(ServerName, "*").
+set_remove(Key, Value) ->
+    gen_server:call(?REDIS_SERVER, {set_remove, Key, Value}).
 
-add_user(ServerName, Name) ->
-    Id = << <<Y>> ||<<X:4>> <= crypto:hash(md5, term_to_binary(make_ref())), Y <- integer_to_list(X,16)>>,
-    Json = json_utils:encode(#{<<"id">> => Id, <<"Name">> => Name}),
-    Response = set(ServerName, Id, Json),
-    case Response of
-        {error, Reason} -> {error, Reason};
-        {ok, _Result} -> {ok, Id}
-    end.
+set_is_member(Key, Value) ->
+    gen_server:call(?REDIS_SERVER, {set_is_member, Key, Value}).
 
-update_user(ServerName, Id, NewName) ->
-    Json = json_utils:encode(#{<<"id">> => Id, <<"Name">> => NewName}),
-    Response = set(ServerName, Id, Json),
-    case Response of
-        {error, Reason} -> {error, Reason};
-        {ok, _Result} -> ok
-    end.
-
-delete_user(ServerName, Id) ->
-    Response = del(ServerName, Id),
-    case Response of
-        {error, Reason} -> {error, Reason};
-        {ok, _Result} -> ok
-    end.
+set_list_members(Key) ->
+    gen_server:call(?REDIS_SERVER, {set_list_members, Key}).
