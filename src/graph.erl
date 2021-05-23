@@ -143,9 +143,9 @@ list_vertices(Type) ->
 
 %% edges api - todo
 
-childrens_id(Parent) -> <<Parent/binary, "/children">>.
-parents_id(Child) -> <<Child/binary, "/parents">>.
-edge_id(Parent, Child) -> <<"edge/", Parent/binary, "/", Child/binary>>.
+childrens_id(From) -> <<From/binary, "/children">>.
+parents_id(To) -> <<To/binary, "/parents">>.
+edge_id(From, To) -> <<"edge/", From/binary, "/", To/binary>>.
 
 -spec validate([any() | {error, any()}]) -> ok | {error, any()}.
 validate(Results) ->
@@ -157,36 +157,36 @@ validate(Results) ->
     end,
     lists:foldl(Reducer, ok, Results).
 
-%%%% Parent, Child, Vertex to wszystko ID-ki, jesli wolisz mozesz zmienic nazwy na ParentId itd., jak uwazasz
+%%%% From, To, Vertex to wszystko ID-ki, jesli wolisz mozesz zmienic nazwy na FromId itd., jak uwazasz
 
--spec create_edge(Parent::binary(), Child::binary(), Permissions::binary()) -> ok | {error, any()}.
-create_edge(Parent, Child, Permissions) -> validate([
-        persistence:set_add(childrens_id(Parent), Child),
-        persistence:set_add(parents_id(Child), Parent),
-        persistence:set(edge_id(Parent, Child), Permissions)
+-spec create_edge(From::binary(), To::binary(), Permissions::binary()) -> ok | {error, any()}.
+create_edge(From, To, Permissions) -> validate([
+        persistence:set_add(childrens_id(From), To),
+        persistence:set_add(parents_id(To), From),
+        persistence:set(edge_id(From, To), Permissions)
     ]).
 
--spec update_edge(Parent::binary(), Child::binary(), Permissions::binary()) -> ok | {error, any()}.
-update_edge(Parent, Child, Permissions) -> validate([
-        persistence:set(edge_id(Parent, Child), Permissions)
+-spec update_edge(From::binary(), To::binary(), Permissions::binary()) -> ok | {error, any()}.
+update_edge(From, To, Permissions) -> validate([
+        persistence:set(edge_id(From, To), Permissions)
     ]).
 
--spec remove_edge(Parent::binary(), Child::binary()) -> ok | {error, any()}.
-remove_edge(Parent, Child) -> validate([
-        persistence:del(edge_id(Parent, Child)),
-        persistence:set_remove(childrens_id(Parent), Child),
-        persistence:set_remove(parents_id(Child), Parent)
+-spec remove_edge(From::binary(), To::binary()) -> ok | {error, any()}.
+remove_edge(From, To) -> validate([
+        persistence:del(edge_id(From, To)),
+        persistence:set_remove(childrens_id(From), To),
+        persistence:set_remove(parents_id(To), From)
     ]).
 
--spec edge_exists(Parent::binary(), Child::binary()) -> {ok, boolean()} | {error, any()}.
-edge_exists(Parent, Child) ->
-    persistence:exists(edge_id(Parent, Child)).
+-spec edge_exists(From::binary(), To::binary()) -> {ok, boolean()} | {error, any()}.
+edge_exists(From, To) ->
+    persistence:exists(edge_id(From, To)).
 
--spec get_edge(Parent::binary(), Child::binary()) -> {ok, map()} | {error, any()}.
-get_edge(Parent, Child) ->
-    case persistence:get(edge_id(Parent, Child)) of
+-spec get_edge(From::binary(), To::binary()) -> {ok, map()} | {error, any()}.
+get_edge(From, To) ->
+    case persistence:get(edge_id(From, To)) of
         {error, Error} -> {error, Error};
-        {ok, Permissions} -> {ok, #{ <<"Parent">> => Parent, <<"Child">> => Child, <<"Permissions">> => Permissions }}
+        {ok, Permissions} -> {ok, #{ <<"From">> => From, <<"To">> => To, <<"Permissions">> => Permissions }}
     end.
 
 %% #{<<"parents">> => list(binary()), <<"children">> => list(binary())}
@@ -197,7 +197,7 @@ list_neighbours(Vertex) ->
     Children = list_children(Vertex),
     case lists:any(fun ({error, _}) -> true; (_) -> false end, [Parents, Children]) of
         true -> {error, "Vertex doesn't exist"};
-        false -> #{ <<"Parents">> => Parents, <<"Children">> => Children }
+        false -> #{ <<"parents">> => Parents, <<"children">> => Children }
     end.
 
 -spec list_parents(Vertex::binary()) -> {ok, list(binary())} | {error, any()}.
