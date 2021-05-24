@@ -2,9 +2,10 @@
 -author("Daniel Jodłoś").
 
 % Naming convention for egdes
-% - From/To - Verticies that are connected by directed edge.
-% - Parents of vertex - a set of verticies, that are connected to the vertex.
-% - Children of vertex - a set of verticies, to which the vertex is a parent.
+% - From/To, or Parent/Child, is Id of a neighbour of current vertex
+% 
+% Edge is directed as follows:  {Parent -> Child} or {From -> To}
+% For example from group to user
 
 %%%% @todo Add function that retrieves zone from the vertex's ID
 
