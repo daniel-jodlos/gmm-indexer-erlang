@@ -1,6 +1,12 @@
 -module(graph).
 -author("Daniel Jodłoś").
 
+% Naming convention for egdes
+% - From/To, or Parent/Child, is Id of a neighbour of current vertex
+% 
+% Edge is directed as follows:  {Parent -> Child} or {From -> To}
+% For example from group to user
+
 %%%% @todo Add function that retrieves zone from the vertex's ID
 
 %% API for vertices
@@ -143,38 +149,68 @@ list_vertices(Type) ->
 
 %% edges api - todo
 
-%%%% Parent, Child, Vertex to wszystko ID-ki, jesli wolisz mozesz zmienic nazwy na ParentId itd., jak uwazasz
+childrens_id(From) -> <<From/binary, "/children">>.
+parents_id(To) -> <<To/binary, "/parents">>.
+edge_id(From, To) -> <<"edge/", From/binary, "/", To/binary>>.
 
--spec create_edge(Parent::binary(), Child::binary(), Permissions::binary()) -> ok | {error, any()}.
-create_edge(_Arg0, _Arg1, _Arg2) ->
-    erlang:error(not_implemented).
+-spec validate([any() | {error, any()}]) -> ok | {error, any()}.
+validate(Results) ->
+    Reducer = fun
+        ({error, NError}, {error, Error}) -> {error, [NError | Error]};
+        ({error, Error}, _) -> {error, Error};
+        (_, {error, Error}) -> {error, Error};
+        (_, _) -> ok
+    end,
+    lists:foldl(Reducer, ok, Results).
 
--spec update_edge(Parent::binary(), Child::binary(), Permissions::binary()) -> ok | {error, any()}.
-update_edge(_Arg0, _Arg1, _Arg2) ->
-    erlang:error(not_implemented).
+%%%% From, To, Vertex to wszystko ID-ki, jesli wolisz mozesz zmienic nazwy na FromId itd., jak uwazasz
 
--spec remove_edge(Parent::binary(), Child::binary()) -> ok | {error, any()}.
-remove_edge(_Arg0, _Arg1) ->
-    erlang:error(not_implemented).
+-spec create_edge(From::binary(), To::binary(), Permissions::binary()) -> ok | {error, any()}.
+create_edge(From, To, Permissions) -> validate([
+        persistence:set_add(childrens_id(From), To),
+        persistence:set_add(parents_id(To), From),
+        persistence:set(edge_id(From, To), Permissions)
+    ]).
 
--spec edge_exists(Parent::binary(), Child::binary()) -> {ok, boolean()} | {error, any()}.
-edge_exists(_Arg0, _Arg1) ->
-    erlang:error(not_implemented).
+-spec update_edge(From::binary(), To::binary(), Permissions::binary()) -> ok | {error, any()}.
+update_edge(From, To, Permissions) -> validate([
+        persistence:set(edge_id(From, To), Permissions)
+    ]).
 
--spec get_edge(Parent::binary(), Child::binary()) -> {ok, map()} | {error, any()}.
-get_edge(_Arg0, _Arg1) ->
-    erlang:error(not_implemented).
+-spec remove_edge(From::binary(), To::binary()) -> ok | {error, any()}.
+remove_edge(From, To) -> validate([
+        persistence:del(edge_id(From, To)),
+        persistence:set_remove(childrens_id(From), To),
+        persistence:set_remove(parents_id(To), From)
+    ]).
+
+-spec edge_exists(From::binary(), To::binary()) -> {ok, boolean()} | {error, any()}.
+edge_exists(From, To) ->
+    persistence:exists(edge_id(From, To)).
+
+-spec get_edge(From::binary(), To::binary()) -> {ok, map()} | {error, any()}.
+get_edge(From, To) ->
+    case persistence:get(edge_id(From, To)) of
+        {error, Error} -> {error, Error};
+        {ok, Permissions} -> {ok, #{ <<"From">> => From, <<"To">> => To, <<"Permissions">> => Permissions }}
+    end.
 
 %% #{<<"parents">> => list(binary()), <<"children">> => list(binary())}
 -spec list_neighbours(Vertex::binary()) ->
     {ok, #{binary() := list(binary()), binary() := list(binary())}} | {error, any()}.
-list_neighbours(_Arg0) ->
-    erlang:error(not_implemented).
+list_neighbours(Vertex) ->
+    Parents = list_parents(Vertex),
+    Children = list_children(Vertex),
+    case lists:any(fun ({error, _}) -> true; (_) -> false end, [Parents, Children]) of
+        true -> {error, "Vertex doesn't exist"};
+        false -> #{ <<"parents">> => Parents, <<"children">> => Children }
+    end.
 
 -spec list_parents(Vertex::binary()) -> {ok, list(binary())} | {error, any()}.
-list_parents(_Arg0) ->
-    erlang:error(not_implemented).
+list_parents(Vertex) ->
+    persistence:set_list_members(parents_id(Vertex)).
+
 
 -spec list_children(Vertex::binary()) -> {ok, list(binary())} | {error, any()}.
-list_children(_Arg0) ->
-    erlang:error(not_implemented).
+list_children(Vertex) ->
+    persistence:set_list_members(childrens_id(Vertex)).
