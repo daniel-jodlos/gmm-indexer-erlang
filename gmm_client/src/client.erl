@@ -75,7 +75,7 @@ add_edge(Parent, Child, Permissions)->
   Url= ?URL++"graph/edges?parent="++Parent++"&child="++Child++"&permissions="++Permissions,
   client_requests:post_request(list_to_binary(Url)).
 
-% do zmiany
+% do ewentualnej serializacji
 get_vertex_neighbours(Vertex, WhichEgdes)->
   application:ensure_all_started(hackney),
   Url= ?URL++"graph/edges?vertex="++Vertex++"&which_edges="++WhichEgdes,
