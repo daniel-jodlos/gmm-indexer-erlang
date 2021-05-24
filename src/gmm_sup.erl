@@ -35,10 +35,6 @@ init([]) ->
     },
     ChildSpecs = [
         #{
-            id => ping,
-            start => {ping_pong, start_link, [ping]}
-        },
-        #{
             id => ?REDIS_SERVER,
             start => {persistence, start_link, [?REDIS_SERVER]}
         }  
