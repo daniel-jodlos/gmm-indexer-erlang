@@ -7,7 +7,10 @@
 % Edge is directed as follows:  {Parent -> Child} or {From -> To}
 % For example from group to user
 
-%%%% @todo Add function that retrieves zone from the vertex's ID
+%% @todo Dodac funkcje ktora zwraca ID zony na podstawie ID wierzcholka
+
+%% @todo Ujednolicic nazewnictwo pol w zwracanych mapach
+%% @todo - albo wszystkie od wielkiej litery, albo wszystkie od malej
 
 %% API for vertices
 -export([
@@ -35,7 +38,9 @@
 -include("records.hrl").
 
 
-%% vertices api
+%%%%%%%%%%%%%%%%%%%%%
+%% VERTICES API
+%%%%%%%%%%%%%%%%%%%%%
 
 generate_id() ->
     Id = << <<Y>> ||<<X:4>> <= crypto:hash(md5, term_to_binary(make_ref())), Y <- integer_to_list(X,16)>>,
@@ -147,9 +152,11 @@ list_vertices(Type) ->
     get_vertices_of_type(Type, [], Keys).
 
 
-%% edges api - todo
+%%%%%%%%%%%%%%%%%%%%%
+%% EDGES API
+%%%%%%%%%%%%%%%%%%%%%
 
-childrens_id(From) -> <<From/binary, "/children">>.
+children_id(From) -> <<From/binary, "/children">>.
 parents_id(To) -> <<To/binary, "/parents">>.
 edge_id(From, To) -> <<"edge/", From/binary, "/", To/binary>>.
 
@@ -163,11 +170,9 @@ validate(Results) ->
     end,
     lists:foldl(Reducer, ok, Results).
 
-%%%% From, To, Vertex to wszystko ID-ki, jesli wolisz mozesz zmienic nazwy na FromId itd., jak uwazasz
-
 -spec create_edge(From::binary(), To::binary(), Permissions::binary()) -> ok | {error, any()}.
 create_edge(From, To, Permissions) -> validate([
-        persistence:set_add(childrens_id(From), To),
+        persistence:set_add(children_id(From), To),
         persistence:set_add(parents_id(To), From),
         persistence:set(edge_id(From, To), Permissions)
     ]).
@@ -180,13 +185,17 @@ update_edge(From, To, Permissions) -> validate([
 -spec remove_edge(From::binary(), To::binary()) -> ok | {error, any()}.
 remove_edge(From, To) -> validate([
         persistence:del(edge_id(From, To)),
-        persistence:set_remove(childrens_id(From), To),
+        persistence:set_remove(children_id(From), To),
         persistence:set_remove(parents_id(To), From)
     ]).
 
 -spec edge_exists(From::binary(), To::binary()) -> {ok, boolean()} | {error, any()}.
 edge_exists(From, To) ->
-    persistence:exists(edge_id(From, To)).
+    case persistence:exists(edge_id(From, To)) of
+        {ok, <<"0">>} -> {ok, false};
+        {ok, <<"1">>} -> {ok, true};
+        {error, Reason} -> {error, Reason}
+    end.
 
 -spec get_edge(From::binary(), To::binary()) -> {ok, map()} | {error, any()}.
 get_edge(From, To) ->
@@ -210,7 +219,6 @@ list_neighbours(Vertex) ->
 list_parents(Vertex) ->
     persistence:set_list_members(parents_id(Vertex)).
 
-
 -spec list_children(Vertex::binary()) -> {ok, list(binary())} | {error, any()}.
 list_children(Vertex) ->
-    persistence:set_list_members(childrens_id(Vertex)).
+    persistence:set_list_members(children_id(Vertex)).

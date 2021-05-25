@@ -6,14 +6,17 @@
 %%% @end
 %%% Created : 24. May 2021 21:49
 %%%-------------------------------------------------------------------
--module(rest_subhandler_template).
+-module(handler_template).
 -author("pawel").
 
 %% API
 -export([
     init/2,
+    content_types_provided/2,
+    content_types_accepted/2,
     resource_exists/2,
-    delete_resource/2
+    delete_resource/2,
+    delete_completed/2
 ]).
 
 -export([
@@ -22,24 +25,32 @@
 ]).
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% cowboy_rest callbacks
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 init(Req, State) ->
     {cowboy_rest, Req, State}.
 
+content_types_provided(Req, State) ->
+    {[{<<"application/json">>, to_json}], Req, State}.
+
+content_types_accepted(Req, State) ->
+    {[{<<"application/json">>, from_json}], Req, State}.
+
 resource_exists(Req, State) ->
     {false, Req, State}.
 
-%% DELETE callback
 delete_resource(Req, State) ->
     {false, Req, State}.
 
+delete_completed(Req, State) ->
+    {false, Req, State}.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% internal functions
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% POST handler
 

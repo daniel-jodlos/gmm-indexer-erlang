@@ -15,114 +15,91 @@
 start_server() ->
     Dispatch = cowboy_router:compile([
         {'_', [
-            %%%% @todo implement all those, lol
+            %%% @todo rest_vertices - mostly implemented
 
-            %%% vertices
+            %  POST {name, type} -> void
+            %  *  GET {} -> map(string->list(string)) (LISTING)
+            %  *  GET {id} -> map()
+            %  *  DELETE {id} -> void
+            {"/graph/vertices", rest_vertices, #{}},
 
-            % returns void
-            % POST {name :: string, type :: string} <- params
-            {"/graph/vertices", gmm_rest_handler, #{handler => rest_vertices}},
+            %  POST {bulkRequest :: BulkVertexCreationRequestDto} -> void
+            {"/graph/vertices/bulk", not_implemented, #{}},
 
-            % returns void
-            % POST {bulkRequest :: BulkVertexCreationRequestDto} <-
-            {"/graph/vertices/bulk", gmm_rest_handler, #{handler => unimplemented}},
+            %%% @todo rest_edges - mostly implemented
 
-            %%% edges
+            %  POST {from, to, permissions[, trace], successive} -> void
+            {"/graph/edges", rest_edges, #{op => add}},
+            %  POST {from, to, permissions[, trace], successive} -> void
+            {"/graph/edges/permissions", rest_edges, #{op => permissions}},
+            %  POST {from, to[, trace], successive} -> void
+            {"/graph/edges/delete", rest_edges, #{op => delete}},
 
-            % returns void
-            % POST {from, to, permissions[, trace], successive} <- params
-            {"/graph/edges", gmm_rest_handler, #{handler => rest_edges, op => post}},
+            %  POST {BODY->bulkRequest :: BulkEdgeCreationRequestDto} -> void
+            {"/graph/edges/bulk", not_implemented, #{}},
 
-            % returns void
-            % POST {bulkRequest :: BulkEdgeCreationRequestDto} <- body
-            {"/graph/edges/bulk", gmm_rest_handler, #{handler => unimplemented}},
-            % returns void
-            % POST {from, to, permissions[, trace], successive} <- params
-            {"/graph/edges/permissions", gmm_rest_handler, #{handler => rest_edges, op => set_permissions}},
-            % returns void
-            % POST {from, to[, trace], successive} <- params
-            {"/graph/edges/delete", gmm_rest_handler, #{handler => rest_edges, op => delete}},
+            %%% @todo rest_basic_queries - mostly implemented
 
-            %%% basic queries
+            %  POST {from, to} -> boolean
+            {"/is_adjacent", rest_basic_queries, #{op => is_adjacent}},
+            %  POST {of} -> List<String>(CHILDREN)
+            {"/list_adjacent", rest_basic_queries, #{op => list_adjacent}},
+            %  POST {of} -> List<String>(PARENTS)
+            {"/list_adjacent_reversed", rest_basic_queries, #{op => list_adjacent_reversed}},
+            %  POST {from, to} -> String
+            {"/permissions", rest_basic_queries, #{op => permissions}},
 
-            % returns boolean
-            % POST {from, to} <- params
-            {"/is_adjacent", gmm_rest_handler, #{handler => unimplemented}},
-            % returns List<String>
-            % POST {of} <- params
-            {"/list_adjacent", gmm_rest_handler, #{handler => unimplemented}},
-            % returns List<String>
-            % POST {of} <- params
-            {"/list_adjacent_reversed", gmm_rest_handler, #{handler => unimplemented}},
-            % returns String
-            % POST {from, to} <- params
-            {"/permissions", gmm_rest_handler, #{handler => unimplemented}},
+            %%% @todo rest_graph_index
 
-            %%% index of some vertex
+            %  GET {vertices :: list(String)} -> List<IndexDto>
+            {"/index", not_implemented, #{}},
 
-            % returns List<IndexDto>
-            % GET {vertices :: list(String)} <- params
-            {"/index", gmm_rest_handler, #{handler => unimplemented}},
+            %%% @todo rest_load_simulator
 
-            %%% load simulation
+            %  POST {BODY->request :: LoadSimulationRequestDto} -> void
+            {"/simulate_load", not_implemented, #{}},
 
-            % returns void
-            % POST {request :: LoadSimulationRequestDto} <- body
-            {"/simulate_load", gmm_rest_handler, #{handler => unimplemented}},
+            %%% @todo rest_meta_info - partially implemented
 
-            %%% status checking, settings etc
+            %  GET {} -> void
+            {"/healthcheck", rest_meta_info, #{op => health_check}},
+            %  GET {} -> boolean
+            {"/index_ready", not_implemented, #{op => index_ready}},
+            %% @todo implement and then change handler below to rest_meta_info
+            %  POST {BODY->exclude :: list(ZoneId)} -> DependentZonesDto
+            {"/dependent_zones", not_implemented, #{op => dependent_zones}},
+            %  GET {} -> boolean
+            %  PUT {enabled :: boolean} -> void
+            {"/instrumentation", not_implemented, #{op => instrumentation}},
+            %  PUT {enabled :: boolean} -> void
+            {"/indexation", not_implemented, #{op => indexation}},
 
-            % returns void
-            % GET {}
-            {"/healthcheck", gmm_rest_handler, #{handler => unimplemented}},
-            % returns boolean
-            % GET {}
-            {"/index_ready", gmm_rest_handler, #{handler => unimplemented}},
-            % returns DependentZonesDto
-            % POST {exclude :: list(ZoneId)} <- body
-            {"/dependent_zones", gmm_rest_handler, #{handler => unimplemented}},
-            % returns boolean, returns void
-            % GET {}, PUT {enabled :: boolean} <- params
-            {"/instrumentation", gmm_rest_handler, #{handler => unimplemented}},
-            % returns void
-            % PUT {enabled :: boolean} <- params
-            {"/indexation", gmm_rest_handler, #{handler => unimplemented}},
+            %%% @todo rest_queries_naive
 
-            %%% naive queries
+            %  POST {from, to} -> ReachesResponseDto
+            {"/naive/reaches", not_implemented, #{op => reaches}},
+            %  POST {of} -> MembersResponseDto
+            {"/naive/members", not_implemented, #{op => members}},
+            %  POST {from, to} -> EffectivePermissionsResponseDto
+            {"/naive/effective_permissions", not_implemented, #{op => effective_permissions}},
 
-            % returns ReachesResponseDto
-            % POST {from, to}
-            {"/naive/reaches", gmm_rest_handler, #{handler => rest_naive, op => reaches}},
-            % returns MembersResponseDto
-            % POST {of}
-            {"/naive/members", gmm_rest_handler, #{handler => rest_naive, op => members}},
-            % return EffectivePermissionsResponseDto
-            % POST {from, to}
-            {"/naive/effective_permissions", gmm_rest_handler, #{handler => rest_naive, op => effective_permissions}},
+            %%% @todo rest_queries_indexed
 
-            %%% indexed queries
+            %  POST {from, to} -> ReachesResponseDto
+            {"/indexed/reaches", not_implemented, #{}},
+            %  POST {of} -> MembersResponseDto
+            {"/indexed/members", not_implemented, #{}},
+            %  POST {from, to} -> EffectivePermissionsResponseDto
+            {"/indexed/effective_permissions", not_implemented, #{}},
 
-            % returns ReachesResponseDto
-            % POST {from, to}
-            {"/indexed/reaches", gmm_rest_handler, #{handler => unimplemented}},
-            % returns MembersResponseDto
-            % POST {of}
-            {"/indexed/members", gmm_rest_handler, #{handler => unimplemented}},
-            % returns EffectivePermissionsResponseDto
-            % POST {from, to}
-            {"/indexed/effective_permissions", gmm_rest_handler, #{handler => unimplemented}},
+            %%% @todo rest_events
 
-            %%% events propagation
-
-            % returns void
-            % POST {id, event}
-            {"/events", gmm_rest_handler, #{handler => unimplemented}},
-            % returns void
-            % POST {messages :: BulkMessagesDto}
-            {"/events/bulk", gmm_rest_handler, #{handler => unimplemented}},
-            % returns EventStats
-            % GET {}
-            {"/events/stats", gmm_rest_handler, #{handler => unimplemented}}
+            %  POST {id, BODY->event} -> void
+            {"/events", not_implemented, #{}},
+            %  POST {BODY->messages :: BulkMessagesDto} -> void
+            {"/events/bulk", not_implemented, #{}},
+            %  GET {} -> EventStats
+            {"/events/stats", not_implemented, #{}}
         ]}
     ]),
     {ok, _} = cowboy:start_clear(my_http_listener,

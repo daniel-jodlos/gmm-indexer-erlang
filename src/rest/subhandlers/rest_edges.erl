@@ -12,120 +12,86 @@
 %% API
 -export([
     init/2,
+    content_types_provided/2,
+    content_types_accepted/2,
     resource_exists/2,
-    delete_resource/2
+    allowed_methods/2,
+    is_conflict/2
 ]).
 
 -export([
-    from_json/2,
-    to_json/2
+    from_json/2
 ]).
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% cowboy_rest callbacks
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 init(Req, State) ->
     Method = cowboy_req:method(Req),
-    TempState = maps:put(method, Method, State),
-    NewState = maps:merge(TempState, case Method of
-                                         <<"GET">> ->
-                                             parse_get_parameters([[parent, child], [vertex, which_edges], [vertex]], Req);
-                                         <<"POST">> ->
-                                             cowboy_req:match_qs([{parent, nonempty},
-                                                 {child, nonempty}, {permissions, nonempty}], Req);
-                                         <<"DELETE">> ->
-                                             cowboy_req:match_qs([{parent, nonempty}, {child, nonempty}], Req)
-                                     end),
+    ParsedParams = case maps:get(op, State) of
+                       Op when Op =:= add; Op =:= permissions ->
+                           cowboy_req:match_qs([
+                               {from, nonempty}, {to, nonempty}, {permissions, nonempty},
+                               {trace, [], undefined}, {successive, nonempty}
+                           ], Req);
+                       delete ->
+                           cowboy_req:match_qs([
+                               {from, nonempty}, {to, nonempty}, {trace, [], undefined}, {successive, nonempty}
+                           ], Req)
+                   end,
+    NewState = maps:merge(maps:put(method, Method, State), ParsedParams),
     {cowboy_rest, Req, NewState}.
 
+allowed_methods(Req, State) ->
+    {[<<"POST">>], Req, State}.
+
+content_types_provided(Req, State) ->
+    {[{<<"application/json">>, to_json}], Req, State}.
+
+content_types_accepted(Req, State) ->
+    {[{<<"application/json">>, from_json}], Req, State}.
+
 resource_exists(Req, State) ->
-    Method = maps:get(method, State),
-    Result = case Method of
-                 <<"GET">> ->
-                     case State of
-                         #{parent := Parent, child := Child} ->
-                             {ok, Bool} = graph:edge_exists(Parent, Child),
-                             Bool;
-                         #{vertex := Vertex} ->
-                             {ok, Bool} = graph:vertex_exists(Vertex),
-                             Bool;
-                         _ -> false
-                     end;
-                 <<"POST">> -> false;
-                 <<"DELETE">> ->
-                     case State of
-                         #{parent := Parent, child := Child} ->
-                             {ok, Bool} = graph:edge_exists(Parent, Child),
-                             Bool;
-                         _ -> false
-                     end
+    #{from := From, to := To} = State,
+    {ok, Result} = graph:edge_exists(From, To),
+    io:format("Try to delete an edge: ~p\n", [Result]),
+    {Result, Req, State}.
+
+is_conflict(Req, State) ->
+    Result = case maps:get(op, State) of
+                 add -> true;
+                 _ -> false
              end,
     {Result, Req, State}.
 
-%% DELETE callback
-delete_resource(Req, State) ->
-    #{parent := Parent, child := Child} = State,
-    case graph:remove_edge(Parent, Child) of
-        ok -> {true, Req, State};
-        _ -> {false, Req, State}
-    end.
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% internal functions
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-parse_get_parameters([], _Req) ->
-    erlang:error("None of the parameters where found");
-parse_get_parameters([List | Rest], Req) ->
-    Zipped = lists:map(fun(Field) -> {Field, [], undefined} end, List),
-    Results = cowboy_req:match_qs(Zipped, Req),
-    UndefinedFields = maps:filter(fun(_K, V) -> V =:= undefined end, Results),
-    case map_size(UndefinedFields) of
-        0 -> Results;
-        _ -> parse_get_parameters(Rest, Req)
-    end.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% POST handler
 
 from_json(Req, State) ->
-    #{parent := Parent, child := Child, permissions := Permissions} = State,
-    Result = case graph:edge_exists(Parent, Child) of
-                 {ok, false} -> graph:create_edge(Parent, Child, Permissions);
-                 {ok, true} -> graph:update_edge(Parent, Child, Permissions)
+    Result = case maps:get(op, State) of
+                 delete ->
+%%                     io:format("Try to delete an edge\n"),
+                     #{from := From, to := To} = State,
+                     case graph:edge_exists(From, To) of
+                         {ok, true} -> graph:remove_edge(From, To);
+                         _ -> {error, ""}
+                     end;
+                 permissions ->
+                     #{from := From, to := To, permissions := Permissions} = State,
+                     graph:update_edge(From, To, Permissions);
+                 add ->
+                     #{from := From, to := To, permissions := Permissions} = State,
+                     graph:create_edge(From, To, Permissions)
              end,
-    case Result of
-        ok -> {true, Req, State};
-        _ -> {false, Req, State}
-    end.
-
-%% GET handler
-
-to_json(Req, State) ->
-    Result = case State of
-                 #{parent := Parent, child := Child} -> get_edge_info(Parent, Child);
-                 #{vertex := Vertex, which_edges := WhichEdges} -> get_neighbours(Vertex, WhichEdges);
-                 #{vertex := Vertex} -> get_neighbours(Vertex, all)
-             end,
-    {Result, Req, State}.
-
-% get info about an edge
-get_edge_info(Parent, Child) ->
-    {ok, Result} = graph:get_edge(Parent, Child),
-    json_utils:encode(Result).
-
-% get response about edges of given vertex
-get_neighbours(Vertex, <<"parents">>) ->
-    {ok, Result} = graph:list_parents(Vertex),
-    json_utils:encode(Result);
-
-get_neighbours(Vertex, <<"children">>) ->
-    {ok, Result} = graph:list_children(Vertex),
-    json_utils:encode(Result);
-
-get_neighbours(Vertex, all) ->
-    {ok, Parents} = graph:list_parents(Vertex),
-    {ok, Children} = graph:list_children(Vertex),
-    json_utils:encode(#{<<"parents">> => Parents, <<"children">> => Children}).
+    io:format("Result: ~p\n", [Result]),
+    Flag = case Result of
+               ok -> true;
+               {error, _} -> false
+           end,
+    {Flag, Req, State}.
