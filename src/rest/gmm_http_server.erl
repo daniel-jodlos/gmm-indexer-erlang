@@ -19,82 +19,108 @@ start_server() ->
 
             %%% vertices
 
-            % POST {name, type}
-            {"/graph/vertices", gmm_rest_handler, #{handler => rest_handler_vertices}},
+            % returns void
+            % POST {name :: string, type :: string} <- params
+            {"/graph/vertices", gmm_rest_handler, #{handler => rest_vertices}},
 
-            % POST {bulkRequest :: BulkVertexCreationRequestDto}
+            % returns void
+            % POST {bulkRequest :: BulkVertexCreationRequestDto} <-
             {"/graph/vertices/bulk", gmm_rest_handler, #{handler => unimplemented}},
 
             %%% edges
 
-            % POST {from, to, permissions[, trace], successive}
-            {"/graph/edges", gmm_rest_handler, #{handler => rest_handler_edges}},
+            % returns void
+            % POST {from, to, permissions[, trace], successive} <- params
+            {"/graph/edges", gmm_rest_handler, #{handler => rest_edges, op => post}},
 
-            % POST {bulkRequest :: BulkEdgeCreationRequestDto}
+            % returns void
+            % POST {bulkRequest :: BulkEdgeCreationRequestDto} <- body
             {"/graph/edges/bulk", gmm_rest_handler, #{handler => unimplemented}},
-            % POST {from, to, permissions[, trace], successive}
-            {"/graph/edges/permissions", gmm_rest_handler, #{handler => unimplemented}},
-            % POST {from, to[, trace], successive}
-            {"/graph/edges/delete", gmm_rest_handler, #{handler => unimplemented}},
+            % returns void
+            % POST {from, to, permissions[, trace], successive} <- params
+            {"/graph/edges/permissions", gmm_rest_handler, #{handler => rest_edges, op => set_permissions}},
+            % returns void
+            % POST {from, to[, trace], successive} <- params
+            {"/graph/edges/delete", gmm_rest_handler, #{handler => rest_edges, op => delete}},
 
             %%% basic queries
 
-            % POST {from, to}
+            % returns boolean
+            % POST {from, to} <- params
             {"/is_adjacent", gmm_rest_handler, #{handler => unimplemented}},
-            % POST {of}
+            % returns List<String>
+            % POST {of} <- params
             {"/list_adjacent", gmm_rest_handler, #{handler => unimplemented}},
-            % POST {of}
+            % returns List<String>
+            % POST {of} <- params
             {"/list_adjacent_reversed", gmm_rest_handler, #{handler => unimplemented}},
-            % POST {from, to}
+            % returns String
+            % POST {from, to} <- params
             {"/permissions", gmm_rest_handler, #{handler => unimplemented}},
 
             %%% index of some vertex
 
-            % GET {vertices :: list(String)}
+            % returns List<IndexDto>
+            % GET {vertices :: list(String)} <- params
             {"/index", gmm_rest_handler, #{handler => unimplemented}},
 
             %%% load simulation
 
-            % POST {request :: LoadSimulationRequestDto}
+            % returns void
+            % POST {request :: LoadSimulationRequestDto} <- body
             {"/simulate_load", gmm_rest_handler, #{handler => unimplemented}},
 
             %%% status checking, settings etc
 
+            % returns void
             % GET {}
             {"/healthcheck", gmm_rest_handler, #{handler => unimplemented}},
+            % returns boolean
             % GET {}
             {"/index_ready", gmm_rest_handler, #{handler => unimplemented}},
-            % POST {exclude :: list(ZoneId)}
+            % returns DependentZonesDto
+            % POST {exclude :: list(ZoneId)} <- body
             {"/dependent_zones", gmm_rest_handler, #{handler => unimplemented}},
-            % GET {}, PUT {enabled :: boolean}
+            % returns boolean, returns void
+            % GET {}, PUT {enabled :: boolean} <- params
             {"/instrumentation", gmm_rest_handler, #{handler => unimplemented}},
-            % PUT {enabled :: boolean}
+            % returns void
+            % PUT {enabled :: boolean} <- params
             {"/indexation", gmm_rest_handler, #{handler => unimplemented}},
 
             %%% naive queries
 
+            % returns ReachesResponseDto
             % POST {from, to}
-            {"/naive/reaches", gmm_rest_handler, #{handler => unimplemented}},
+            {"/naive/reaches", gmm_rest_handler, #{handler => rest_naive, op => reaches}},
+            % returns MembersResponseDto
             % POST {of}
-            {"/naive/members", gmm_rest_handler, #{handler => unimplemented}},
+            {"/naive/members", gmm_rest_handler, #{handler => rest_naive, op => members}},
+            % return EffectivePermissionsResponseDto
             % POST {from, to}
-            {"/naive/effective_permissions", gmm_rest_handler, #{handler => unimplemented}},
+            {"/naive/effective_permissions", gmm_rest_handler, #{handler => rest_naive, op => effective_permissions}},
 
             %%% indexed queries
 
+            % returns ReachesResponseDto
             % POST {from, to}
             {"/indexed/reaches", gmm_rest_handler, #{handler => unimplemented}},
+            % returns MembersResponseDto
             % POST {of}
             {"/indexed/members", gmm_rest_handler, #{handler => unimplemented}},
+            % returns EffectivePermissionsResponseDto
             % POST {from, to}
             {"/indexed/effective_permissions", gmm_rest_handler, #{handler => unimplemented}},
 
             %%% events propagation
 
+            % returns void
             % POST {id, event}
             {"/events", gmm_rest_handler, #{handler => unimplemented}},
+            % returns void
             % POST {messages :: BulkMessagesDto}
             {"/events/bulk", gmm_rest_handler, #{handler => unimplemented}},
+            % returns EventStats
             % GET {}
             {"/events/stats", gmm_rest_handler, #{handler => unimplemented}}
         ]}

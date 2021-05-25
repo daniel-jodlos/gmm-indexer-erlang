@@ -38,8 +38,10 @@ init(Req, State) ->
     (maps:get(handler, State)):init(Req, State).
 
 allowed_methods(Req, State) ->
-    Methods = [<<"GET">>, <<"POST">>, <<"DELETE">>],
-    {Methods, Req, State}.
+    case maps:get(handler, State) of
+        Handler when Handler =:= some_module -> Handler:allowed_methods(Req, State);
+        _ -> {[<<"GET">>, <<"POST">>, <<"PUT">>], Req, State}
+    end.
 
 content_types_provided(Req, State) ->
     {[

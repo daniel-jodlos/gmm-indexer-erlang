@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 19. May 2021 21:12
 %%%-------------------------------------------------------------------
--module(rest_handler_vertices).
+-module(rest_vertices).
 -author("pawel").
 
 %% API

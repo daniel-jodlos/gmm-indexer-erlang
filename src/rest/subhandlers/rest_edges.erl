@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 19. May 2021 21:12
 %%%-------------------------------------------------------------------
--module(rest_handler_edges).
+-module(rest_edges).
 -author("pawel").
 
 %% API
