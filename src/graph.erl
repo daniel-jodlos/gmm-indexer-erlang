@@ -101,6 +101,27 @@ get_vertex(Id) ->
         {error, Reason} -> {error, Reason}
     end.
 
+is_children_list(Id) ->
+    case re:run(Id, <<"\/children">>) of
+        nomatch -> false;
+        _ -> true
+    end.
+
+is_parents_list(Id) ->
+    case re:run(Id, <<"\/parents">>) of
+        nomatch -> false;
+        _ -> true
+    end.
+
+is_edge(Id) ->
+    case re:run(Id, <<"edge\/">>) of
+        nomatch -> false;
+        _ -> true
+    end.
+
+is_vertex(Id) ->
+    (is_children_list(Id) =:= false) and (is_parents_list(Id) =:= false) and (is_edge(Id) =:= false).
+
 vertices_to_types(IdsMap, []) ->
     {ok, IdsMap};
 vertices_to_types(IdsMap, [Key | Rest]) ->
@@ -128,12 +149,13 @@ vertices_to_types(IdsMap, [Key | Rest]) ->
 -spec list_vertices() -> {ok, map()} | {error, any()}.
 list_vertices() ->
     {ok, Keys} = persistence:keys("*"),
+    FilteredKeys = lists:filter(fun (X) -> is_vertex(X) =:= true end, Keys),
     vertices_to_types(#{
         <<"users">> => [],
         <<"groups">> => [],
         <<"spaces">> => [],
         <<"providers">> => []
-    }, Keys).
+    }, FilteredKeys).
 
 get_vertices_of_type(_Type, IdsList, []) ->
     {ok, IdsList};
@@ -151,7 +173,8 @@ get_vertices_of_type(Type, IdsList, [Key | Rest]) ->
 -spec list_vertices(Type::binary()) -> {ok, list()} | {error, any()}.
 list_vertices(Type) ->
     Keys = persistence:keys("*"),
-    get_vertices_of_type(Type, [], Keys).
+    FilteredKeys = lists:filter(fun (X) -> is_vertex(X) =:= true end, Keys),
+    get_vertices_of_type(Type, [], FilteredKeys).
 
 
 %%%---------------------------
