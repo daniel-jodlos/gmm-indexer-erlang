@@ -9,7 +9,7 @@
 | from, to, of, id | string | "zone_i/characters" | ID of a vertex |
 | type, name | string |  | Some value |
 | permissions | string | "xx-x-" | Permissions set on given edge |
-| trace | string |  | Globally unique identifier of set of events about the same operation on the graph |
+| trace | string (optional) |  | Globally unique identifier of set of events about the same operation on the graph |
 | successive | boolean |  | I have no idea, but Kamil has it |
 
 ---
@@ -30,8 +30,8 @@
     <tr>
         <th>Params</th>
         <td><ul>
-            <li>type: string</li>
-            <li>name: string</li>
+            <li>type</li>
+            <li>name</li>
         </ul></td>
     </tr>
     <tr>
@@ -83,7 +83,7 @@
     <tr>
         <th>Params</th>
         <td><ul>
-            <li>id: string</li>
+            <li>id</li>
         </ul></td>
     </tr>
     <tr>
@@ -110,7 +110,7 @@
     <tr>
         <th>Params</th>
         <td><ul>
-            <li>id: string</li>
+            <li>id</li>
         </ul></td>
     </tr>
     <tr>
@@ -141,11 +141,11 @@
     <tr>
         <th>Params</th>
         <td><ul>
-            <li>from: string</li>
-            <li>to: string</li>
-            <li>permissions: string</li>
-            <li>trace: string, optional</li>
-            <li>successive: boolean</li>
+            <li>from</li>
+            <li>to</li>
+            <li>permissions</li>
+            <li>trace: optional</li>
+            <li>successive</li>
         </ul></td>
     </tr>
     <tr>
@@ -172,11 +172,11 @@
     <tr>
         <th>Params</th>
         <td><ul>
-            <li>from: string</li>
-            <li>to: string</li>
-            <li>permissions: string</li>
-            <li>trace: string, optional</li>
-            <li>successive: boolean</li>
+            <li>from</li>
+            <li>to</li>
+            <li>permissions</li>
+            <li>trace: optional</li>
+            <li>successive</li>
         </ul></td>
     </tr>
     <tr>
@@ -203,10 +203,10 @@
     <tr>
         <th>Params</th>
         <td><ul>
-            <li>from: string</li>
-            <li>to: string</li>
-            <li>trace: string, optional</li>
-            <li>successive: boolean</li>
+            <li>from</li>
+            <li>to</li>
+            <li>trace: optional</li>
+            <li>successive</li>
         </ul></td>
     </tr>
     <tr>
@@ -237,8 +237,8 @@
     <tr>
         <th>Params</th>
         <td><ul>
-            <li>from: string</li>
-            <li>to: string</li>
+            <li>from</li>
+            <li>to</li>
         </ul></td>
     </tr>
     <tr>
@@ -265,8 +265,8 @@
     <tr>
         <th>Params</th>
         <td><ul>
-            <li>from: string</li>
-            <li>to: string</li>
+            <li>from</li>
+            <li>to</li>
         </ul></td>
     </tr>
     <tr>
@@ -293,7 +293,7 @@
     <tr>
         <th>Params</th>
         <td><ul>
-            <li>of: string</li>
+            <li>of</li>
         </ul></td>
     </tr>
     <tr>
@@ -320,7 +320,7 @@
     <tr>
         <th>Params</th>
         <td><ul>
-            <li>of: string</li>
+            <li>of</li>
         </ul></td>
     </tr>
     <tr>
