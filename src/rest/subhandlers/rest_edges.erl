@@ -54,7 +54,6 @@ content_types_accepted(Req, State) ->
 resource_exists(Req, State) ->
     #{from := From, to := To} = State,
     {ok, Result} = graph:edge_exists(From, To),
-    io:format("Try to delete an edge: ~p\n", [Result]),
     {Result, Req, State}.
 
 is_conflict(Req, State) ->
@@ -86,7 +85,6 @@ from_json(Req, State) ->
                      #{from := From, to := To, permissions := Permissions} = State,
                      graph:create_edge(From, To, Permissions)
              end,
-    io:format("Result: ~p\n", [Result]),
     Flag = case Result of
                ok -> true;
                {error, _} -> false
