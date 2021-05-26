@@ -1,5 +1,6 @@
 %%%-------------------------------------------------------------------
-%% @doc gmm persistence module.
+%% @doc
+%%  gmm persistence module.
 %% @end
 %%%-------------------------------------------------------------------
 
@@ -111,7 +112,11 @@ keys(Pattern) ->
     gen_server:call(?REDIS_SERVER, {keys, Pattern}).
 
 exists(Key) ->
-    gen_server:call(?REDIS_SERVER, {exists, Key}).
+    case gen_server:call(?REDIS_SERVER, {exists, Key}) of
+        {ok, <<"0">>} -> {ok, false};
+        {ok, <<"1">>} -> {ok, true};
+        {error, Reason} -> {error, Reason}
+    end.
 
 set_add(Key, Value) ->
     gen_server:call(?REDIS_SERVER, {set_add, Key, Value}).

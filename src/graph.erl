@@ -1,3 +1,9 @@
+%%%-------------------------------------------------------------------
+%% @doc
+%%  Declares API and implements functions to operate on the graph
+%% @end
+%%%-------------------------------------------------------------------
+
 -module(graph).
 -author("Daniel Jodłoś").
 
@@ -7,7 +13,10 @@
 % Edge is directed as follows:  {Parent -> Child} or {From -> To}
 % For example from group to user
 
-%%%% @todo Add function that retrieves zone from the vertex's ID
+%% @todo Dodac funkcje ktora zwraca ID zony na podstawie ID wierzcholka
+
+%% @todo Ujednolicic nazewnictwo pol w zwracanych mapach
+%% @todo - albo wszystkie od wielkiej litery, albo wszystkie od malej
 
 %% API for vertices
 -export([
@@ -35,15 +44,17 @@
 -include("records.hrl").
 
 
-%% vertices api
+%%%---------------------------
+%% VERTICES API
+%%%---------------------------
 
 generate_id() ->
     Id = << <<Y>> ||<<X:4>> <= crypto:hash(md5, term_to_binary(make_ref())), Y <- integer_to_list(X,16)>>,
     Zone = list_to_binary(?ZONE_ID),
     IdWithZone = << Zone/binary, "_", Id/binary >>,
     case persistence:exists(IdWithZone) of
-        {ok, <<"0">>} -> {ok, IdWithZone};
-        {ok, <<"1">>} -> generate_id();
+        {ok, false} -> {ok, IdWithZone};
+        {ok, true} -> generate_id();
         {error, Reason} -> {error, Reason}
     end.
 
@@ -80,11 +91,7 @@ remove_vertex(Id) ->
 
 -spec vertex_exists(Key::binary()) -> {ok, boolean()} | {error, any()}.
 vertex_exists(Key) ->
-    case persistence:exists(Key) of
-        {ok, <<"0">>} -> {ok, false};
-        {ok, <<"1">>} -> {ok, true};
-        {error, Reason} -> {error, Reason}
-    end.
+    persistence:exists(Key).
 
 -spec get_vertex(Id::binary()) -> {ok, map()} | {error, any()}.
 get_vertex(Id) ->
@@ -93,6 +100,27 @@ get_vertex(Id) ->
         {ok, false} -> {error, vertex_not_existing};
         {error, Reason} -> {error, Reason}
     end.
+
+is_children_list(Id) ->
+    case re:run(Id, <<"\/children">>) of
+        nomatch -> false;
+        _ -> true
+    end.
+
+is_parents_list(Id) ->
+    case re:run(Id, <<"\/parents">>) of
+        nomatch -> false;
+        _ -> true
+    end.
+
+is_edge(Id) ->
+    case re:run(Id, <<"edge\/">>) of
+        nomatch -> false;
+        _ -> true
+    end.
+
+is_vertex(Id) ->
+    (is_children_list(Id) =:= false) and (is_parents_list(Id) =:= false) and (is_edge(Id) =:= false).
 
 vertices_to_types(IdsMap, []) ->
     {ok, IdsMap};
@@ -121,12 +149,13 @@ vertices_to_types(IdsMap, [Key | Rest]) ->
 -spec list_vertices() -> {ok, map()} | {error, any()}.
 list_vertices() ->
     {ok, Keys} = persistence:keys("*"),
+    FilteredKeys = lists:filter(fun (X) -> is_vertex(X) =:= true end, Keys),
     vertices_to_types(#{
         <<"users">> => [],
         <<"groups">> => [],
         <<"spaces">> => [],
         <<"providers">> => []
-    }, Keys).
+    }, FilteredKeys).
 
 get_vertices_of_type(_Type, IdsList, []) ->
     {ok, IdsList};
@@ -144,12 +173,15 @@ get_vertices_of_type(Type, IdsList, [Key | Rest]) ->
 -spec list_vertices(Type::binary()) -> {ok, list()} | {error, any()}.
 list_vertices(Type) ->
     Keys = persistence:keys("*"),
-    get_vertices_of_type(Type, [], Keys).
+    FilteredKeys = lists:filter(fun (X) -> is_vertex(X) =:= true end, Keys),
+    get_vertices_of_type(Type, [], FilteredKeys).
 
 
-%% edges api - todo
+%%%---------------------------
+%% EDGES API
+%%%---------------------------
 
-childrens_id(From) -> <<From/binary, "/children">>.
+children_id(From) -> <<From/binary, "/children">>.
 parents_id(To) -> <<To/binary, "/parents">>.
 edge_id(From, To) -> <<"edge/", From/binary, "/", To/binary>>.
 
@@ -163,11 +195,9 @@ validate(Results) ->
     end,
     lists:foldl(Reducer, ok, Results).
 
-%%%% From, To, Vertex to wszystko ID-ki, jesli wolisz mozesz zmienic nazwy na FromId itd., jak uwazasz
-
 -spec create_edge(From::binary(), To::binary(), Permissions::binary()) -> ok | {error, any()}.
 create_edge(From, To, Permissions) -> validate([
-        persistence:set_add(childrens_id(From), To),
+        persistence:set_add(children_id(From), To),
         persistence:set_add(parents_id(To), From),
         persistence:set(edge_id(From, To), Permissions)
     ]).
@@ -180,13 +210,14 @@ update_edge(From, To, Permissions) -> validate([
 -spec remove_edge(From::binary(), To::binary()) -> ok | {error, any()}.
 remove_edge(From, To) -> validate([
         persistence:del(edge_id(From, To)),
-        persistence:set_remove(childrens_id(From), To),
+        persistence:set_remove(children_id(From), To),
         persistence:set_remove(parents_id(To), From)
     ]).
 
 -spec edge_exists(From::binary(), To::binary()) -> {ok, boolean()} | {error, any()}.
 edge_exists(From, To) ->
     persistence:exists(edge_id(From, To)).
+
 
 -spec get_edge(From::binary(), To::binary()) -> {ok, map()} | {error, any()}.
 get_edge(From, To) ->
@@ -210,7 +241,6 @@ list_neighbours(Vertex) ->
 list_parents(Vertex) ->
     persistence:set_list_members(parents_id(Vertex)).
 
-
 -spec list_children(Vertex::binary()) -> {ok, list(binary())} | {error, any()}.
 list_children(Vertex) ->
-    persistence:set_list_members(childrens_id(Vertex)).
+    persistence:set_list_members(children_id(Vertex)).

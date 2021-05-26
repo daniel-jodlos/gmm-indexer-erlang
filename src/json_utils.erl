@@ -1,11 +1,9 @@
 %%%-------------------------------------------------------------------
-%%% @author pawel
-%%% @copyright (C) 2021, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 07. May 2021 20:58
+%% @doc
+%%  Basic functions to switch between JSON and erlang types
+%% @end
 %%%-------------------------------------------------------------------
+
 -module(json_utils).
 -author("pawel").
 
