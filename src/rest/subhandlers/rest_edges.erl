@@ -1,13 +1,11 @@
 %%%-------------------------------------------------------------------
-%%% @author pawel
-%%% @copyright (C) 2021, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 19. May 2021 21:12
+%% @doc
+%%  Implements API for manipulating edges.
+%% @end
 %%%-------------------------------------------------------------------
+
 -module(rest_edges).
--author("pawel").
+-behavior(cowboy_handler).
 
 %% API
 -export([
@@ -24,9 +22,9 @@
 ]).
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 %% cowboy_rest callbacks
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 
 init(Req, State) ->
     Method = cowboy_req:method(Req),
@@ -67,16 +65,15 @@ is_conflict(Req, State) ->
     {Result, Req, State}.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 %% internal functions
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 
 %% POST handler
 
 from_json(Req, State) ->
     Result = case maps:get(op, State) of
                  delete ->
-%%                     io:format("Try to delete an edge\n"),
                      #{from := From, to := To} = State,
                      case graph:edge_exists(From, To) of
                          {ok, true} -> graph:remove_edge(From, To);

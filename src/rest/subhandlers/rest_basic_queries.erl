@@ -1,13 +1,12 @@
 %%%-------------------------------------------------------------------
-%%% @author pawel
-%%% @copyright (C) 2021, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 25. May 2021 14:41
+%% @doc
+%%  Implements API for checking existence and properties of edges,
+%%  as well as listing parents or children of given vertex.
+%% @end
 %%%-------------------------------------------------------------------
+
 -module(rest_basic_queries).
--author("pawel").
+-behavior(cowboy_handler).
 
 %% API
 -export([
@@ -23,9 +22,9 @@
 ]).
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 %% cowboy_rest callbacks
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 
 init(Req, State) ->
     Method = cowboy_req:method(Req),
@@ -67,9 +66,9 @@ resource_exists(Req, State) ->
     {Flag, Req, State}.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 %% internal functions
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 
 %% POST handler
 
@@ -80,11 +79,11 @@ from_json(Req, State) ->
                  list_adjacent_reversed -> graph:list_parents(maps:get('of', State));
                  permissions ->
                      case graph:get_edge(maps:get(from, State), maps:get(to, State)) of
-                         {ok, #{permissions := Permissions}} -> {ok, Permissions};
+                         {ok, #{<<"Permissions">> := Permissions}} -> {ok, Permissions};
                          _ -> {error, "Didn't obtain edge"}
                      end
              end,
     case Result of
-        {ok, Value} -> {{true, Value}, Req, State};
+        {ok, Value} -> {{true, json_utils:encode(Value)}, Req, State};
         {error, _} -> {false, Req, State}
     end.

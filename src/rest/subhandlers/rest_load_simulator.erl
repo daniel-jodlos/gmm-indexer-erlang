@@ -1,13 +1,12 @@
 %%%-------------------------------------------------------------------
-%%% @author pawel
-%%% @copyright (C) 2021, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 25. May 2021 22:52
+%% @doc
+%%  @todo
+%%  Implements API for request of load simulation
+%% @end
 %%%-------------------------------------------------------------------
+
 -module(rest_load_simulator).
--author("pawel").
+-behavior(cowboy_handler).
 
 %% API
 -export([]).

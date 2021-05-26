@@ -1,13 +1,12 @@
 %%%-------------------------------------------------------------------
-%%% @author pawel
-%%% @copyright (C) 2021, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 25. May 2021 22:53
+%% @doc
+%%  @todo
+%%  Implements @todo something ???
+%% @end
 %%%-------------------------------------------------------------------
+
 -module(rest_graph_index).
--author("pawel").
+-behavior(cowboy_handler).
 
 %% API
 -export([]).

@@ -1,13 +1,11 @@
 %%%-------------------------------------------------------------------
-%%% @author pawel
-%%% @copyright (C) 2021, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 19. May 2021 21:12
+%% @doc
+%%  Implements API for manipulating vertices
+%% @end
 %%%-------------------------------------------------------------------
+
 -module(rest_vertices).
--author("pawel").
+-behavior(cowboy_handler).
 
 %% API
 -export([
@@ -25,9 +23,9 @@
 ]).
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 %% cowboy_rest callbacks
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 
 init(Req, State) ->
     Method = cowboy_req:method(Req),
@@ -76,9 +74,9 @@ delete_resource(Req, State) ->
     {true, Req, State}.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 %% internal functions
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 
 %% POST
 
@@ -100,10 +98,6 @@ handle_post(_, _) ->
 
 % callback
 to_json(Req, State) ->
-%%    Id = case maps:get(id, State) of
-%%             undefined -> listing;
-%%             Val -> Val
-%%         end,
     #{id := Id} = State,
     {handle_get(Id), Req, State}.
 

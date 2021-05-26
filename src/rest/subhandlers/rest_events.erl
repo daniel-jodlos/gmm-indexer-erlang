@@ -1,13 +1,12 @@
 %%%-------------------------------------------------------------------
-%%% @author pawel
-%%% @copyright (C) 2021, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 25. May 2021 20:43
+%% @doc
+%%  @todo
+%%  Implements API for handling events sent by other zones
+%% @end
 %%%-------------------------------------------------------------------
+
 -module(rest_events).
--author("pawel").
+-behavior(cowboy_handler).
 
 %% API
 -export([]).

@@ -1,13 +1,12 @@
 %%%-------------------------------------------------------------------
-%%% @author pawel
-%%% @copyright (C) 2021, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 25. May 2021 21:27
+%% @doc
+%%  Empty handler module
+%%  It's only function is to throw proper error in server console
+%% @end
 %%%-------------------------------------------------------------------
+
 -module(not_implemented).
--author("pawel").
+-behavior(cowboy_handler).
 
 %% API
 -export([init/2]).

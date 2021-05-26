@@ -1,13 +1,12 @@
 %%%-------------------------------------------------------------------
-%%% @author pawel
-%%% @copyright (C) 2021, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 25. May 2021 20:39
+%% @doc
+%%  @todo
+%%  Implements API for queries, using index
+%% @end
 %%%-------------------------------------------------------------------
+
 -module(rest_queries_indexed).
--author("pawel").
+-behavior(cowboy_handler).
 
 %% API
 -export([]).

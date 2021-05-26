@@ -1,13 +1,11 @@
 %%%-------------------------------------------------------------------
-%%% @author pawel
-%%% @copyright (C) 2021, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 07. May 2021 22:05
+%% @doc
+%%  Initializes cowboy server:
+%%   compiles available paths, specifies handler modules and so on
+%% @end
 %%%-------------------------------------------------------------------
+
 -module(gmm_http_server).
--author("pawel").
 
 %% API
 -export([start_server/0]).

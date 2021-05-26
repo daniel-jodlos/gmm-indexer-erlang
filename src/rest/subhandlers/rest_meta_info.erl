@@ -1,13 +1,12 @@
 %%%-------------------------------------------------------------------
-%%% @author pawel
-%%% @copyright (C) 2021, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 25. May 2021 18:34
+%% @doc
+%%  @todo
+%%  Implements API for setting/getting various settings
+%% @end
 %%%-------------------------------------------------------------------
+
 -module(rest_meta_info).
--author("pawel").
+-behavior(cowboy_handler).
 
 %% API
 -export([
@@ -24,9 +23,9 @@
 ]).
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 %% cowboy_rest callbacks
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 
 init(Req0, State) ->
     Method = cowboy_req:method(Req0),
@@ -62,9 +61,9 @@ resource_exists(Req, State) ->
     {Result, Req, State}.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 %% internal functions
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 
 %% POST/PUT handler
 

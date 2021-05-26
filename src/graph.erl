@@ -1,3 +1,9 @@
+%%%-------------------------------------------------------------------
+%% @doc
+%%  Declares API and implements functions to operate on the graph
+%% @end
+%%%-------------------------------------------------------------------
+
 -module(graph).
 -author("Daniel Jodłoś").
 
@@ -38,17 +44,17 @@
 -include("records.hrl").
 
 
-%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 %% VERTICES API
-%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 
 generate_id() ->
     Id = << <<Y>> ||<<X:4>> <= crypto:hash(md5, term_to_binary(make_ref())), Y <- integer_to_list(X,16)>>,
     Zone = list_to_binary(?ZONE_ID),
     IdWithZone = << Zone/binary, "_", Id/binary >>,
     case persistence:exists(IdWithZone) of
-        {ok, <<"0">>} -> {ok, IdWithZone};
-        {ok, <<"1">>} -> generate_id();
+        {ok, false} -> {ok, IdWithZone};
+        {ok, true} -> generate_id();
         {error, Reason} -> {error, Reason}
     end.
 
@@ -85,11 +91,7 @@ remove_vertex(Id) ->
 
 -spec vertex_exists(Key::binary()) -> {ok, boolean()} | {error, any()}.
 vertex_exists(Key) ->
-    case persistence:exists(Key) of
-        {ok, <<"0">>} -> {ok, false};
-        {ok, <<"1">>} -> {ok, true};
-        {error, Reason} -> {error, Reason}
-    end.
+    persistence:exists(Key).
 
 -spec get_vertex(Id::binary()) -> {ok, map()} | {error, any()}.
 get_vertex(Id) ->
@@ -152,9 +154,9 @@ list_vertices(Type) ->
     get_vertices_of_type(Type, [], Keys).
 
 
-%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 %% EDGES API
-%%%%%%%%%%%%%%%%%%%%%
+%%%---------------------------
 
 children_id(From) -> <<From/binary, "/children">>.
 parents_id(To) -> <<To/binary, "/parents">>.
@@ -191,11 +193,8 @@ remove_edge(From, To) -> validate([
 
 -spec edge_exists(From::binary(), To::binary()) -> {ok, boolean()} | {error, any()}.
 edge_exists(From, To) ->
-    case persistence:exists(edge_id(From, To)) of
-        {ok, <<"0">>} -> {ok, false};
-        {ok, <<"1">>} -> {ok, true};
-        {error, Reason} -> {error, Reason}
-    end.
+    persistence:exists(edge_id(From, To)).
+
 
 -spec get_edge(From::binary(), To::binary()) -> {ok, map()} | {error, any()}.
 get_edge(From, To) ->
