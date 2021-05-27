@@ -41,7 +41,6 @@ init(Req0, State) ->
             {indexation, <<"PUT">>} -> {Req0, cowboy_req:match_qs([{enabled, nonempty}], Req0)}
         end,
     NewState = maps:merge(maps:put(method, Method, State), ParsedParams),
-%%    io:format("State: ~p\n", [NewState]),
     {cowboy_rest, Req, NewState}.
 
 allowed_methods(Req, State) ->
@@ -122,8 +121,7 @@ parse_dependent_zones(Data) ->
 
 parse_boolean(Bin) ->
     try
-        Atom = binary_to_atom(Bin),
-        case Atom of
+        case binary_to_atom(Bin) of
             Bool when is_boolean(Bool) -> {ok, Bool};
             _ -> {error, not_a_bool}
         end
