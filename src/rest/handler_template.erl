@@ -45,17 +45,16 @@ delete_resource(Req, State) ->
 delete_completed(Req, State) ->
     {false, Req, State}.
 
+%% POST handler
+from_json(Req, State) ->
+    {false, Req, State}.
+
+%% GET handler
+to_json(Req, State) ->
+    {json_utils:empty_json(), Req, State}.
+
 
 %%%---------------------------
 %% internal functions
 %%%---------------------------
 
-%% POST handler
-
-from_json(Req, State) ->
-    {false, Req, State}.
-
-%% GET handler
-
-to_json(Req, State) ->
-    {undefined, Req, State}.

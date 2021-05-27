@@ -63,13 +63,7 @@ is_conflict(Req, State) ->
              end,
     {Result, Req, State}.
 
-
-%%%---------------------------
-%% internal functions
-%%%---------------------------
-
 %% POST handler
-
 from_json(Req, State) ->
     Result = case maps:get(op, State) of
                  delete ->
@@ -90,3 +84,9 @@ from_json(Req, State) ->
                {error, _} -> false
            end,
     {Flag, Req, State}.
+
+
+%%%---------------------------
+%% internal functions
+%%%---------------------------
+

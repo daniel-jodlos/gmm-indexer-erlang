@@ -70,42 +70,37 @@ resource_exists(Req, State) ->
 
 %% DELETE callback
 delete_resource(Req, State) ->
-    graph:remove_vertex(maps:get(id, State)),
-    {true, Req, State}.
+    Result = case graph:remove_vertex(maps:get(id, State)) of
+                 ok -> true;
+                 {error, _} -> false
+             end,
+    {Result, Req, State}.
+
+%% POST handler
+from_json(Req, State) ->
+    {handle_post(maps:get(type, State), maps:get(name, State)), Req, State}.
+
+%% GET handler
+to_json(Req, State) ->
+    #{id := Id} = State,
+    {handle_get(Id), Req, State}.
 
 
 %%%---------------------------
 %% internal functions
 %%%---------------------------
 
-%% POST
-
-% callback
-from_json(Req, State) ->
-    {handle_post(maps:get(type, State), maps:get(name, State)), Req, State}.
-
-% inner handler
 handle_post(Type, Name) when Type =:= <<"user">>; Type =:= <<"group">>; Type =:= <<"space">>; Type =:= <<"provider">> ->
     case graph:create_vertex(Type, Name) of
         {ok, Id} -> {true, json_utils:encode(#{<<"id">> => Id})};
         _ -> false
     end;
-
 handle_post(_, _) ->
     false.
 
-%% GET
-
-% callback
-to_json(Req, State) ->
-    #{id := Id} = State,
-    {handle_get(Id), Req, State}.
-
-% inner handler
 handle_get(listing) ->
     {ok, VerticesMap} = graph:list_vertices(),
     json_utils:encode(VerticesMap);
-
 handle_get(Id) ->
     {ok, Vertex} = graph:get_vertex(Id),
     json_utils:encode(Vertex).

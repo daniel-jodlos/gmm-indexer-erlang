@@ -13,7 +13,7 @@
 start_server() ->
     Dispatch = cowboy_router:compile([
         {'_', [
-            %%% @todo rest_vertices - mostly implemented
+            %%% @todo rest_vertices - implemented all except '/bulk'
 
             %  POST {name, type} -> void
             %  *  GET {} -> map(string->list(string)) (LISTING)
@@ -24,7 +24,7 @@ start_server() ->
             %  POST {bulkRequest :: BulkVertexCreationRequestDto} -> void
             {"/graph/vertices/bulk", not_implemented, #{}},
 
-            %%% @todo rest_edges - mostly implemented
+            %%% @todo rest_edges - implemented all except '/bulk'
 
             %  POST {from, to, permissions[, trace], successive} -> void
             {"/graph/edges", rest_edges, #{op => add}},
@@ -36,7 +36,7 @@ start_server() ->
             %  POST {BODY->bulkRequest :: BulkEdgeCreationRequestDto} -> void
             {"/graph/edges/bulk", not_implemented, #{}},
 
-            %%% @todo rest_basic_queries - mostly implemented
+            %%% @todo rest_basic_queries
 
             %  POST {from, to} -> boolean
             {"/is_adjacent", rest_basic_queries, #{op => is_adjacent}},
@@ -57,20 +57,19 @@ start_server() ->
             %  POST {BODY->request :: LoadSimulationRequestDto} -> void
             {"/simulate_load", not_implemented, #{}},
 
-            %%% @todo rest_meta_info - partially implemented
+            %%% @todo rest_meta_info - rest api ready, logic not implemented
 
             %  GET {} -> void
             {"/healthcheck", rest_meta_info, #{op => health_check}},
             %  GET {} -> boolean
-            {"/index_ready", not_implemented, #{op => index_ready}},
-            %% @todo implement and then change handler below to rest_meta_info
+            {"/index_ready", rest_meta_info, #{op => index_ready}},
             %  POST {BODY->exclude :: list(ZoneId)} -> DependentZonesDto
-            {"/dependent_zones", not_implemented, #{op => dependent_zones}},
+            {"/dependent_zones", rest_meta_info, #{op => dependent_zones}},
             %  GET {} -> boolean
             %  PUT {enabled :: boolean} -> void
-            {"/instrumentation", not_implemented, #{op => instrumentation}},
+            {"/instrumentation", rest_meta_info, #{op => instrumentation}},
             %  PUT {enabled :: boolean} -> void
-            {"/indexation", not_implemented, #{op => indexation}},
+            {"/indexation", rest_meta_info, #{op => indexation}},
 
             %%% @todo rest_queries_naive
 
