@@ -2,15 +2,16 @@
 
 ---
 
-## Define parameters
+## Possible parameters' descriptions
 
 | Parameter | Type | Format | Represents |
 |-----------|------|--------|------------|
-| from, to, of, id | string | "zone_i/characters" | ID of a vertex |
+| from, to, of, id | string | zone${i}_characters | ID of a vertex |
 | type, name | string |  | Some value |
-| permissions | string | "xx-x-" | Permissions set on given edge |
+| permissions | string | xx-x- | Permissions set on given edge |
 | trace | string (optional) |  | Globally unique identifier of set of events about the same operation on the graph |
 | successive | boolean |  | I have no idea, but Kamil has it |
+| enabled | boolean |  | Stores info whether enable or disable some setting |
 
 ---
 
@@ -335,7 +336,167 @@
 
 ---
 
+## Meta Info - Server Config
+
+### Health check to determine if server is running
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/healthcheck</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>GET</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td>none</td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>void</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>void</td>
+    </tr>
+</table>
+
+### Index ready - I don't know what it does
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/index_ready</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>GET</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td>none</td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>void</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>boolean</td>
+    </tr>
+</table>
+
+### Enable/Disable indexation
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/indexation</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>PUT</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td><ul>
+            <li>enabled</li>
+        </ul></td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>void</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>void</td>
+    </tr>
+</table>
+
+### Enable/Disable instrumentation
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/instrumentation</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>PUT</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td><ul>
+            <li>enabled</li>
+        </ul></td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>void</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>void</td>
+    </tr>
+</table>
+
+### Check if instrumentation is enabled
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/instrumentation</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>GET</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td>none</td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>void</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>boolean</td>
+    </tr>
+</table>
+
+### Dependent Zones - I don't know what it does
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/dependent_zones</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>POST</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td>none</td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>JSON: list(string)</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>JSON: {"zones": list(string)}</td>
+    </tr>
+</table>
+
+---
+
 ## Empty table template
+
+### Description
 
 <table>
     <tr>
