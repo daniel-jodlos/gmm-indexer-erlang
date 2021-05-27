@@ -65,11 +65,6 @@ delete_vertex(Id)->
 
 % EDGES
 
-get_edges_list()->
-  application:ensure_all_started(hackney),
-  {ok, Body} = client_requests:get_simple_request_body(?URL++"graph/edges"),
-  list_body_elements(binary:bin_to_list(Body)).
-
 add_edge(Parent, Child, Permissions)->
   application:ensure_all_started(hackney),
   Url= ?URL++"graph/edges?parent="++Parent++"&child="++Child++"&permissions="++Permissions,
