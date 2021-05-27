@@ -494,6 +494,35 @@
 
 ---
 
+## Load simulation
+
+### Run batch of operations
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/simulate_load</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>POST</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td>none</td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>JSON {"ops": [{}, ..]}<br/>Where inner objects have fields &lt;"t" - operation type {"a", "r", "p"}, "f" - from, "to" - to, "p" - permissions, "tr" - trace&gt;</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>void</td>
+    </tr>
+</table>
+
+---
+
 ## Empty table template
 
 ### Description

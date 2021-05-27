@@ -11,10 +11,10 @@
 %% API
 -export([
     init/2,
-    content_types_provided/2,
+    allowed_methods/2,
     content_types_accepted/2,
-    resource_exists/2,
-    allowed_methods/2
+    content_types_provided/2,
+    resource_exists/2
 ]).
 
 -export([
@@ -46,11 +46,11 @@ init(Req0, State) ->
 allowed_methods(Req, State) ->
     {[<<"GET">>, <<"POST">>, <<"PUT">>], Req, State}.
 
-content_types_provided(Req, State) ->
-    {[{<<"application/json">>, to_json}], Req, State}.
-
 content_types_accepted(Req, State) ->
     {[{<<"application/json">>, from_json}], Req, State}.
+
+content_types_provided(Req, State) ->
+    {[{<<"application/json">>, to_json}], Req, State}.
 
 %% @todo implement case for dependent_zones, if needed
 resource_exists(Req, State) ->

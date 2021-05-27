@@ -55,7 +55,7 @@ start_server() ->
             %%% @todo rest_load_simulator
 
             %  POST {BODY->request :: LoadSimulationRequestDto} -> void
-            {"/simulate_load", not_implemented, #{}},
+            {"/simulate_load", rest_load_simulator, #{}},
 
             %%% @todo rest_meta_info - rest api ready, logic not implemented
 
