@@ -28,7 +28,7 @@ post_request(Path)->
   hackney:request(post, Path, ReqHeaders, <<>>, []).
   % potencjalnie do przyszego uzytku // w argumentach wtedy Body
   %ok  = hackney:send_body(ClientRef, Body),
-  %{ok, _Status, _Headers, ClientRef} = hackney:start_response(ClientRef),
+  %{ok, _, _, ClientRef} = hackney:start_response(ClientRef),
   %hackney:body(ClientRef).
 
 get_delete_request(Url, Method)->
