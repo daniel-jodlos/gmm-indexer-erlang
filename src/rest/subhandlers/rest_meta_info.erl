@@ -29,7 +29,7 @@
 init(Req0, State) ->
     Method = cowboy_req:method(Req0),
     {Req, ParsedParams} =
-        case {maps:get(op, State), Method} of
+        case {maps:get(operation, State), Method} of
             {health_check, <<"GET">>} -> {Req0, #{}};
             {index_ready, <<"GET">>} -> {Req0, #{}};
             {dependent_zones, <<"POST">>} ->
@@ -57,7 +57,7 @@ resource_exists(Req, State) ->
 
 %% POST/PUT handler
 from_json(Req, State) ->
-    Result = case maps:get(op, State) of
+    Result = case maps:get(operation, State) of
                  instrumentation ->
                      {ok, Bool} = parse_boolean(maps:get(enabled, State)),
                      set_instrumentation(Bool);
@@ -75,7 +75,7 @@ from_json(Req, State) ->
 %% GET handler
 to_json(Req, State) ->
     %% Result should be boolean
-    Result = case maps:get(op, State) of
+    Result = case maps:get(operation, State) of
                  health_check -> true;
                  index_ready -> get_index_ready();
                  instrumentation -> get_instrumentation()
