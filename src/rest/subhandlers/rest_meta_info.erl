@@ -77,7 +77,7 @@ to_json(Req, State) ->
     %% Result should be boolean
     Result = case maps:get(operation, State) of
                  health_check -> true;
-                 index_ready -> get_index_ready();
+                 index_ready -> is_index_up_to_date();
                  instrumentation -> get_instrumentation()
              end,
     {json_utils:encode(Result), Req, State}.
@@ -99,8 +99,10 @@ get_instrumentation() ->
 set_indexation(_Bool) ->
     true.
 
+%%% Check if index is correct, which requires 3 conditions:
+%%%  1) inbox is empty, 2) outbox is empty, 3) there are no currently processed events
 %% @todo
-get_index_ready() ->
+is_index_up_to_date() ->
     false.
 
 %% @todo
