@@ -59,28 +59,31 @@ resource_exists(Req, State) ->
 from_json(Req, State) ->
     Result = case maps:get(operation, State) of
                  instrumentation ->
-                     {ok, Bool} = parse_boolean(maps:get(enabled, State)),
-                     set_instrumentation(Bool);
+                     parse_bool_and_execute(maps:get(enabled, State), fun set_instrumentation/1);
                  indexation ->
-                     {ok, Bool} = parse_boolean(maps:get(enabled, State)),
-                     set_indexation(Bool);
+                     parse_bool_and_execute(maps:get(enabled, State), fun set_indexation/1);
                  dependent_zones ->
                      case parse_dependent_zones(maps:get(body, State)) of
                          {ok, List} -> set_dependent_zones(List);
-                         {error, _} -> false
+                         {error, Reason} -> {error, Reason}
                      end
              end,
-    {Result, Req, State}.
+    case Result of
+        ok -> {true, Req, State};
+        {ok, Value} -> {{true, json_utils:encode(Value)}, Req, State};
+        _ -> {false, Req, State}
+    end.
 
 %% GET handler
 to_json(Req, State) ->
     %% Result should be boolean
     Result = case maps:get(operation, State) of
-                 health_check -> true;
+                 health_check -> {ok, true};
                  index_ready -> is_index_up_to_date();
                  instrumentation -> get_instrumentation()
              end,
-    {json_utils:encode(Result), Req, State}.
+    {ok, Value} = Result,
+    {json_utils:encode(Value), Req, State}.
 
 
 %%%---------------------------
@@ -88,28 +91,34 @@ to_json(Req, State) ->
 %%%---------------------------
 
 %% @todo
+-spec set_instrumentation(boolean()) -> ok | {error, any()}.
 set_instrumentation(_Bool) ->
-    true.
+    ok.
 
 %% @todo
+-spec get_instrumentation() -> {ok, boolean()} | {error, any()}.
 get_instrumentation() ->
-    false.
+    {ok, false}.
 
 %% @todo
+-spec set_indexation(boolean()) -> ok | {error, any()}.
 set_indexation(_Bool) ->
-    true.
+    ok.
 
 %%% Check if index is correct, which requires 3 conditions:
 %%%  1) inbox is empty, 2) outbox is empty, 3) there are no currently processed events
 %% @todo
+-spec is_index_up_to_date() -> {ok, boolean()} | {error, any()}.
 is_index_up_to_date() ->
-    false.
+    {ok, false}.
 
 %% @todo
+-spec set_dependent_zones(list(binary())) -> {ok, map()} | {error, any()}.
 set_dependent_zones(List) ->
-    {true, json_utils:encode(#{<<"zones">> => List})}.
+    {ok, #{<<"zones">> => List}}.
 
 
+-spec parse_dependent_zones(binary()) -> {ok, list(binary())} | {error, any()}.
 parse_dependent_zones(Data) ->
     case json_utils:decode(Data) of
         List when is_list(List) ->
@@ -120,6 +129,7 @@ parse_dependent_zones(Data) ->
         _ -> {error, "Json is not not a list"}
     end.
 
+-spec parse_boolean(binary()) -> {ok, boolean()} | {error, any()}.
 parse_boolean(Bin) ->
     try
         case binary_to_atom(Bin) of
@@ -128,4 +138,11 @@ parse_boolean(Bin) ->
         end
     catch _:_ ->
         {error, not_a_bool}
+    end.
+
+-spec parse_bool_and_execute(binary(), fun((boolean()) -> ok | {error, any()})) -> ok | {error, any()}.
+parse_bool_and_execute(Arg, Fun) ->
+    case parse_boolean(Arg) of
+        {ok, Bool} -> Fun(Bool);
+        {error, Reason} -> {error, Reason}
     end.

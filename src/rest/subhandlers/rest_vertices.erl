@@ -90,6 +90,7 @@ to_json(Req, State) ->
 %% internal functions
 %%%---------------------------
 
+-spec handle_post(binary(), binary()) -> {true, binary()} | false.
 handle_post(Type, Name) when Type =:= <<"user">>; Type =:= <<"group">>; Type =:= <<"space">>; Type =:= <<"provider">> ->
     case graph:create_vertex(Type, Name) of
         {ok, Id} -> {true, json_utils:encode(#{<<"id">> => Id})};
@@ -98,6 +99,7 @@ handle_post(Type, Name) when Type =:= <<"user">>; Type =:= <<"group">>; Type =:=
 handle_post(_, _) ->
     false.
 
+-spec handle_get(listing | binary()) -> binary().
 handle_get(listing) ->
     {ok, VerticesMap} = graph:list_vertices(),
     json_utils:encode(VerticesMap);
