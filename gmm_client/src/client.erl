@@ -67,7 +67,11 @@ delete_vertex(Id)->
 
 add_edge(From, To, Permissions, Trace, Successive)->
   application:ensure_all_started(hackney),
-  Url= ?URL++"graph/edges?from="++From++"&to="++To++"&permissions="++Permissions++"&trace="++Trace++"&successive="++Successive,
+  TraceString = case Trace of
+                  undefined -> "";
+                  _ -> "&trace="++Trace
+                end,
+  Url= ?URL++"graph/edges?from="++From++"&to="++To++"&permissions="++Permissions++TraceString++"&successive="++Successive,
   client_requests:post_request(list_to_binary(Url)).
 
 % do ewentualnej serializacji
