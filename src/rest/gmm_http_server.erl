@@ -13,7 +13,11 @@
 start_server() ->
     Dispatch = cowboy_router:compile([
         {'_', [
-            %%% @todo rest_vertices - implemented all except '/bulk'
+
+            %%%-------------------------------------------------------------------
+            %%  rest_vertices
+            %%  @todo implement '/bulk'
+            %%%-------------------------------------------------------------------
 
             %  POST {name, type} -> void
             %  *  GET {} -> map(string->list(string)) (LISTING)
@@ -24,7 +28,10 @@ start_server() ->
             %  POST {bulkRequest :: BulkVertexCreationRequestDto} -> void
             {"/graph/vertices/bulk", not_implemented, #{}},
 
-            %%% @todo rest_edges - implemented all except '/bulk'
+            %%%-------------------------------------------------------------------
+            %%  rest_edges
+            %%  @todo implement '/bulk'
+            %%%-------------------------------------------------------------------
 
             %  POST {from, to, permissions[, trace], successive} -> void
             {"/graph/edges", rest_edges, #{op => add}},
@@ -36,7 +43,9 @@ start_server() ->
             %  POST {BODY->bulkRequest :: BulkEdgeCreationRequestDto} -> void
             {"/graph/edges/bulk", not_implemented, #{}},
 
-            %%% @todo rest_basic_queries
+            %%%-------------------------------------------------------------------
+            %% rest_basic_queries
+            %%%-------------------------------------------------------------------
 
             %  POST {from, to} -> boolean
             {"/is_adjacent", rest_basic_queries, #{op => is_adjacent}},
@@ -47,17 +56,26 @@ start_server() ->
             %  POST {from, to} -> String
             {"/permissions", rest_basic_queries, #{op => permissions}},
 
-            %%% @todo rest_graph_index
+            %%%-------------------------------------------------------------------
+            %%  rest_graph_index
+            %%  @todo implement api+logic
+            %%%-------------------------------------------------------------------
 
             %  GET {vertices :: list(String)} -> List<IndexDto>
             {"/index", not_implemented, #{}},
 
-            %%% @todo rest_load_simulator
+            %%%-------------------------------------------------------------------
+            %%  rest_load_simulator
+            %%  @todo implement logic
+            %%%-------------------------------------------------------------------
 
             %  POST {BODY->request :: LoadSimulationRequestDto} -> void
             {"/simulate_load", rest_load_simulator, #{}},
 
-            %%% @todo rest_meta_info - rest api ready, logic not implemented
+            %%%-------------------------------------------------------------------
+            %%  rest_meta_info
+            %%  @todo implement logic
+            %%%-------------------------------------------------------------------
 
             %  GET {} -> void
             {"/healthcheck", rest_meta_info, #{op => health_check}},
@@ -71,7 +89,10 @@ start_server() ->
             %  PUT {enabled :: boolean} -> void
             {"/indexation", rest_meta_info, #{op => indexation}},
 
-            %%% @todo rest_queries_naive
+            %%%-------------------------------------------------------------------
+            %%  rest_queries_naive
+            %%  @todo implement api+logic
+            %%%-------------------------------------------------------------------
 
             %  POST {from, to} -> ReachesResponseDto
             {"/naive/reaches", not_implemented, #{op => reaches}},
@@ -80,7 +101,10 @@ start_server() ->
             %  POST {from, to} -> EffectivePermissionsResponseDto
             {"/naive/effective_permissions", not_implemented, #{op => effective_permissions}},
 
-            %%% @todo rest_queries_indexed
+            %%%-------------------------------------------------------------------
+            %%  rest_queries_indexed
+            %%  @todo implement api+logic
+            %%%-------------------------------------------------------------------
 
             %  POST {from, to} -> ReachesResponseDto
             {"/indexed/reaches", not_implemented, #{}},
@@ -89,7 +113,10 @@ start_server() ->
             %  POST {from, to} -> EffectivePermissionsResponseDto
             {"/indexed/effective_permissions", not_implemented, #{}},
 
-            %%% @todo rest_events
+            %%%-------------------------------------------------------------------
+            %%  rest_events
+            %%  @todo implement api+logic
+            %%%-------------------------------------------------------------------
 
             %  POST {id, BODY->event} -> void
             {"/events", not_implemented, #{}},

@@ -2,6 +2,8 @@
 %% @doc
 %%  Empty handler module
 %%  It's only function is to throw proper error in server console
+%%
+%%  It will be removed once all handlers are implemented
 %% @end
 %%%-------------------------------------------------------------------
 

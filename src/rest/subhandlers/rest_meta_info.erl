@@ -1,7 +1,6 @@
 %%%-------------------------------------------------------------------
 %% @doc
-%%  @todo
-%%  Implements API for setting/getting various settings
+%%  Implements API for enabling/disabling various settings
 %% @end
 %%%-------------------------------------------------------------------
 
@@ -112,7 +111,7 @@ set_dependent_zones(List) ->
 parse_dependent_zones(Data) ->
     case json_utils:decode(Data) of
         List when is_list(List) ->
-            case lists:all(fun(X) -> is_binary(X) end, List) of
+            case lists:all(fun is_binary/1, List) of
                 true -> {ok, List};
                 false -> {error, "Some element is not binary string"}
             end;
