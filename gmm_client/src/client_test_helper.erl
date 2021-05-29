@@ -9,7 +9,7 @@
 -module(client_test_helper).
 -author("Piotr Świderski").
 
--export([get_id_from_the_list/0, get_vertex_name/1, get_second_id_from_the_list/0, check_existance/2, check_permissions/2, clear/0]).
+-export([get_id_from_the_list/0, get_vertex_name/1, get_second_id_from_the_list/0, check_existance/2, check_permissions/2]).
 
 % CONST
 -define(URL, "localhost:8080/").
@@ -21,6 +21,7 @@ get_id(List)->
     [] -> Head;
     _ -> get_id(Tail)
   end.
+
 
 get_second_id(List)->
   [Head | Tail] = List,
