@@ -90,28 +90,28 @@ start_server() ->
             {"/indexation", rest_meta_info, #{operation => indexation}},
 
             %%%-------------------------------------------------------------------
-            %%  rest_queries_naive
-            %%  @todo implement api+logic
+            %%  rest_queries  --  algorithm = naive
+            %%  @todo implement logic
             %%%-------------------------------------------------------------------
 
             %  POST {from, to} -> ReachesResponseDto
-            {"/naive/reaches", not_implemented, #{operation => reaches}},
+            {"/naive/reaches", rest_queries, #{operation => reaches, algorithm => naive}},
             %  POST {of} -> MembersResponseDto
-            {"/naive/members", not_implemented, #{operation => members}},
+            {"/naive/members", rest_queries, #{operation => members, algorithm => naive}},
             %  POST {from, to} -> EffectivePermissionsResponseDto
-            {"/naive/effective_permissions", not_implemented, #{operation => effective_permissions}},
+            {"/naive/effective_permissions", rest_queries, #{operation => effective_permissions, algorithm => naive}},
 
             %%%-------------------------------------------------------------------
-            %%  rest_queries_indexed
-            %%  @todo implement api+logic
+            %%  rest_queries  --  algorithm = indexed
+            %%  @todo implement logic
             %%%-------------------------------------------------------------------
 
             %  POST {from, to} -> ReachesResponseDto
-            {"/indexed/reaches", not_implemented, #{}},
+            {"/indexed/reaches", rest_queries, #{operation => reaches, algorithm => indexed}},
             %  POST {of} -> MembersResponseDto
-            {"/indexed/members", not_implemented, #{}},
+            {"/indexed/members", rest_queries, #{operation => members, algorithm => indexed}},
             %  POST {from, to} -> EffectivePermissionsResponseDto
-            {"/indexed/effective_permissions", not_implemented, #{}},
+            {"/indexed/effective_permissions", rest_queries, #{operation => effective_permissions, algorithm => indexed}},
 
             %%%-------------------------------------------------------------------
             %%  rest_events
