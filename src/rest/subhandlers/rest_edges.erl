@@ -10,11 +10,10 @@
 %% API
 -export([
     init/2,
-    content_types_provided/2,
-    content_types_accepted/2,
-    resource_exists/2,
     allowed_methods/2,
-    is_conflict/2
+    content_types_accepted/2,
+    is_conflict/2,
+    resource_exists/2
 ]).
 
 -export([
@@ -28,7 +27,7 @@
 
 init(Req, State) ->
     Method = cowboy_req:method(Req),
-    ParsedParams = case maps:get(op, State) of
+    ParsedParams = case maps:get(operation, State) of
                        Op when Op =:= add; Op =:= permissions ->
                            cowboy_req:match_qs([
                                {from, nonempty}, {to, nonempty}, {permissions, nonempty},
@@ -45,9 +44,6 @@ init(Req, State) ->
 allowed_methods(Req, State) ->
     {[<<"POST">>], Req, State}.
 
-content_types_provided(Req, State) ->
-    {[{<<"application/json">>, to_json}], Req, State}.
-
 content_types_accepted(Req, State) ->
     {[{<<"application/json">>, from_json}], Req, State}.
 
@@ -57,21 +53,15 @@ resource_exists(Req, State) ->
     {Result, Req, State}.
 
 is_conflict(Req, State) ->
-    Result = case maps:get(op, State) of
+    Result = case maps:get(operation, State) of
                  add -> true;
                  _ -> false
              end,
     {Result, Req, State}.
 
-
-%%%---------------------------
-%% internal functions
-%%%---------------------------
-
 %% POST handler
-
 from_json(Req, State) ->
-    Result = case maps:get(op, State) of
+    Result = case maps:get(operation, State) of
                  delete ->
                      #{from := From, to := To} = State,
                      case graph:edge_exists(From, To) of
@@ -90,3 +80,9 @@ from_json(Req, State) ->
                {error, _} -> false
            end,
     {Flag, Req, State}.
+
+
+%%%---------------------------
+%% internal functions
+%%%---------------------------
+
