@@ -11,9 +11,8 @@
 %% API
 -export([
     init/2,
-    content_types_provided/2,
-    content_types_accepted/2,
     allowed_methods/2,
+    content_types_accepted/2,
     resource_exists/2
 ]).
 
@@ -28,7 +27,7 @@
 
 init(Req, State) ->
     Method = cowboy_req:method(Req),
-    ParsedParams = case maps:get(op, State) of
+    ParsedParams = case maps:get(operation, State) of
                        Op when Op =:= is_adjacent; Op =:= permissions ->
                            cowboy_req:match_qs([{from, nonempty}, {to, nonempty}], Req);
                        Op when Op =:= list_adjacent; Op =:= list_adjacent_reversed ->
@@ -40,9 +39,6 @@ init(Req, State) ->
 allowed_methods(Req, State) ->
     {[<<"POST">>], Req, State}.
 
-content_types_provided(Req, State) ->
-    {[{<<"application/json">>, to_json}], Req, State}.
-
 content_types_accepted(Req, State) ->
     {[{<<"application/json">>, from_json}], Req, State}.
 
@@ -52,7 +48,7 @@ resource_exists(Req, State) ->
                    {ok, FromExists} = graph:vertex_exists(From),
                    {ok, ToExists} = graph:vertex_exists(To),
                    VerticesExist = lists:all(fun(X) -> X end, [FromExists, ToExists]),
-                   case {VerticesExist, maps:get(op, State)} of
+                   case {VerticesExist, maps:get(operation, State)} of
                        {false, _} -> false;
                        {true, permissions} ->
                            {ok, EdgeExists} = graph:edge_exists(From, To),
@@ -65,15 +61,9 @@ resource_exists(Req, State) ->
            end,
     {Flag, Req, State}.
 
-
-%%%---------------------------
-%% internal functions
-%%%---------------------------
-
 %% POST handler
-
 from_json(Req, State) ->
-    Result = case maps:get(op, State) of
+    Result = case maps:get(operation, State) of
                  is_adjacent -> graph:edge_exists(maps:get(from, State), maps:get(to, State));
                  list_adjacent -> graph:list_children(maps:get('of', State));
                  list_adjacent_reversed -> graph:list_parents(maps:get('of', State));
@@ -87,3 +77,9 @@ from_json(Req, State) ->
         {ok, Value} -> {{true, json_utils:encode(Value)}, Req, State};
         {error, _} -> {false, Req, State}
     end.
+
+
+%%%---------------------------
+%% internal functions
+%%%---------------------------
+

@@ -1,7 +1,6 @@
 %%%-------------------------------------------------------------------
 %% @doc
-%%  @todo
-%%  Implements API for setting/getting various settings
+%%  Implements API for enabling/disabling various settings
 %% @end
 %%%-------------------------------------------------------------------
 
@@ -11,10 +10,10 @@
 %% API
 -export([
     init/2,
-    content_types_provided/2,
+    allowed_methods/2,
     content_types_accepted/2,
-    resource_exists/2,
-    allowed_methods/2
+    content_types_provided/2,
+    resource_exists/2
 ]).
 
 -export([
@@ -30,10 +29,10 @@
 init(Req0, State) ->
     Method = cowboy_req:method(Req0),
     {Req, ParsedParams} =
-        case {maps:get(op, State), Method} of
+        case {maps:get(operation, State), Method} of
             {health_check, <<"GET">>} -> {Req0, #{}};
             {index_ready, <<"GET">>} -> {Req0, #{}};
-            {dependent_zone, <<"POST">>} ->
+            {dependent_zones, <<"POST">>} ->
                 {ok, Data, Req1} = cowboy_req:read_body(Req0),
                 {Req1, #{body => Data}};
             {instrumentation, <<"GET">>} -> {Req0, #{}};
@@ -46,43 +45,104 @@ init(Req0, State) ->
 allowed_methods(Req, State) ->
     {[<<"GET">>, <<"POST">>, <<"PUT">>], Req, State}.
 
-content_types_provided(Req, State) ->
-    {[{<<"application/json">>, to_json}], Req, State}.
-
 content_types_accepted(Req, State) ->
     {[{<<"application/json">>, from_json}], Req, State}.
 
-%% @todo implement case for dependent_zone
+content_types_provided(Req, State) ->
+    {[{<<"application/json">>, to_json}], Req, State}.
+
+%% @todo implement case for dependent_zones, if needed
 resource_exists(Req, State) ->
-    Result = case maps:get(op, State) of
-                 dependent_zone -> some_logic;
-                 _ -> true
+    {true, Req, State}.
+
+%% POST/PUT handler
+from_json(Req, State) ->
+    Result = case maps:get(operation, State) of
+                 instrumentation ->
+                     parse_bool_and_execute(maps:get(enabled, State), fun set_instrumentation/1);
+                 indexation ->
+                     parse_bool_and_execute(maps:get(enabled, State), fun set_indexation/1);
+                 dependent_zones ->
+                     case parse_dependent_zones(maps:get(body, State)) of
+                         {ok, List} -> set_dependent_zones(List);
+                         {error, Reason} -> {error, Reason}
+                     end
              end,
-    {Result, Req, State}.
+    case Result of
+        ok -> {true, Req, State};
+        {ok, Value} -> {{true, json_utils:encode(Value)}, Req, State};
+        _ -> {false, Req, State}
+    end.
+
+%% GET handler
+to_json(Req, State) ->
+    %% Result should be boolean
+    Result = case maps:get(operation, State) of
+                 health_check -> {ok, true};
+                 index_ready -> is_index_up_to_date();
+                 instrumentation -> get_instrumentation()
+             end,
+    {ok, Value} = Result,
+    {json_utils:encode(Value), Req, State}.
 
 
 %%%---------------------------
 %% internal functions
 %%%---------------------------
 
-%% POST/PUT handler
+%% @todo
+-spec set_instrumentation(boolean()) -> ok | {error, any()}.
+set_instrumentation(_Bool) ->
+    ok.
 
 %% @todo
-from_json(Req, State) ->
-    Result = case maps:get(op, State) of
-                 instrumentation -> true;
-                 indexation -> true;
-                 dependent_zone -> {true, dependentZonesDto}
-             end,
-    {Result, Req, State}.
-
-%% GET handler
+-spec get_instrumentation() -> {ok, boolean()} | {error, any()}.
+get_instrumentation() ->
+    {ok, false}.
 
 %% @todo
-to_json(Req, State) ->
-    Result = case maps:get(op, State) of
-                 health_check -> true;
-                 index_ready -> some_boolean;
-                 instrumentation -> some_boolean
-             end,
-    {Result, Req, State}.
+-spec set_indexation(boolean()) -> ok | {error, any()}.
+set_indexation(_Bool) ->
+    ok.
+
+%%% Check if index is correct, which requires 3 conditions:
+%%%  1) inbox is empty, 2) outbox is empty, 3) there are no currently processed events
+%% @todo
+-spec is_index_up_to_date() -> {ok, boolean()} | {error, any()}.
+is_index_up_to_date() ->
+    {ok, false}.
+
+%% @todo
+-spec set_dependent_zones(list(binary())) -> {ok, map()} | {error, any()}.
+set_dependent_zones(List) ->
+    {ok, #{<<"zones">> => List}}.
+
+
+-spec parse_dependent_zones(binary()) -> {ok, list(binary())} | {error, any()}.
+parse_dependent_zones(Data) ->
+    case json_utils:decode(Data) of
+        List when is_list(List) ->
+            case lists:all(fun is_binary/1, List) of
+                true -> {ok, List};
+                false -> {error, "Some element is not binary string"}
+            end;
+        _ -> {error, "Json is not not a list"}
+    end.
+
+-spec parse_boolean(binary()) -> {ok, boolean()} | {error, any()}.
+parse_boolean(Bin) ->
+    try
+        case binary_to_atom(Bin) of
+            Bool when is_boolean(Bool) -> {ok, Bool};
+            _ -> {error, not_a_bool}
+        end
+    catch _:_ ->
+        {error, not_a_bool}
+    end.
+
+-spec parse_bool_and_execute(binary(), fun((boolean()) -> ok | {error, any()})) -> ok | {error, any()}.
+parse_bool_and_execute(Arg, Fun) ->
+    case parse_boolean(Arg) of
+        {ok, Bool} -> Fun(Bool);
+        {error, Reason} -> {error, Reason}
+    end.

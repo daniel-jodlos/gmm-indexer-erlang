@@ -74,8 +74,7 @@ create_vertex(Type, Name) ->
 
 -spec update_vertex(Id::binary(), NewName::binary()) -> ok | {error, any()}.
 update_vertex(Id, NewName) ->
-    {ok, Vertex} = get_vertex(Id),
-    Data = json_utils:decode(Vertex),
+    {ok, Data} = get_vertex(Id),
     Json = json_utils:encode(maps:update(<<"name">>, NewName, Data)),
     case persistence:set(Id, Json) of
         {error, Reason} -> {error, Reason};
@@ -96,7 +95,11 @@ vertex_exists(Key) ->
 -spec get_vertex(Id::binary()) -> {ok, map()} | {error, any()}.
 get_vertex(Id) ->
     case vertex_exists(Id) of
-        {ok, true} -> persistence:get(Id);
+        {ok, true} ->
+            case persistence:get(Id) of
+                {ok, Data} -> {ok, json_utils:decode(Data)};
+                {error, Reason} -> {error, Reason}
+            end;
         {ok, false} -> {error, vertex_not_existing};
         {error, Reason} -> {error, Reason}
     end.
@@ -125,10 +128,8 @@ is_vertex(Id) ->
 vertices_to_types(IdsMap, []) ->
     {ok, IdsMap};
 vertices_to_types(IdsMap, [Key | Rest]) ->
-    {ok, Vertex} = get_vertex(Key),
     case get_vertex(Key) of
-        {ok, Vertex} ->
-            Data = json_utils:decode(Vertex),
+        {ok, Data} ->
             case maps:get(<<"type">>, Data) of
                 <<"user">> ->
                     Users = maps:get(<<"users">>, IdsMap),
@@ -161,8 +162,7 @@ get_vertices_of_type(_Type, IdsList, []) ->
     {ok, IdsList};
 get_vertices_of_type(Type, IdsList, [Key | Rest]) ->
     case get_vertex(Key) of
-        {ok, Vertex} ->
-            Data = json_utils:decode(Vertex),
+        {ok, Data} ->
             case maps:get(<<"type">>, Data) of
                 Type -> get_vertices_of_type(Type, IdsList ++ [maps:get(<<"id">>, Data)], Rest);
                 _ -> get_vertices_of_type(Type, IdsList, Rest)
