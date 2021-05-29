@@ -18,10 +18,22 @@ jobs:
       run: rebar3 compile
     - name: Run tests
       run: rebar3 do eunit
+
+  lint:
+    if: "!contains(github.event.head_commit.message, '[skip-ci]')"
+    runs-on: ubuntu-latest
+    container:
+      image: erlang:23
+    steps:
+    - uses: actions/checkout@v2
+    - name: Compile
+      run: rebar3 compile
+    - name: Ensure formatting
+      run: rebar3 steamroll --check
   
   build:
     if: "!contains(github.event.head_commit.message, '[skip-ci]')"
-    needs: test
+    needs: [test, lint]
     runs-on: ubuntu-latest
     steps:
     - 
@@ -43,6 +55,6 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         context: .
-        push: ${{ github.event.action == 'closed' && github.event.pull_request.merged == true }}
+        push: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true }}
         tags: danieljodlos/gmm-indexer-erlang:latest
         
