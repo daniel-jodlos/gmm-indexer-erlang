@@ -20,7 +20,8 @@ FROM erlang:alpine
 
 RUN apk add --no-cache openssl && \
     apk add --no-cache ncurses-libs
-
+RUN apk --update add build-base erlang-crypto erlang-syntax-tools erlang-parsetools erlang-inets erlang-ssl erlang-public-key erlang-eunit \
+        rm -rf /var/cache/apk/*
 COPY --from=0 /buildroot/_build/prod/rel/prod /prod
 
 EXPOSE 8080
