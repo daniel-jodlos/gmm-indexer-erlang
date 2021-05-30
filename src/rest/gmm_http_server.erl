@@ -57,14 +57,6 @@ start_server() ->
             {"/permissions", rest_basic_queries, #{operation => permissions}},
 
             %%%-------------------------------------------------------------------
-            %%  rest_graph_index
-            %%  @todo implement api+logic; in progress
-            %%%-------------------------------------------------------------------
-
-            %  GET {vertices :: list(String)} -> List<IndexDto>
-            {"/index", rest_graph_index, #{}},
-
-            %%%-------------------------------------------------------------------
             %%  rest_load_simulator
             %%  @todo implement logic
             %%%-------------------------------------------------------------------
