@@ -70,7 +70,7 @@ from_json(Req, State) ->
              end,
     case Result of
         ok -> {true, Req, State};
-        {ok, Value} -> {{true, json_utils:encode(Value)}, Req, State};
+        {ok, Value} -> {{true, gmm_utils:encode(Value)}, Req, State};
         _ -> {false, Req, State}
     end.
 
@@ -83,7 +83,7 @@ to_json(Req, State) ->
                  instrumentation -> get_instrumentation()
              end,
     {ok, Value} = Result,
-    {json_utils:encode(Value), Req, State}.
+    {gmm_utils:encode(Value), Req, State}.
 
 
 %%%---------------------------
@@ -120,7 +120,7 @@ set_dependent_zones(List) ->
 
 -spec parse_dependent_zones(binary()) -> {ok, list(binary())} | {error, any()}.
 parse_dependent_zones(Data) ->
-    case json_utils:decode(Data) of
+    case gmm_utils:decode(Data) of
         List when is_list(List) ->
             case lists:all(fun is_binary/1, List) of
                 true -> {ok, List};
@@ -129,20 +129,9 @@ parse_dependent_zones(Data) ->
         _ -> {error, "Json is not not a list"}
     end.
 
--spec parse_boolean(binary()) -> {ok, boolean()} | {error, any()}.
-parse_boolean(Bin) ->
-    try
-        case binary_to_atom(Bin) of
-            Bool when is_boolean(Bool) -> {ok, Bool};
-            _ -> {error, not_a_bool}
-        end
-    catch _:_ ->
-        {error, not_a_bool}
-    end.
-
 -spec parse_bool_and_execute(binary(), fun((boolean()) -> ok | {error, any()})) -> ok | {error, any()}.
 parse_bool_and_execute(Arg, Fun) ->
-    case parse_boolean(Arg) of
+    case gmm_utils:parse_boolean(Arg) of
         {ok, Bool} -> Fun(Bool);
         {error, Reason} -> {error, Reason}
     end.

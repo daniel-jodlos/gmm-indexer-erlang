@@ -34,12 +34,12 @@ init(Req0, State) ->
                               {<<"POST">>, single_event} ->
                                   Params = cowboy_req:match_qs([{id, nonempty}], Req0),
                                   {ok, Data, Req1} = cowboy_req:read_body(Req0),
-                                  Event = json_utils:decode(Data),
+                                  Event = gmm_utils:decode(Data),
                                   ok = validate_event(Event),
                                   {maps:merge(Params, #{body => Event}), Req1};
                               {<<"POST">>, bulk} ->
                                   {ok, Data, Req1} = cowboy_req:read_body(Req0),
-                                  BulkEvents = json_utils:decode(Data),
+                                  BulkEvents = gmm_utils:decode(Data),
                                   ok = validate_bulk_events(BulkEvents),
                                   #{<<"messages">> := MessagesList} = BulkEvents,
                                   {#{body => MessagesList}, Req1};
@@ -94,7 +94,7 @@ to_json(Req, State) ->
         <<"load5">> => 0.0,
         <<"load15">> => 0.0
     },
-    {json_utils:encode(Map), Req, State}.
+    {gmm_utils:encode(Map), Req, State}.
 
 
 %%%---------------------------

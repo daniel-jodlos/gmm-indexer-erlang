@@ -74,7 +74,7 @@ from_json(Req, State) ->
                      end
              end,
     case Result of
-        {ok, Value} -> {{true, json_utils:encode(Value)}, Req, State};
+        {ok, Value} -> {{true, gmm_utils:encode(Value)}, Req, State};
         {error, _} -> {false, Req, State}
     end.
 
