@@ -119,6 +119,16 @@ start_server() ->
         ]}
     ]),
     {ok, _} = cowboy:start_clear(my_http_listener,
-        [{port, list_to_integer(os:getenv("PORT", "8080"))}],
+        [{port, get_port()}],
         #{env => #{dispatch => Dispatch}}
     ).
+
+
+%%%---------------------------
+%% internal functions
+%%%---------------------------
+
+-spec get_port() -> integer().
+get_port() ->
+    EnvVar = os:getenv("PORT", "8080"),
+    list_to_integer(EnvVar).
