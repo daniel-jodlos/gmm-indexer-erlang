@@ -88,8 +88,8 @@ execute(Fun, Args, FieldName) ->
         EndTime = erlang:timestamp(),
         Duration = timer:now_diff(EndTime, StartTime),
         case Result of
-            {ok, Value} -> {ok, #{<<"duration">> => convert_microseconds_to_iso_8601(Duration), FieldName => Value}};
-            {error, Reason} -> {error, Reason}
+%%            {error, Reason} -> {error, Reason};
+            {ok, Value} -> {ok, #{<<"duration">> => convert_microseconds_to_iso_8601(Duration), FieldName => Value}}
         end
     catch _:_ ->
         {error, "Execution error - probably wrong number of arguments"}

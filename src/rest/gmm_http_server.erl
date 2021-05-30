@@ -58,11 +58,11 @@ start_server() ->
 
             %%%-------------------------------------------------------------------
             %%  rest_graph_index
-            %%  @todo implement api+logic
+            %%  @todo implement api+logic; in progress
             %%%-------------------------------------------------------------------
 
             %  GET {vertices :: list(String)} -> List<IndexDto>
-            {"/index", not_implemented, #{}},
+            {"/index", rest_graph_index, #{}},
 
             %%%-------------------------------------------------------------------
             %%  rest_load_simulator
@@ -127,6 +127,6 @@ start_server() ->
         ]}
     ]),
     {ok, _} = cowboy:start_clear(my_http_listener,
-        [{port, os:getenv("PORT", 8080)}],
+        [{port, list_to_integer(os:getenv("PORT", "8080"))}],
         #{env => #{dispatch => Dispatch}}
     ).

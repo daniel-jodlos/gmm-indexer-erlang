@@ -9,4 +9,9 @@
 -behavior(cowboy_handler).
 
 %% API
--export([]).
+-export([
+    init/2
+]).
+
+init(Req, State) ->
+    {cowboy_rest, Req, State}.
