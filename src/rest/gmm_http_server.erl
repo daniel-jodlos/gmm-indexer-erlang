@@ -107,15 +107,15 @@ start_server() ->
 
             %%%-------------------------------------------------------------------
             %%  rest_events
-            %%  @todo implement api+logic
+            %%  @todo implement logic
             %%%-------------------------------------------------------------------
 
             %  POST {id, BODY->event} -> void
-            {"/events", not_implemented, #{}},
+            {"/events", rest_events, #{operation => single_event}},
             %  POST {BODY->messages :: BulkMessagesDto} -> void
-            {"/events/bulk", not_implemented, #{}},
+            {"/events/bulk", rest_events, #{operation => bulk}},
             %  GET {} -> EventStats
-            {"/events/stats", not_implemented, #{}}
+            {"/events/stats", rest_events, #{operation => stats}}
         ]}
     ]),
     {ok, _} = cowboy:start_clear(my_http_listener,

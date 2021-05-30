@@ -467,7 +467,7 @@
     </tr>
 </table>
 
-### Dependent Zones - I don't know what it does
+### Dependent Zones - check if needed zones are running and to get stats about them
 
 <table>
     <tr>
@@ -620,6 +620,87 @@ WARNING: in current state our server doesn't send times longer than 24 hours.
     <tr>
         <th>Return type</th>
         <td>{"duration": Time-ISO-8601, "effectivePermissions": list(string)}</td>
+    </tr>
+</table>
+
+---
+
+## Event propagation
+
+### Single event
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/events</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>POST</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td><ul>
+            <li>id</li>
+        </ul></td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>{"type": string, "trace": string, "sender": string, "originalSender": string, "effectiveVertices": ["id1", ..]}</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>void</td>
+    </tr>
+</table>
+
+### Bulk of events
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/events/bulk</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>POST</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td>none</td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>{"messages": [{"vn": string, "e": Event}, ..]}<br/>Event format is described in "Single event" section</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>void</td>
+    </tr>
+</table>
+
+### Get events stats
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/events/stats</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>GET</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td>none</td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>void</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>{"processing": int, "processingNanos": double, "processingByType": {"user": int, ..}, "queued": int, "outbox": int, "total": long, "load1": double, "load5": double, "long15": double}</td>
     </tr>
 </table>
 
