@@ -41,7 +41,7 @@
     </tr>
     <tr>
         <th>Return type</th>
-        <td>JSON: {"id": id_of_new_vertex}</td>
+        <td>{"id": string}</td>
     </tr>
 </table>
 
@@ -66,7 +66,7 @@
     </tr>
     <tr>
         <th>Return type</th>
-        <td>JSON: map( type -> list(string) )<br/>Where type: &lt;"user", "group", "space", "provider"&gt;</td>
+        <td>{"users": list(string), "groups": list(string), "spaces": list(string), "providers": list(string)}</td>
     </tr>
 </table>
 
@@ -93,7 +93,7 @@
     </tr>
     <tr>
         <th>Return type</th>
-        <td>JSON: map( field -> string )<br/>Where field: &lt;"id", "type", "name", "zone"&gt;</td>
+        <td>{"id": string, "type": string, "name": string, "zone": string}</td>
     </tr>
 </table>
 
@@ -484,11 +484,11 @@
     </tr>
     <tr>
         <th>Body</th>
-        <td>JSON: list(string)</td>
+        <td>list(string)</td>
     </tr>
     <tr>
         <th>Return type</th>
-        <td>JSON: {"zones": list(string)}</td>
+        <td>{"zones": list(string)}</td>
     </tr>
 </table>
 
@@ -513,11 +513,113 @@
     </tr>
     <tr>
         <th>Body</th>
-        <td>JSON {"ops": [{}, ..]}<br/>Where inner objects have fields &lt;"t" - operation type {"a", "r", "p"}, "f" - from, "to" - to, "p" - permissions, "tr" - trace&gt;</td>
+        <td>{"ops": [{..}, .., {..}]}<br/>Where inner objects have fields &lt;"t" - operation type {"a", "r", "p"}, "f" - from, "to" - to, "p" - permissions, "tr" - trace&gt;</td>
     </tr>
     <tr>
         <th>Return type</th>
         <td>void</td>
+    </tr>
+</table>
+
+---
+
+## Empty table template
+
+### ISO-8601 Format
+
+In responses described in this section there is a field called "duration",
+that stores time needed to execute the request.
+That duration is stored as string in format given by ISO-8601 standard,
+described [here](https://en.wikipedia.org/wiki/ISO_8601#Durations).
+
+For the needs of our application we can assume that duration is smaller than 1 minute.
+In that case, string looks like this:
+```"PTxS"```,
+where x is a floating-point number with 6 decimal places, describing number of seconds
+(the integer part) and microseconds (the fractional part).
+
+WARNING: in current state our server doesn't send times longer than 24 hours.
+
+### Check existence of path (is 'to' effective child of 'from'?)
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/naive/reaches<br/>/indexed/reaches</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>POST</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td><ul>
+            <li>from</li>
+            <li>to</li>
+        </ul></td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>void</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>{"duration": Time-ISO-8601, "reaches": boolean}</td>
+    </tr>
+</table>
+
+### Get effective permissions 'to' possesses about 'from'
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/naive/effective_permissions<br/>/indexed/effective_permissions</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>POST</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td><ul>
+            <li>from</li>
+            <li>to</li>
+        </ul></td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>void</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>{"duration": Time-ISO-8601, "effectivePermissions": string}</td>
+    </tr>
+</table>
+
+### List effective children of given vertex
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/naive/members<br/>/indexed/members</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>POST</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td><ul>
+            <li>of</li>
+        </ul></td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>void</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>{"duration": Time-ISO-8601, "effectivePermissions": list(string)}</td>
     </tr>
 </table>
 
