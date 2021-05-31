@@ -13,6 +13,7 @@
     decode/1,
     create_vertex_id/1,
     create_vertex_id/2,
+    split_bin/2,
     split_bin/1,
     parse_boolean/1,
     convert_microseconds_to_iso_8601/1
@@ -43,14 +44,18 @@ create_vertex_id(Name) ->
 create_vertex_id(Name, Zone) ->
     <<Zone/binary, "/", Name/binary>>.
 
+-spec split_bin(Bin :: binary(), Delimiter :: binary()) -> {ok, list(binary())} | {error, any()}.
+split_bin(Bin, Delimiter) ->
+    try
+        {ok, binary:split(Bin, Delimiter, [global])}
+    catch _:_ ->
+        {error, not_a_bin}
+    end
+
 -spec split_bin(Bin :: binary()) -> {ok, list(binary())} | {error, any()}.
 split_bin(Bin) ->
     %% default delimiter is '/'
-    try
-        {ok, binary:split(Bin, <<"/">>, [global])}
-    catch _:_ ->
-        {error, not_a_bin}
-    end.
+    split_bin(Bin, <<"/">>.
 
 %% Other functions
 -spec parse_boolean(binary()) -> {ok, boolean()} | {error, any()}.
