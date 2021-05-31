@@ -50,7 +50,6 @@
 generate_id(Name) ->
     Zone = list_to_binary(?ZONE_ID),
     Id = gmm_utils:create_vertex_id(Name, Zone),
-%%    IdWithZone = <<Zone/binary, "_", Id/binary>>,
     case persistence:exists(Id) of
         {ok, false} -> {ok, Id};
         {ok, true} -> {error, "Vertex exists"};
