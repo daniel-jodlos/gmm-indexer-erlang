@@ -50,7 +50,7 @@ split_bin(Bin, Delimiter) ->
         {ok, binary:split(Bin, Delimiter, [global])}
     catch _:_ ->
         {error, not_a_bin}
-    end
+    end.
 
 -spec split_bin(Bin :: binary()) -> {ok, list(binary())} | {error, any()}.
 split_bin(Bin) ->
