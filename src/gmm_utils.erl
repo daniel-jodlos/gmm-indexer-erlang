@@ -55,7 +55,7 @@ split_bin(Bin, Delimiter) ->
 -spec split_bin(Bin :: binary()) -> {ok, list(binary())} | {error, any()}.
 split_bin(Bin) ->
     %% default delimiter is '/'
-    split_bin(Bin, <<"/">>.
+    split_bin(Bin, <<"/">>).
 
 %% Other functions
 -spec parse_boolean(binary()) -> {ok, boolean()} | {error, any()}.
