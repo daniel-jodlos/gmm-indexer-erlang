@@ -16,21 +16,25 @@ start_server() ->
 
             %%%-------------------------------------------------------------------
             %%  rest_vertices
-            %%  @todo implement '/bulk'
+            %%  @todo '/bulk' -> implement logic
             %%%-------------------------------------------------------------------
 
             %  POST {name, type} -> void
-            %  *  GET {} -> map(string->list(string)) (LISTING)
-            %  *  GET {id} -> map()
-            %  *  DELETE {id} -> void
-            {"/graph/vertices", rest_vertices, #{}},
+            {"/graph/vertices", rest_vertices, #{operation => add}},
 
             %  POST {bulkRequest :: BulkVertexCreationRequestDto} -> void
-            {"/graph/vertices/bulk", not_implemented, #{}},
+            {"/graph/vertices/bulk", rest_vertices, #{operation => bulk}},
+
+            %  *  GET {id} -> map()
+            {"/graph/vertices/details", rest_vertices, #{operation => details}},
+            %  *  GET {} -> map(string->list(string))
+            {"/graph/vertices/listing", rest_vertices, #{operation => listing}},
+            %  *  POST {id} -> void
+            {"/graph/vertices/delete", rest_vertices, #{operation => delete}},
 
             %%%-------------------------------------------------------------------
             %%  rest_edges
-            %%  @todo implement '/bulk'
+            %%  @todo '/bulk' -> implement logic
             %%%-------------------------------------------------------------------
 
             %  POST {from, to, permissions[, trace], successive} -> void
@@ -41,7 +45,7 @@ start_server() ->
             {"/graph/edges/delete", rest_edges, #{operation => delete}},
 
             %  POST {BODY->bulkRequest :: BulkEdgeCreationRequestDto} -> void
-            {"/graph/edges/bulk", not_implemented, #{}},
+            {"/graph/edges/bulk", rest_edges, #{operation => bulk}},
 
             %%%-------------------------------------------------------------------
             %% rest_basic_queries
@@ -107,15 +111,15 @@ start_server() ->
 
             %%%-------------------------------------------------------------------
             %%  rest_events
-            %%  @todo implement api+logic
+            %%  @todo implement logic
             %%%-------------------------------------------------------------------
 
             %  POST {id, BODY->event} -> void
-            {"/events", not_implemented, #{}},
+            {"/events", rest_events, #{operation => single_event}},
             %  POST {BODY->messages :: BulkMessagesDto} -> void
-            {"/events/bulk", not_implemented, #{}},
+            {"/events/bulk", rest_events, #{operation => bulk}},
             %  GET {} -> EventStats
-            {"/events/stats", not_implemented, #{}}
+            {"/events/stats", rest_events, #{operation => stats}}
         ]}
     ]),
     {ok, _} = cowboy:start_clear(my_http_listener,

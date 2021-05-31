@@ -6,7 +6,7 @@
 
 | Parameter | Type | Format | Represents |
 |-----------|------|--------|------------|
-| from, to, of, id | string | zone${i}_characters | ID of a vertex |
+| from, to, of, id | string | zone_id/name | ID of a vertex |
 | type, name | string |  | Some value |
 | permissions | string | xx-x- | Permissions set on given edge |
 | trace | string (optional) |  | Globally unique identifier of set of events about the same operation on the graph |
@@ -41,7 +41,7 @@
     </tr>
     <tr>
         <th>Return type</th>
-        <td>{"id": string}</td>
+        <td>void</td>
     </tr>
 </table>
 
@@ -50,7 +50,7 @@
 <table>
     <tr>
         <th>Path</th>
-        <td>/graph/vertices</td>
+        <td>/graph/vertices/listing</td>
     </tr>
     <tr>
         <th>Method</th>
@@ -75,7 +75,7 @@
 <table>
     <tr>
         <th>Path</th>
-        <td>/graph/vertices</td>
+        <td>/graph/vertices/details</td>
     </tr>
     <tr>
         <th>Method</th>
@@ -102,11 +102,11 @@
 <table>
     <tr>
         <th>Path</th>
-        <td>/graph/vertices</td>
+        <td>/graph/vertices/delete</td>
     </tr>
     <tr>
         <th>Method</th>
-        <td>DELETE</td>
+        <td>POST</td>
     </tr>
     <tr>
         <th>Params</th>
@@ -117,6 +117,31 @@
     <tr>
         <th>Body</th>
         <td>void</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>void</td>
+    </tr>
+</table>
+
+### Bulk vertex request
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/graph/vertices/bulk</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>POST</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td>none</td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>{"vertices": ["type1/name1", "type2/name2", ..]}</td>
     </tr>
     <tr>
         <th>Return type</th>
@@ -213,6 +238,31 @@
     <tr>
         <th>Body</th>
         <td>void</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>void</td>
+    </tr>
+</table>
+
+### Bulk create-edges request
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/graph/edges/bulk</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>POST</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td>none</td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>{"sourceZone": string, "destinationZone": string, "successive": boolean, "edges": ["fromName/toName/permissions/trace", ..]}<br/>where trace can be empty string</td>
     </tr>
     <tr>
         <th>Return type</th>
@@ -363,7 +413,7 @@
     </tr>
 </table>
 
-### Index ready - I don't know what it does
+### Index ready - checks if there are any waiting or currently processed events in this zone
 
 <table>
     <tr>
@@ -467,7 +517,7 @@
     </tr>
 </table>
 
-### Dependent Zones - I don't know what it does
+### Dependent Zones - check if needed zones are running and to get stats about them
 
 <table>
     <tr>
@@ -625,31 +675,81 @@ WARNING: in current state our server doesn't send times longer than 24 hours.
 
 ---
 
-## Empty table template
+## Event propagation
 
-### Description
+### Single event
 
 <table>
     <tr>
         <th>Path</th>
-        <td></td>
+        <td>/events</td>
     </tr>
     <tr>
         <th>Method</th>
-        <td></td>
+        <td>POST</td>
     </tr>
     <tr>
         <th>Params</th>
         <td><ul>
-            <li></li>
+            <li>id; *this is id of the event, not a vertex</li>
         </ul></td>
     </tr>
     <tr>
         <th>Body</th>
-        <td></td>
+        <td>{"type": string, "trace": string, "sender": string, "originalSender": string, "effectiveVertices": ["id1", ..]}</td>
     </tr>
     <tr>
         <th>Return type</th>
-        <td></td>
+        <td>void</td>
+    </tr>
+</table>
+
+### Bulk of events
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/events/bulk</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>POST</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td>none</td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>{"messages": [{"vn": string, "e": Event}, ..]}<br/>Event format is described in "Single event" section</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>void</td>
+    </tr>
+</table>
+
+### Get events stats
+
+<table>
+    <tr>
+        <th>Path</th>
+        <td>/events/stats</td>
+    </tr>
+    <tr>
+        <th>Method</th>
+        <td>GET</td>
+    </tr>
+    <tr>
+        <th>Params</th>
+        <td>none</td>
+    </tr>
+    <tr>
+        <th>Body</th>
+        <td>void</td>
+    </tr>
+    <tr>
+        <th>Return type</th>
+        <td>{"processing": int, "processingNanos": double, "processingByType": {"user": int, ..}, "queued": int, "outbox": int, "total": long, "load1": double, "load5": double, "long15": double}</td>
     </tr>
 </table>
