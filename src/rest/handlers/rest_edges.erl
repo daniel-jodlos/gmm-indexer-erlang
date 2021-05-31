@@ -26,22 +26,23 @@
 %%%---------------------------
 
 init(Req0, State) ->
-    {ParsedParams, Req} = case maps:get(operation, State) of
-                              Op when Op =:= add; Op =:= permissions ->
-                                  {cowboy_req:match_qs([
-                                      {from, nonempty}, {to, nonempty}, {permissions, nonempty},
-                                      {trace, [], undefined}, {successive, nonempty}
-                                  ], Req0), Req0};
-                              delete ->
-                                  {cowboy_req:match_qs([
-                                      {from, nonempty}, {to, nonempty}, {trace, [], undefined}, {successive, nonempty}
-                                  ], Req0), Req0};
-                              bulk ->
-                                  {ok, Data, Req1} = cowboy_req:read_body(Req0),
-                                  ParsedJson = gmm_utils:decode(Data),
-                                  {ok, Map} = parse_bulk_request(ParsedJson),
-                                  {#{bulk_request => Map}, Req1}
-                          end,
+    {ParsedParams, Req} =
+        case maps:get(operation, State) of
+            Op when Op =:= add; Op =:= permissions ->
+                {cowboy_req:match_qs([
+                    {from, nonempty}, {to, nonempty}, {permissions, nonempty},
+                    {trace, [], undefined}, {successive, nonempty}
+                ], Req0), Req0};
+            delete ->
+                {cowboy_req:match_qs([
+                    {from, nonempty}, {to, nonempty}, {trace, [], undefined}, {successive, nonempty}
+                ], Req0), Req0};
+            bulk ->
+                {ok, Data, Req1} = cowboy_req:read_body(Req0),
+                ParsedJson = gmm_utils:decode(Data),
+                {ok, Map} = parse_bulk_request(ParsedJson),
+                {#{bulk_request => Map}, Req1}
+        end,
     NewState = maps:merge(State, ParsedParams),
     {cowboy_rest, Req, NewState}.
 
@@ -95,7 +96,7 @@ from_json(Req, State) ->
 
 -spec parse_edge_string(binary()) -> {ok, map()} | {error, any()}.
 parse_edge_string(Bin) when is_binary(Bin) ->
-    case gmm_utils:split_string(Bin) of
+    case gmm_utils:split_bin(Bin) of
         [From, To, Permissions] -> {ok, #{from => From, to => To, permissions => Permissions, trace => undefined}};
         [From, To, Permissions, Trace] -> {ok, #{from => From, to => To, permissions => Permissions, trace => Trace}};
         _ -> {error, "Incorrect edge string"}

@@ -13,7 +13,7 @@
     decode/1,
     create_vertex_id/1,
     create_vertex_id/2,
-    split_string/1,
+    split_bin/1,
     parse_boolean/1,
     convert_microseconds_to_iso_8601/1
 ]).
@@ -24,6 +24,7 @@
 %% Implementations
 %%%---------------------------
 
+%% JSON manipulation
 -spec empty_json() -> binary().
 empty_json() -> jiffy:encode({[]}).
 
@@ -33,21 +34,25 @@ encode(Val) -> jiffy:encode(Val).
 -spec decode(binary()) -> any().
 decode(Val) -> jiffy:decode(Val, [return_maps]).
 
-%% @todo
+%% Binary string manipulation
 -spec create_vertex_id(Name :: binary()) -> binary().
 create_vertex_id(Name) ->
     create_vertex_id(Name, list_to_binary(?ZONE_ID)).
 
-%% @todo
 -spec create_vertex_id(Name :: binary(), Zone :: binary()) -> binary().
 create_vertex_id(Name, Zone) ->
-    <<Zone/binary, "_", Name/binary>>.
+    <<Zone/binary, "/", Name/binary>>.
 
-%% @todo
-%% splits string by delimiter '/'
--spec split_string(Id :: binary()) -> {ok, list(binary())} | {error, any()}.
-split_string(_Id) -> erlang:error(not_implemented).
+-spec split_bin(Bin :: binary()) -> {ok, list(binary())} | {error, any()}.
+split_bin(Bin) ->
+    %% default delimiter is '/'
+    try
+        {ok, binary:split(Bin, <<"/">>, [global])}
+    catch _:_ ->
+        {error, not_a_bin}
+    end.
 
+%% Other functions
 -spec parse_boolean(binary()) -> {ok, boolean()} | {error, any()}.
 parse_boolean(Bin) ->
     try

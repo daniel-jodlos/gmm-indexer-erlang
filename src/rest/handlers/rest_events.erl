@@ -30,22 +30,23 @@
 init(Req0, State) ->
     Method = cowboy_req:method(Req0),
     #{operation := Operation} = State,
-    {ParsedParams, Req} = case {Method, Operation} of
-                              {<<"POST">>, single_event} ->
-                                  Params = cowboy_req:match_qs([{id, nonempty}], Req0),
-                                  {ok, Data, Req1} = cowboy_req:read_body(Req0),
-                                  Event = gmm_utils:decode(Data),
-                                  ok = validate_event(Event),
-                                  {maps:merge(Params, #{body => Event}), Req1};
-                              {<<"POST">>, bulk} ->
-                                  {ok, Data, Req1} = cowboy_req:read_body(Req0),
-                                  BulkEvents = gmm_utils:decode(Data),
-                                  ok = validate_bulk_events(BulkEvents),
-                                  #{<<"messages">> := MessagesList} = BulkEvents,
-                                  {#{body => MessagesList}, Req1};
-                              {<<"GET">>, stats} ->
-                                  {#{}, Req0}
-                          end,
+    {ParsedParams, Req} =
+        case {Method, Operation} of
+            {<<"POST">>, single_event} ->
+                Params = cowboy_req:match_qs([{id, nonempty}], Req0),
+                {ok, Data, Req1} = cowboy_req:read_body(Req0),
+                Event = gmm_utils:decode(Data),
+                ok = validate_event(Event),
+                {maps:merge(Params, #{body => Event}), Req1};
+            {<<"POST">>, bulk} ->
+                {ok, Data, Req1} = cowboy_req:read_body(Req0),
+                BulkEvents = gmm_utils:decode(Data),
+                ok = validate_bulk_events(BulkEvents),
+                #{<<"messages">> := MessagesList} = BulkEvents,
+                {#{body => MessagesList}, Req1};
+            {<<"GET">>, stats} ->
+                {#{}, Req0}
+        end,
     NewState = maps:merge(State, ParsedParams),
     {cowboy_rest, Req, NewState}.
 

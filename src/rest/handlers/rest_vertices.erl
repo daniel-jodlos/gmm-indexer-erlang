@@ -28,19 +28,20 @@
 
 init(Req0, State) ->
     Method = cowboy_req:method(Req0),
-    {ParsedParams, Req} = case {Method, maps:get(operation, State)} of
-                              {<<"POST">>, add} ->
-                                  {cowboy_req:match_qs([{type, nonempty}, {name, nonempty}], Req0), Req0};
-                              {<<"GET">>, details} ->
-                                  {cowboy_req:match_qs([{id, nonempty}], Req0), Req0};
-                              {<<"GET">>, listing} ->
-                                  {#{}, Req0};
-                              {<<"POST">>, delete} ->
-                                  {cowboy_req:match_qs([{id, nonempty}], Req0), Req0};
-                              {<<"POST">>, bulk} ->
-                                  {ok, Data, Req1} = cowboy_req:read_body(Req0),
-                                  {#{body => Data}, Req1}
-                          end,
+    {ParsedParams, Req} =
+        case {Method, maps:get(operation, State)} of
+            {<<"POST">>, add} ->
+                {cowboy_req:match_qs([{type, nonempty}, {name, nonempty}], Req0), Req0};
+            {<<"GET">>, details} ->
+                {cowboy_req:match_qs([{id, nonempty}], Req0), Req0};
+            {<<"GET">>, listing} ->
+                {#{}, Req0};
+            {<<"POST">>, delete} ->
+                {cowboy_req:match_qs([{id, nonempty}], Req0), Req0};
+            {<<"POST">>, bulk} ->
+                {ok, Data, Req1} = cowboy_req:read_body(Req0),
+                {#{body => Data}, Req1}
+        end,
     NewState = maps:merge(State, ParsedParams),
     {cowboy_rest, Req, NewState}.
 
@@ -67,22 +68,24 @@ resource_exists(Req, State) ->
 
 %% POST handler
 from_json(Req, State) ->
-    ExecutionResult = case maps:get(operation, State) of
-                          add -> add_vertex(maps:get(type, State), maps:get(name, State));
-                          delete -> graph:remove_vertex(maps:get(id, State));
-                          bulk ->
-                              case parse_bulk_list(maps:get(body, State)) of
-                                  {ok, List} ->
-                                      lists:foreach(fun({Type, Name}) -> add_vertex(Type, Name) end, List),
-                                      ok;
-                                  {error, Reason} -> {error, Reason}
-                              end
-                      end,
-    RequestResult = case ExecutionResult of
-                        ok -> true;
-                        {ok, Val} -> {true, gmm_utils:encode(Val)};
-                        {error, _} -> false
-                    end,
+    ExecutionResult =
+        case maps:get(operation, State) of
+            add -> add_vertex(maps:get(type, State), maps:get(name, State));
+            delete -> graph:remove_vertex(maps:get(id, State));
+            bulk ->
+                case parse_bulk_list(maps:get(body, State)) of
+                    {ok, List} ->
+                        lists:foreach(fun({Type, Name}) -> add_vertex(Type, Name) end, List),
+                        ok;
+                    {error, Reason} -> {error, Reason}
+                end
+        end,
+    RequestResult =
+        case ExecutionResult of
+            ok -> true;
+            {ok, Val} -> {true, gmm_utils:encode(Val)};
+            {error, _} -> false
+        end,
     {RequestResult, Req, State}.
 
 %% GET handler
@@ -106,7 +109,7 @@ add_vertex(_, _) ->
 
 -spec parse_vertex_data(binary()) -> {ok, {binary(), binary()}} | {error, any()}.
 parse_vertex_data(Bin) when is_binary(Bin) ->
-    case gmm_utils:split_string(Bin) of
+    case gmm_utils:split_bin(Bin) of
         {ok, [Type, Name]} -> {ok, {Type, Name}};
         _ -> {error, "Invalid vertex data"}
     end;
