@@ -97,8 +97,8 @@ from_json(Req, State) ->
 -spec parse_edge_string(binary()) -> {ok, map()} | {error, any()}.
 parse_edge_string(Bin) when is_binary(Bin) ->
     case gmm_utils:split_bin(Bin) of
-        [From, To, Permissions] -> {ok, #{from => From, to => To, permissions => Permissions, trace => undefined}};
-        [From, To, Permissions, Trace] -> {ok, #{from => From, to => To, permissions => Permissions, trace => Trace}};
+        {ok, [From, To, Permissions, Trace]} ->
+            {ok, #{from => From, to => To, permissions => Permissions, trace => Trace}};
         _ -> {error, "Incorrect edge string"}
     end;
 parse_edge_string(_) ->
