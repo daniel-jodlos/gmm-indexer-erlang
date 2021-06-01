@@ -40,7 +40,7 @@ resource_exists(Req, State) ->
 
 %% POST handler
 from_json(Req, State) ->
-    JsonMap = case json_utils:decode(maps:get(body, State)) of
+    JsonMap = case gmm_utils:decode(maps:get(body, State)) of
                   #{<<"ops">> := List} when is_list(List) ->
                       ValidatedList = lists:map(
                           fun(#{<<"t">> := Type, <<"f">> := From, <<"to">> := To, <<"p">> := Permissions,

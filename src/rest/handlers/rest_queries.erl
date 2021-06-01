@@ -63,7 +63,7 @@ from_json(Req, State) ->
                 execute(fun members_indexed/1, [maps:get('of', State)], <<"members">>)
         end,
     RequestResult = case ExecutionResult of
-                        {ok, Map} -> {true, json_utils:encode(Map)};
+                        {ok, Map} -> {true, gmm_utils:encode(Map)};
                         {error, _} -> false
                     end,
     {RequestResult, Req, State}.
@@ -89,7 +89,8 @@ execute(Fun, Args, FieldName) ->
         Duration = timer:now_diff(EndTime, StartTime),
         case Result of
 %%            {error, Reason} -> {error, Reason};
-            {ok, Value} -> {ok, #{<<"duration">> => convert_microseconds_to_iso_8601(Duration), FieldName => Value}}
+            {ok, Value} ->
+                {ok, #{<<"duration">> => gmm_utils:convert_microseconds_to_iso_8601(Duration), FieldName => Value}}
         end
     catch _:_ ->
         {error, "Execution error - probably wrong number of arguments"}
@@ -124,29 +125,3 @@ members_naive(_Of) ->
 -spec members_indexed(binary()) -> {ok, list(binary())} | {error, any()}.
 members_indexed(_Of) ->
     {ok, []}.
-
-
-%% Assumption: time to parse is smaller than 1 day, or rather: result of this function is time modulo 24 hours
--spec convert_microseconds_to_iso_8601(integer()) -> binary().
-convert_microseconds_to_iso_8601(TotalMicroseconds) when TotalMicroseconds >= 0 ->
-    %% decompose TotalMicroseconds
-    Microseconds = TotalMicroseconds rem 1000000,
-    TotalSeconds = TotalMicroseconds div 1000000,
-    Seconds = TotalSeconds rem 60,
-    TotalMinutes = TotalSeconds div 60,
-    Minutes = TotalMinutes rem 60,
-    TotalHours = TotalMinutes div 60,
-    Hours = TotalHours rem 24,
-
-    %% parse it to string
-    SecondsString = io_lib:format("~.6fS", [(Seconds * 1000000 + Microseconds) / 1000000]),
-    MinutesString = case Minutes of
-                        0 -> "";
-                        _ -> io_lib:format("~wM", [Minutes])
-                    end,
-    HoursString = case Hours of
-                      0 -> "";
-                      _ -> io_lib:format("~wH", [Hours])
-                  end,
-    TimeString = "PT"++HoursString++MinutesString++SecondsString,
-    list_to_binary(TimeString).
