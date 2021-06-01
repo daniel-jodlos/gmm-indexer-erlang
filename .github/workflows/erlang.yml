@@ -28,8 +28,6 @@ jobs:
       run: rebar3 compile
     - name: Ensure type safety
       run: rebar3 dialyzer
-    - name: Ensure formatting
-      run: rebar3 steamroll --check
   
   build:
     if: "!contains(github.event.head_commit.message, '[skip-ci]')"

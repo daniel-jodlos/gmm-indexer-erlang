@@ -27,12 +27,13 @@
 
 init(Req, State) ->
     Method = cowboy_req:method(Req),
-    ParsedParams = case maps:get(operation, State) of
-                       Op when Op =:= is_adjacent; Op =:= permissions ->
-                           cowboy_req:match_qs([{from, nonempty}, {to, nonempty}], Req);
-                       Op when Op =:= list_adjacent; Op =:= list_adjacent_reversed ->
-                           cowboy_req:match_qs([{'of', nonempty}], Req)
-                   end,
+    ParsedParams =
+        case maps:get(operation, State) of
+            Op when Op =:= is_adjacent; Op =:= permissions ->
+                cowboy_req:match_qs([{from, nonempty}, {to, nonempty}], Req);
+            Op when Op =:= list_adjacent; Op =:= list_adjacent_reversed ->
+                cowboy_req:match_qs([{'of', nonempty}], Req)
+        end,
     NewState = maps:merge(maps:put(method, Method, State), ParsedParams),
     {cowboy_rest, Req, NewState}.
 
@@ -74,7 +75,7 @@ from_json(Req, State) ->
                      end
              end,
     case Result of
-        {ok, Value} -> {{true, json_utils:encode(Value)}, Req, State};
+        {ok, Value} -> {{true, gmm_utils:encode(Value)}, Req, State};
         {error, _} -> {false, Req, State}
     end.
 
