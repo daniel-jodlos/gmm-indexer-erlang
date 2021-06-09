@@ -47,21 +47,21 @@ add_provider(Name)->
 
 get_vertices_list()->
   application:ensure_all_started(hackney),
-  {ok, Body} = client_requests:get_simple_request_body(?URL++"graph/vertices"),
+  {ok, Body} = client_requests:get_simple_request_body(?URL++"graph/vertices/listing"),
   list_body_elements(binary:bin_to_list(Body)).
 
 % do ewentualnej serializacji
 get_vertex_info(Id)->
   application:ensure_all_started(hackney),
-  Url= ?URL++"graph/vertices?id="++Id,
+  Url= ?URL++"graph/vertices/details?id="++Id,
   {ok, Body} = client_requests:get_delete_request(Url, get),
   list_body_elements(binary:bin_to_list(Body)).
 
 
 delete_vertex(Id)->
   application:ensure_all_started(hackney),
-  Url = Url= ?URL++"graph/vertices?id="++Id,
-  client_requests:get_delete_request(Url, delete).
+  Url = ?URL++"graph/vertices/delete?id="++Id,
+  client_requests:post_request(Url).
 
 % EDGES
 
