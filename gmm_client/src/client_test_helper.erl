@@ -41,17 +41,17 @@ get_name(List)->
 
 get_id_from_the_list()->
   application:ensure_all_started(hackney),
-  {ok, Body} = client_requests:get_simple_request_body(?URL++"graph/vertices"),
+  {ok, Body} = client_requests:get_simple_request_body(?URL++"graph/vertices/listing"),
   get_id(string:tokens(binary:bin_to_list(Body),"\"")).
 
 get_second_id_from_the_list()->
   application:ensure_all_started(hackney),
-  {ok, Body} = client_requests:get_simple_request_body(?URL++"graph/vertices"),
+  {ok, Body} = client_requests:get_simple_request_body(?URL++"graph/vertices/listing"),
   get_second_id(string:tokens(binary:bin_to_list(Body),"\"")).
 
 get_vertex_name(Id)->
   application:ensure_all_started(hackney),
-  Url= ?URL++"graph/vertices?id="++Id,
+  Url= ?URL++"graph/vertices/details?id="++Id,
   {ok, Body} = client_requests:get_delete_request(Url, get),
   NamePart = get_name(string:tokens(binary:bin_to_list(Body),",")), 
   [_ | Tail] = string:tokens(NamePart, ":"),
