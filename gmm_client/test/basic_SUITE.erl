@@ -4,7 +4,8 @@
 -export([
     all/0,
     groups/0,
-    init_per_suite/1
+    init_per_suite/1,
+    end_per_suite/1
 ]).
 -export([
     vertices_test/1,
@@ -19,7 +20,11 @@ groups() -> [{basic_flow, [sequence], [
 all() -> [{group, basic_flow}].
 
 init_per_suite(Config) ->
+    {ok, _} = application:ensure_all_started(gmm_client),
     [{ct_hooks, [docker_compose_cth]} | Config].
+
+end_per_suite(_Config) ->
+    ok = application:stop(gmm_client).
 
 vertices_test(_Config)->
     % given
