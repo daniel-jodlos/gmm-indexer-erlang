@@ -71,13 +71,13 @@ add_edge(From, To, Permissions, Trace, Successive)->
                   undefined -> "";
                   _ -> "&trace="++Trace
                 end,
-  Url= ?URL++"graph/edges?from="++From++"&to="++To++"&permissions="++Permissions++TraceString++"&successive="++Successive,
+  Url= ?URL++"graph/edges?from="++From++"&to="++To++"&permissions="++Permissions++TraceString++"&successive="++atom_to_list(Successive),
   client_requests:post_request(list_to_binary(Url)).
 
 % do ewentualnej serializacji
 set_edge_permissions(From, To, Permissions, Trace, Successive)->
   application:ensure_all_started(hackney),
-  Url= ?URL++"graph/edges/permissions?from="++From++"&to="++To++"&permissions="++Permissions++"&trace="++Trace++"&successive="++Successive,
+  Url= ?URL++"graph/edges/permissions?from="++From++"&to="++To++"&permissions="++Permissions++"&trace="++Trace++"&successive="++atom_to_list(Successive),
   client_requests:post_request(list_to_binary(Url)).
 
 check_edge_existance(From, To)->
@@ -101,5 +101,5 @@ get_vertex_parents(Of)->
   client_requests:post_request(list_to_binary(Url)).
 delete_edge(From, To, Trace, Successive)->
   application:ensure_all_started(hackney),
-  Url= ?URL++"graph/edges/delete?from="++From++"&to="++To++"&trace="++Trace++"&successive="++Successive,
+  Url= ?URL++"graph/edges/delete?from="++From++"&to="++To++"&trace="++Trace++"&successive="++atom_to_list(Successive),
   client_requests:post_request(list_to_binary(Url)).
