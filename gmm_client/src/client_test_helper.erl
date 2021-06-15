@@ -9,27 +9,10 @@
 -module(client_test_helper).
 -author("Piotr Świderski").
 
--export([get_id_from_the_list/0, get_vertex_name/1, get_second_id_from_the_list/0, check_existance/2, check_permissions/2]).
+-export([get_id_from_list/1, get_ids_list/0, get_vertex_name/1, check_edge_existance/2, check_permissions/2]).
 
 % CONST
 -define(URL, "localhost:8080/").
-
-get_id(List)->
-  [Head | Tail] = List,
-    
-  case "zone" -- Head of
-    [] -> Head;
-    _ -> get_id(Tail)
-  end.
-
-
-get_second_id(List)->
-  [Head | Tail] = List,
-    
-  case "zone" -- Head of
-    [] -> get_id(List);
-    _ -> get_second_id(Tail)
-  end.
 
 get_name(List)->
   [Head | Tail] = List,
@@ -39,19 +22,23 @@ get_name(List)->
     _ -> get_name(Tail)
   end.
 
-get_id_from_the_list()->
-  application:ensure_all_started(hackney),
-  {ok, Body} = client_requests:get_simple_request_body(?URL++"graph/vertices"),
-  get_id(string:tokens(binary:bin_to_list(Body),"\"")).
+is_id(Elem) ->
+  case "zone" -- Elem of
+    [] -> true;
+    _ -> false
+  end.
 
-get_second_id_from_the_list()->
+get_ids_list() ->
   application:ensure_all_started(hackney),
-  {ok, Body} = client_requests:get_simple_request_body(?URL++"graph/vertices"),
-  get_second_id(string:tokens(binary:bin_to_list(Body),"\"")).
+  {ok, Body} = client_requests:get_simple_request_body(?URL++"graph/vertices/listing"),
+  lists:filter(fun (Elem) -> is_id(Elem) end, string:tokens(binary:bin_to_list(Body),"\"")).
+
+get_id_from_list(N)->
+  lists:nth(N, get_ids_list()).
 
 get_vertex_name(Id)->
   application:ensure_all_started(hackney),
-  Url= ?URL++"graph/vertices?id="++Id,
+  Url= ?URL++"graph/vertices/details?id="++Id,
   {ok, Body} = client_requests:get_delete_request(Url, get),
   NamePart = get_name(string:tokens(binary:bin_to_list(Body),",")), 
   [_ | Tail] = string:tokens(NamePart, ":"),
@@ -66,7 +53,7 @@ check_existance_result(Result) ->
     _ -> check_existance_result(Tail)
   end.
 
-check_existance(From, To)->
+check_edge_existance(From, To)->
   {ok, _, Body, _} = client:check_edge_existance(From, To),
   check_existance_result(Body).
 

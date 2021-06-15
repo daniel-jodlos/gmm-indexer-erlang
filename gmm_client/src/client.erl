@@ -47,21 +47,21 @@ add_provider(Name)->
 
 get_vertices_list()->
   application:ensure_all_started(hackney),
-  {ok, Body} = client_requests:get_simple_request_body(?URL++"graph/vertices"),
+  {ok, Body} = client_requests:get_simple_request_body(?URL++"graph/vertices/listing"),
   list_body_elements(binary:bin_to_list(Body)).
 
 % do ewentualnej serializacji
 get_vertex_info(Id)->
   application:ensure_all_started(hackney),
-  Url= ?URL++"graph/vertices?id="++Id,
+  Url= ?URL++"graph/vertices/details?id="++Id,
   {ok, Body} = client_requests:get_delete_request(Url, get),
   list_body_elements(binary:bin_to_list(Body)).
 
 
 delete_vertex(Id)->
   application:ensure_all_started(hackney),
-  Url = Url= ?URL++"graph/vertices?id="++Id,
-  client_requests:get_delete_request(Url, delete).
+  Url = ?URL++"graph/vertices/delete?id="++Id,
+  client_requests:post_request(Url).
 
 % EDGES
 
@@ -71,13 +71,13 @@ add_edge(From, To, Permissions, Trace, Successive)->
                   undefined -> "";
                   _ -> "&trace="++Trace
                 end,
-  Url= ?URL++"graph/edges?from="++From++"&to="++To++"&permissions="++Permissions++TraceString++"&successive="++Successive,
+  Url= ?URL++"graph/edges?from="++From++"&to="++To++"&permissions="++Permissions++TraceString++"&successive="++atom_to_list(Successive),
   client_requests:post_request(list_to_binary(Url)).
 
 % do ewentualnej serializacji
 set_edge_permissions(From, To, Permissions, Trace, Successive)->
   application:ensure_all_started(hackney),
-  Url= ?URL++"graph/edges/permissions?from="++From++"&to="++To++"&permissions="++Permissions++"&trace="++Trace++"&successive="++Successive,
+  Url= ?URL++"graph/edges/permissions?from="++From++"&to="++To++"&permissions="++Permissions++"&trace="++Trace++"&successive="++atom_to_list(Successive),
   client_requests:post_request(list_to_binary(Url)).
 
 check_edge_existance(From, To)->
@@ -101,5 +101,5 @@ get_vertex_parents(Of)->
   client_requests:post_request(list_to_binary(Url)).
 delete_edge(From, To, Trace, Successive)->
   application:ensure_all_started(hackney),
-  Url= ?URL++"graph/edges/delete?from="++From++"&to="++To++"&trace="++Trace++"&successive="++Successive,
+  Url= ?URL++"graph/edges/delete?from="++From++"&to="++To++"&trace="++Trace++"&successive="++atom_to_list(Successive),
   client_requests:post_request(list_to_binary(Url)).
