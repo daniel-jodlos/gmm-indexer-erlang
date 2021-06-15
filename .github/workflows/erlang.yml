@@ -17,7 +17,7 @@ jobs:
     - name: Run eunit tests
       run: rebar3 do eunit
     - name: Run ct tests in client directory
-      run: cd ./gmm_client && rebar3 ct && cd ..
+      run: cd gmm_client && rebar3 ct
 
   lint:
     if: "!contains(github.event.head_commit.message, '[skip-ci]')"
