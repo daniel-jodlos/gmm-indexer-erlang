@@ -573,7 +573,7 @@
 
 ---
 
-## Empty table template
+## Main Functionality: Queries about relations between any vertices in the graph
 
 ### ISO-8601 Format
 
