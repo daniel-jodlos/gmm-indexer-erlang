@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [ main ]
 
-jobs:  
+jobs:
   test:
     if: "!contains(github.event.head_commit.message, '[skip-ci]')"
     runs-on: ubuntu-latest
@@ -16,6 +16,8 @@ jobs:
       run: rebar3 compile
     - name: Run eunit tests
       run: rebar3 do eunit
+    - name: Test ls in root dir
+      run: ls -l
     - name: Run ct tests in client directory
       run: cd gmm_client && rebar3 ct
 
