@@ -16,6 +16,16 @@ jobs:
       run: rebar3 compile
     - name: Run tests
       run: rebar3 do eunit
+      
+  ct:
+    if: "!contains(github.event.head_commit.message, '[skip-ci]')"
+    runs-on: ubuntu-latest
+    container:
+      image: mindreframer/alpine-erlang-dind:latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run CT
+      run: cd ./gmm_client && rebar3 ct && cd ..
 
   lint:
     if: "!contains(github.event.head_commit.message, '[skip-ci]')"
