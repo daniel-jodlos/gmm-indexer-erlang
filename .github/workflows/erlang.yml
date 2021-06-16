@@ -24,6 +24,8 @@ jobs:
       image: mindreframer/alpine-erlang-dind:latest
     steps:
     - uses: actions/checkout@v2
+    - name: install rebar3 before tests
+      run: git clone https://github.com/erlang/rebar3.git && cd rebar3 && ./bootstrap && cd ..
     - name: Run CT
       run: cd ./gmm_client && rebar3 ct && cd ..
 
