@@ -15,7 +15,7 @@
 
 %% API
 -export([
-    healthcheck/1, %% @todo ???
+    healthcheck/1, %% @todo optional
     index_ready/1, %% @todo ignore
     is_adjacent/3, %% @todo necessary
     list_adjacent/2, %% @todo important
@@ -153,6 +153,8 @@ set_indexation_enabled(_Zone, _Enabled) ->
 simulate_load(_Zone, _LoadRequest) ->
     {error, not_implemented}.
 
+%% function that blocks process until zone (all zones) returns 'true' from 'IP/index_ready' endpoint
+%%  - delay between consecutive requests may be constant, or Exponential Backoff can be used, whatever
 -spec wait_for_index(Zones:: binary() | list(binary()), Timeout:: integer()) -> ok | {error, any()}.
 wait_for_index(Zone, _Timeout) when is_binary(Zone) ->
     {error, not_implemented};
