@@ -53,7 +53,7 @@
 healthcheck(_Zone) ->
     {error, not_implemented}.
 
--spec index_ready(Zone:: binary() | AllZones:: list(binary())) -> {ok, boolean()} | {error, any()}.
+-spec index_ready(Zones:: binary() | list(binary())) -> {ok, boolean()} | {error, any()}.
 index_ready(Zone) when is_binary(Zone) ->
     {error, not_implemented};
 
@@ -153,7 +153,7 @@ set_indexation_enabled(_Zone, _Enabled) ->
 simulate_load(_Zone, _LoadRequest) ->
     {error, not_implemented}.
 
--spec wait_for_index(Zone:: binary() | Zones:: list(binary()), Timeout:: integer()) -> ok | {error, any()}.
+-spec wait_for_index(Zones:: binary() | list(binary()), Timeout:: integer()) -> ok | {error, any()}.
 wait_for_index(Zone, _Timeout) when is_binary(Zone) ->
     {error, not_implemented};
 
