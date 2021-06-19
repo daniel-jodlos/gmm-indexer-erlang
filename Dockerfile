@@ -9,7 +9,7 @@ RUN apk add -uUv erlang git gcc g++ redis && \
     cd rebar3 && \
     ./bootstrap
 
-RUN apk --update add build-base erlang-crypto erlang-syntax-tools erlang-parsetools erlang-inets erlang-ssl erlang-public-key erlang-eunit \
+RUN apk --update add build-base erlang-crypto erlang-syntax-tools erlang-parsetools erlang-inets erlang-ssl erlang-public-key erlang-eunit && \
         rm -rf /var/cache/apk/*
 COPY src src/
 COPY include include/
