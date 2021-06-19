@@ -16,7 +16,9 @@
     split_bin/2,
     split_bin/1,
     parse_boolean/1,
-    convert_microseconds_to_iso_8601/1
+    convert_microseconds_to_iso_8601/1,
+    permissions_and/2,
+    permissions_or/2
 ]).
 
 -include("records.hrl").
@@ -97,3 +99,25 @@ convert_microseconds_to_iso_8601(TotalMicroseconds) when TotalMicroseconds >= 0 
     %% compose final result
     TimeString = "PT" ++ HoursString ++ MinutesString ++ SecondsString,
     list_to_binary(TimeString).
+
+char_to_boolean($0) -> false;
+char_to_boolean($1) -> true.
+
+boolean_to_char(true) -> $1;
+boolean_to_char(false) -> $0.
+
+-type permissions() :: <<_:5*8>>.
+combine_permissions(A, B, Fun) ->
+    Alist = lists:map(fun char_to_boolean/1, binary_to_list(A)),
+    Blist = lists:map(fun char_to_boolean/1, binary_to_list(B)),
+    Clist = lists:map(fun ({X,Y}) -> boolean_to_char(Fun(X,Y)) end, lists:zip(Alist, Blist)),
+    list_to_binary(Clist).
+
+-spec permissions_and(A :: permissions(), B :: permissions()) -> permissions().
+permissions_and(A,B) ->
+    combine_permissions(A,B, fun (X,Y) -> X and Y end).
+
+
+-spec permissions_or(A :: permissions(), B :: permissions()) -> permissions().
+permissions_or(A,B) ->
+    combine_permissions(A,B, fun (X,Y) -> X or Y end).
