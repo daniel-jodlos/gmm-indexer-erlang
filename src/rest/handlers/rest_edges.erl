@@ -67,23 +67,24 @@ is_conflict(Req, State) ->
 
 %% POST handler
 from_json(Req, State) ->
-    Result = case maps:get(operation, State) of
-                 delete ->
-                     #{from := From, to := To} = State,
-                     case graph:edge_exists(From, To) of
-                         {ok, true} -> graph:remove_edge(From, To);
-                         _ -> {error, ""}
-                     end;
-                 permissions ->
-                     #{from := From, to := To, permissions := Permissions} = State,
-                     graph:update_edge(From, To, Permissions);
-                 add ->
-                     #{from := From, to := To, permissions := Permissions} = State,
-                     graph:create_edge(From, To, Permissions);
-                 bulk ->
-                     %% @todo execute bulk request parsed in init/2
-                     ok
-             end,
+    Result =
+        case maps:get(operation, State) of
+            delete ->
+                #{from := From, to := To} = State,
+                case graph:edge_exists(From, To) of
+                    {ok, true} -> graph:remove_edge(From, To);
+                    _ -> {error, ""}
+                end;
+            permissions ->
+                #{from := From, to := To, permissions := Permissions} = State,
+                graph:update_edge(From, To, Permissions);
+            add ->
+                #{from := From, to := To, permissions := Permissions} = State,
+                graph:create_edge(From, To, Permissions);
+            bulk ->
+                %% @todo execute bulk request parsed in init/2
+                ok
+        end,
     Flag = case Result of
                ok -> true;
                {error, _} -> false
