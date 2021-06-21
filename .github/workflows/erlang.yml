@@ -4,20 +4,8 @@ on:
   pull_request:
     branches: [ main ]
 
-jobs:    
+jobs:         
   test:
-    if: "!contains(github.event.head_commit.message, '[skip-ci]')"
-    runs-on: ubuntu-latest
-    container:
-      image: erlang:23
-    steps:
-    - uses: actions/checkout@v2
-    - name: Compile
-      run: rebar3 compile
-    - name: Run tests
-      run: rebar3 do eunit
-      
-  ct:
     if: "!contains(github.event.head_commit.message, '[skip-ci]')"
     runs-on: ubuntu-latest
     steps:
@@ -30,6 +18,10 @@ jobs:
         echo $DEB_NAME
         curl -f https://packages.erlang-solutions.com/erlang/debian/pool/$DEB_NAME -o $DEB_NAME
         sudo dpkg --install $DEB_NAME
+    - name: Compile
+      run: rebar3 compile
+    - name: Run tests
+      run: rebar3 do eunit
     - name: Run CT
       run: cd ./gmm_client && rebar3 ct && cd ..
 
