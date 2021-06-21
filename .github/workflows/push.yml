@@ -12,7 +12,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Install Erlang/OTP
       run: |
-        OTP_VERSION="23.2.3-1"
+        OTP_VERSION="24.0.2-1"
         UBUNTU_RELEASE="focal"
         DEB_NAME="esl-erlang_${OTP_VERSION}~ubuntu~${UBUNTU_RELEASE}_amd64.deb"
         echo $DEB_NAME
