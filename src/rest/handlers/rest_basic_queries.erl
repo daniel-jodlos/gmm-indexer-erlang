@@ -66,11 +66,11 @@ resource_exists(Req, State) ->
 from_json(Req, State) ->
     Result = case maps:get(operation, State) of
                  is_adjacent -> graph:edge_exists(maps:get(from, State), maps:get(to, State));
-                 list_adjacent -> graph:list_children(maps:get('of', State));
-                 list_adjacent_reversed -> graph:list_parents(maps:get('of', State));
+                 list_adjacent -> graph:list_parents(maps:get('of', State));
+                 list_adjacent_reversed -> graph:list_children(maps:get('of', State));
                  permissions ->
                      case graph:get_edge(maps:get(from, State), maps:get(to, State)) of
-                         {ok, #{<<"Permissions">> := Permissions}} -> {ok, Permissions};
+                         {ok, #{<<"permissions">> := Permissions}} -> {ok, Permissions};
                          _ -> {error, "Didn't obtain edge"}
                      end
              end,
