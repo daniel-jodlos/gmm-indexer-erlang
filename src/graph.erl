@@ -9,13 +9,10 @@
 -author("Daniel Jodłoś").
 
 % Naming convention for egdes
-% - From/To, or Parent/Child, is Id of a neighbour of current vertex
+% - From==Child, or To==Parent, is Id of a neighbour of current vertex
 %
-% Edge is directed as follows:  {Parent -> Child} or {From -> To}
-% For example from group to user
-
-%% @todo Ujednolicic nazewnictwo pol w zwracanych mapach
-%% @todo - albo wszystkie od wielkiej litery, albo wszystkie od malej
+% Edge is directed as follows:  {Child -> Parent} or {From -> To}
+% For example from user to group
 
 %% API for vertices
 -export([
@@ -223,8 +220,8 @@ validate(Results) ->
 -spec create_edge(From :: binary(), To :: binary(), Permissions :: binary()) -> ok | {error, any()}.
 create_edge(From, To, Permissions) ->
     validate([
-        persistence:set_add(children_id(From), To),
-        persistence:set_add(parents_id(To), From),
+        persistence:set_add(children_id(To), From),
+        persistence:set_add(parents_id(From), To),
         persistence:set(edge_id(From, To), Permissions)
     ]).
 
@@ -235,8 +232,8 @@ update_edge(From, To, Permissions) -> validate([persistence:set(edge_id(From, To
 remove_edge(From, To) ->
     validate([
         persistence:del(edge_id(From, To)),
-        persistence:set_remove(children_id(From), To),
-        persistence:set_remove(parents_id(To), From)
+        persistence:set_remove(children_id(To), From),
+        persistence:set_remove(parents_id(From), To)
     ]).
 
 -spec edge_exists(From :: binary(), To :: binary()) -> {ok, boolean()} | {error, any()}.
@@ -248,7 +245,7 @@ get_edge(From, To) ->
         {error, Error} -> {error, Error};
 
         {ok, Permissions} ->
-            {ok, #{<<"From">> => From, <<"To">> => To, <<"Permissions">> => Permissions}}
+            {ok, #{<<"from">> => From, <<"to">> => To, <<"permissions">> => Permissions}}
     end.
 
 %% #{<<"parents">> => list(binary()), <<"children">> => list(binary())}
