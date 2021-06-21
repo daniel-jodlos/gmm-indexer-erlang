@@ -5,6 +5,34 @@ on:
     branches: [ main ]
 
 jobs:
+  docker1:
+    if: "!contains(github.event.head_commit.message, '[skip-ci]')"
+    runs-on: ubuntu-latest
+    container:
+      image: erlang:23
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check compose
+      run: docker-compose
+      
+  docker2:
+    if: "!contains(github.event.head_commit.message, '[skip-ci]')"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check compose
+      run: docker-compose
+      
+  docker3:
+    if: "!contains(github.event.head_commit.message, '[skip-ci]')"
+    runs-on: ubuntu-latest
+    container:
+      image: mindreframer/alpine-erlang-dind:latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check compose
+      run: docker-compose
+      
   test:
     if: "!contains(github.event.head_commit.message, '[skip-ci]')"
     runs-on: ubuntu-latest
