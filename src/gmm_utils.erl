@@ -11,6 +11,8 @@
     empty_json/0,
     encode/1,
     decode/1,
+    zone_id/0,
+    owner_of/1,
     create_vertex_id/1,
     create_vertex_id/2,
     split_bin/2,
@@ -37,6 +39,18 @@ encode(Val) -> jiffy:encode(Val).
 
 -spec decode(binary()) -> any().
 decode(Val) -> jiffy:decode(Val, [return_maps]).
+
+%% Get id of this zone in binary form
+-spec zone_id() -> binary().
+zone_id() ->
+    list_to_binary(?ZONE_ID).
+
+-spec owner_of(Vertex :: binary()) -> {ok, binary()} | {error, any()}.
+owner_of(Vertex) ->
+    case split_vertex_id(Vertex) of
+        {ok, {Zone, _}} -> {ok, Zone};
+        {error, Reason} -> {error, Reason}
+    end.
 
 %% Binary string manipulation
 -spec create_vertex_id(Name :: binary()) -> binary().

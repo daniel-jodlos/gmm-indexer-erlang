@@ -20,8 +20,6 @@
     from_json/2
 ]).
 
--include("records.hrl").
-
 %%%---------------------------
 %% cowboy_rest callbacks
 %%%---------------------------
@@ -117,8 +115,8 @@ parse_bulk_request(_) ->
     Trace :: binary(), Successive :: boolean()) -> ok | {error, any()}.
 execute_operation(Op, From, To, Permissions, Trace, false) ->
     try
-        {ok, {FromZone, _}} = gmm_utils:split_vertex_id(From),
-        ZoneId = list_to_binary(?ZONE_ID),
+        {ok, FromZone} = gmm_utils:owner_of(From),
+        ZoneId = gmm_utils:zone_id(),
         if
             %% @todo ZONE_ID is list "zone0", and not a binary <<"zone0">> - I need to do something about it
             FromZone =/= ZoneId -> throw({return,
@@ -132,9 +130,9 @@ execute_operation(Op, From, To, Permissions, Trace, false) ->
         EdgeCond = (Op == delete) or (Op == update),
         [{ok, true}, {ok, EdgeCond}] = [graph:vertex_exists(From), graph:edge_exists(From, To)],
         ok = execute_operation(Op, From, To, Permissions, Trace, true),
-        case gmm_utils:split_vertex_id(To) of
-            {ok, {FromZone, _}} -> ok; %% operation was already done on this zone in successive call
-            {ok, {_, _}} ->
+        case gmm_utils:owner_of(To) of
+            {ok, FromZone} -> ok; %% operation was already done on this zone in successive call
+            {ok, _} ->
                 case Op of
                     add -> graph:create_edge(From, To, Permissions);
                     update -> graph:update_edge(From, To, Permissions);
@@ -147,8 +145,8 @@ execute_operation(Op, From, To, Permissions, Trace, false) ->
     end;
 execute_operation(Op, From, To, Permissions, Trace, true) ->
     try
-        {ok, {ToZone, _}} = gmm_utils:split_vertex_id(To),
-        ZoneId = list_to_binary(?ZONE_ID),
+        {ok, ToZone} = gmm_utils:owner_of(To),
+        ZoneId = gmm_utils:zone_id(),
         if
             ToZone =/= ZoneId -> throw({return,
                 case Op of

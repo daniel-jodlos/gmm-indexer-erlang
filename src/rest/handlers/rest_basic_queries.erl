@@ -44,36 +44,57 @@ content_types_accepted(Req, State) ->
     {[{<<"application/json">>, from_json}], Req, State}.
 
 resource_exists(Req, State) ->
-    Flag = case State of
-               #{from := From, to := To} ->
-                   {ok, FromExists} = graph:vertex_exists(From),
-                   {ok, ToExists} = graph:vertex_exists(To),
-                   VerticesExist = lists:all(fun(X) -> X end, [FromExists, ToExists]),
-                   case {VerticesExist, maps:get(operation, State)} of
-                       {false, _} -> false;
-                       {true, permissions} ->
-                           {ok, EdgeExists} = graph:edge_exists(From, To),
-                           EdgeExists;
-                       {true, _} -> true
-                   end;
-               #{'of' := Of} ->
-                   {ok, OfEx} = graph:vertex_exists(Of),
-                   OfEx
-           end,
+    ZoneId = gmm_utils:zone_id(),
+    Flag =
+        case State of
+            #{'of' := Of} ->
+                {ok, OfZone} = gmm_utils:owner_of(Of),
+                case OfZone of
+                    ZoneId ->
+                        {ok, Exists} = graph:vertex_exists(Of),
+                        Exists;
+                    _ -> true
+                end;
+            #{from := From, to := To} ->
+                ZoneId = gmm_utils:zone_id(),
+                VerticesExist = lists:all(
+                    fun(X) ->
+                        case gmm_utils:owner_of(X) of
+                            {ok, ZoneId} ->
+                                {ok, Exists} = graph:vertex_exists(X),
+                                Exists;
+                            _ -> true
+                        end
+                    end, [From, To]),
+                case VerticesExist of
+                    false -> false;
+                    true ->
+                        case maps:get(operation, State) of
+                            permissions ->
+                                OnThisZone = lists:any(
+                                    fun(X) -> case gmm_utils:owner_of(X) of {ok, ZoneId} -> true; _ -> false end end,
+                                    [From, To]),
+                                case OnThisZone of
+                                    false -> true;
+                                    true ->
+                                        {ok, EdgeExists} = graph:edge_exists(From, To),
+                                        EdgeExists
+                                end;
+                            _ -> true
+                        end
+                end
+        end,
     {Flag, Req, State}.
 
 %% POST handler
 from_json(Req, State) ->
-    Result = case maps:get(operation, State) of
-                 is_adjacent -> graph:edge_exists(maps:get(from, State), maps:get(to, State));
-                 list_adjacent -> graph:list_parents(maps:get('of', State));
-                 list_adjacent_reversed -> graph:list_children(maps:get('of', State));
-                 permissions ->
-                     case graph:get_edge(maps:get(from, State), maps:get(to, State)) of
-                         {ok, #{<<"permissions">> := Permissions}} -> {ok, Permissions};
-                         _ -> {error, "Didn't obtain edge"}
-                     end
-             end,
+    Result =
+        case maps:get(operation, State) of
+            is_adjacent -> is_adjacent(maps:get(from, State), maps:get(to, State));
+            list_adjacent -> list_adjacent(maps:get('of', State));
+            list_adjacent_reversed -> list_adjacent_reversed(maps:get('of', State));
+            permissions -> permissions(maps:get(from, State), maps:get(to, State))
+        end,
     case Result of
         {ok, Value} -> {{true, gmm_utils:encode(Value)}, Req, State};
         {error, _} -> {false, Req, State}
@@ -84,3 +105,45 @@ from_json(Req, State) ->
 %% internal functions
 %%%---------------------------
 
+-spec on_this_zone(V1 :: binary(), V2 :: binary()) -> boolean().
+on_this_zone(V1, V2) ->
+    ZoneId = gmm_utils:zone_id(),
+    lists:any(fun(X) -> case gmm_utils:owner_of(X) of {ok, ZoneId} -> true; _ -> false end end, [V1, V2]).
+
+-spec is_adjacent(From :: binary(), To :: binary()) -> {ok, boolean()} | {error, any()}.
+is_adjacent(From, To) ->
+    case on_this_zone(From, To) of
+        true -> graph:edge_exists(From, To);
+        false ->
+            {ok, FromZone} = gmm_utils:owner_of(From),
+            zone_client:is_adjacent(FromZone, From, To)
+    end.
+
+-spec list_adjacent(Of :: binary()) -> {ok, list(binary())} | {error, any()}.
+list_adjacent(Of) ->
+    {ok, OfZone} = gmm_utils:owner_of(Of),
+    case gmm_utils:zone_id() of
+        OfZone -> graph:list_parents(Of);
+        _ -> zone_client:list_adjacent(OfZone, Of)
+    end.
+
+-spec list_adjacent_reversed(Of :: binary()) -> {ok, list(binary())} | {error, any()}.
+list_adjacent_reversed(Of) ->
+    {ok, OfZone} = gmm_utils:owner_of(Of),
+    case gmm_utils:zone_id() of
+        OfZone -> graph:list_children(Of);
+        _ -> zone_client:list_adjacent_reversed(OfZone, Of)
+    end.
+
+-spec permissions(From :: binary(), To :: binary()) -> {ok, binary()} | {error, any()}.
+permissions(From, To) ->
+    case on_this_zone(From, To) of
+        true ->
+            case graph:get_edge(From, To) of
+                {ok, #{<<"permissions">> := Permissions}} -> {ok, Permissions};
+                _ -> {error, "Didn't obtain edge"}
+            end;
+        false ->
+            {ok, FromZone} = gmm_utils:owner_of(From),
+            zone_client:permissions(FromZone, From, To)
+    end.
