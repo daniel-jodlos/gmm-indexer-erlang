@@ -65,14 +65,16 @@ resource_exists(Req, State) ->
 %% todo
 %% POST handler
 from_json(Req, State) ->
-    Result = case maps:get(operation, State) of
-                 single_event -> io:format("~p\n", [maps:get(body, State)]), ok;
-                 bulk -> io:format("~p\n", [maps:get(body, State)]), {error, ""}
-             end,
-    SuccessFlag = case Result of
-                      ok -> true;
-                      {error, _} -> false
-                  end,
+    Result =
+        case maps:get(operation, State) of
+            single_event -> io:format("~p\n", [maps:get(body, State)]), ok;
+            bulk -> io:format("~p\n", [maps:get(body, State)]), {error, ""}
+        end,
+    SuccessFlag =
+        case Result of
+            ok -> true;
+            {error, _} -> false
+        end,
     {SuccessFlag, Req, State}.
 
 %% @todo
@@ -106,12 +108,17 @@ to_json(Req, State) ->
 validate_event(#{<<"type">> := Type, <<"trace">> := Trace, <<"sender">> := Sender,
                 <<"originalSender">> := OriginalSender, <<"effectiveVertices">> := EffectiveVertices}) when
         is_binary(Type), is_binary(Trace), is_binary(Sender), is_binary(OriginalSender), is_list(EffectiveVertices) ->
-    case lists:all(fun is_binary/1, EffectiveVertices) of
+    Conditions = [
+        ok == gmm_utils:validate_vertex_id(Sender),
+        ok == gmm_utils:validate_vertex_id(OriginalSender),
+        lists:all(fun(ok) -> true; (_) -> false end, lists:map(fun gmm_utils:validate_vertex_id/1, EffectiveVertices))
+    ],
+    case lists:all(fun(X) -> X end, Conditions) of
         true -> ok;
-        false -> {error, "One of effective vertex's ID is not a string"}
+        false -> {error, "One of effective vertex's ID is invalid"}
     end;
 validate_event(_) ->
-    {error, "Event's Json in a wrong format"}.
+    {error, "Event's JSON in a wrong format"}.
 
 -spec validate_bulk_events(any()) -> ok | {error, any()}.
 validate_bulk_events(#{<<"messages">> := List}) when is_list(List) ->
@@ -129,4 +136,4 @@ validate_bulk_events(#{<<"messages">> := List}) when is_list(List) ->
         false -> {error, "One of events is not in correct format"}
     end;
 validate_bulk_events(_) ->
-    {error, "Bulk event's Json in a wrong format"}.
+    {error, "Bulk event's JSON in a wrong format"}.

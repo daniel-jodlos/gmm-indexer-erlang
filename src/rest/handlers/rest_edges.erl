@@ -42,6 +42,12 @@ init(Req0, State) ->
                 {ok, Map} = parse_bulk_request(ParsedJson),
                 {#{bulk_request => Map}, Req1}
         end,
+    case is_single_operation(maps:get(operation, State)) of
+        true ->
+            ok = gmm_utils:validate_vertex_id(maps:get(from, State)),
+            ok = gmm_utils:validate_vertex_id(maps:get(to, State));
+        _ -> ok
+    end,
     NewState = maps:merge(State,
         case maps:find(successive, ParsedParams) of
             {ok, SuccessiveBin} ->
@@ -69,7 +75,9 @@ from_json(Req, State) ->
                 execute_operation(Op, From, To, Permissions, Trace, Successive);
             bulk ->
                 %% @todo execute bulk request parsed in init/2
-                ok
+                #{src_zone := _SourceZone, dst_zone := _DestinationZone, successive := _Successive, edges := _Edges} =
+                    maps:get(bulk_request, State),
+                execute_bulk_request()
         end,
     Flag = case Result of
                ok -> true;
@@ -82,13 +90,22 @@ from_json(Req, State) ->
 %% internal functions
 %%%---------------------------
 
+-spec is_single_operation(atom()) -> boolean().
+is_single_operation(bulk) -> false;
+is_single_operation(_) -> true.
+
+
 -spec parse_edge_string(binary()) -> {ok, map()} | {error, any()}.
 parse_edge_string(Bin) when is_binary(Bin) ->
-    case gmm_utils:split_bin(Bin) of
-        {ok, [From, To, Permissions, Trace]} ->
-            {ok, #{from => From, to => To, permissions => Permissions, trace => Trace}};
-        _ -> {error, "Incorrect edge string"}
-    end;
+    try
+        case gmm_utils:split_bin(Bin) of
+            [From, To, Permissions, Trace] when byte_size(From) > 0, byte_size(To) > 0, byte_size(Permissions) > 0 ->
+                ok = gmm_utils:validate_vertex_id(From),
+                ok = gmm_utils:validate_vertex_id(To),
+                {ok, #{from => From, to => To, permissions => Permissions, trace => Trace}};
+            _ -> {error, "Incorrect edge string"}
+        end
+    catch _:_ -> {error, "Invalid JSON"} end;
 parse_edge_string(_) ->
     {error, "Argument is not a binary"}.
 
@@ -100,7 +117,7 @@ parse_bulk_request(#{<<"sourceZone">> := SourceZone, <<"destinationZone">> := De
     case {gmm_utils:parse_boolean(SuccessiveBin), lists:all(fun({ok, _}) -> true; (_) -> false end, ParsedEdges)} of
         {{ok, Successive}, true} ->
             {_, ParsedList} = lists:unzip(ParsedEdges),
-            {ok, #{sourceZone => SourceZone, destinationZone => DestinationZone, successive => Successive, edges => ParsedList}};
+            {ok, #{src_zone => SourceZone, dst_zone => DestinationZone, successive => Successive, edges => ParsedList}};
         _ -> {error, "Invalid JSON"}
     end;
 parse_bulk_request(_) ->
@@ -115,10 +132,9 @@ parse_bulk_request(_) ->
     Trace :: binary(), Successive :: boolean()) -> ok | {error, any()}.
 execute_operation(Op, From, To, Permissions, Trace, false) ->
     try
-        {ok, FromZone} = gmm_utils:owner_of(From),
+        FromZone = gmm_utils:owner_of(From),
         ZoneId = gmm_utils:zone_id(),
         if
-            %% @todo ZONE_ID is list "zone0", and not a binary <<"zone0">> - I need to do something about it
             FromZone =/= ZoneId -> throw({return,
                 case Op of
                     add -> zone_client:add_edge(FromZone, From, To, Permissions, Trace, false);
@@ -131,8 +147,8 @@ execute_operation(Op, From, To, Permissions, Trace, false) ->
         [{ok, true}, {ok, EdgeCond}] = [graph:vertex_exists(From), graph:edge_exists(From, To)],
         ok = execute_operation(Op, From, To, Permissions, Trace, true),
         case gmm_utils:owner_of(To) of
-            {ok, FromZone} -> ok; %% operation was already done on this zone in successive call
-            {ok, _} ->
+            FromZone -> ok; %% operation was already done on this zone in successive call
+            _ ->
                 case Op of
                     add -> graph:create_edge(From, To, Permissions);
                     update -> graph:update_edge(From, To, Permissions);
@@ -145,7 +161,7 @@ execute_operation(Op, From, To, Permissions, Trace, false) ->
     end;
 execute_operation(Op, From, To, Permissions, Trace, true) ->
     try
-        {ok, ToZone} = gmm_utils:owner_of(To),
+        ToZone = gmm_utils:owner_of(To),
         ZoneId = gmm_utils:zone_id(),
         if
             ToZone =/= ZoneId -> throw({return,
@@ -167,3 +183,8 @@ execute_operation(Op, From, To, Permissions, Trace, true) ->
         throw:{return, Result} -> Result;
         _:_ -> {error, something}
     end.
+
+
+-spec execute_bulk_request() -> ok | {error, any()}.
+execute_bulk_request() ->
+    {error, not_implemented}.

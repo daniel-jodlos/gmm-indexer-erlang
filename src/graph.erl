@@ -219,9 +219,9 @@ validate(Results) ->
 
 -spec create_edge(From :: binary(), To :: binary(), Permissions :: binary()) -> ok | {error, any()}.
 create_edge(From, To, Permissions) ->
-    ZoneId = list_to_binary(?ZONE_ID),
-    {ok, {FromZone, _}} = gmm_utils:split_vertex_id(From),
-    {ok, {ToZone, _}} = gmm_utils:split_vertex_id(To),
+    ZoneId = gmm_utils:zone_id(),
+    FromZone = gmm_utils:owner_of(From),
+    ToZone = gmm_utils:owner_of(To),
     case {FromZone, ToZone} of
         {ZoneId, ZoneId} -> validate([
             persistence:set_add(children_id(To), From),
@@ -245,8 +245,8 @@ update_edge(From, To, Permissions) -> validate([persistence:set(edge_id(From, To
 -spec remove_edge(From :: binary(), To :: binary()) -> ok | {error, any()}.
 remove_edge(From, To) ->
     ZoneId = gmm_utils:zone_id(),
-    {ok, FromZone} = gmm_utils:owner_of(From),
-    {ok, ToZone} = gmm_utils:owner_of(To),
+    FromZone = gmm_utils:owner_of(From),
+    ToZone = gmm_utils:owner_of(To),
     case {FromZone, ToZone} of
         {ZoneId, ZoneId} -> validate([
             persistence:del(edge_id(From, To)),
