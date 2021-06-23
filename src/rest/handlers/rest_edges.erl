@@ -122,11 +122,11 @@ execute_operation(Op, From, To, Permissions, Trace, false) ->
                 end});
             true -> ok
         end,
-        EdgeCond = Op == remove or Op == update,
+        EdgeCond = (Op == remove) or (Op == update),
         [{ok, true}, {ok, EdgeCond}] = [graph:vertex_exists(From), graph:edge_exists(From, To)],
         ok = execute_operation(Op, From, To, Permissions, Trace, true),
         case gmm_utils:split_vertex_id(To) of
-            {ok, {FromZone, _}} -> ok; %% operation was already done on this zone
+            {ok, {FromZone, _}} -> ok; %% operation was already done on this zone in successive call
             {ok, {_, _}} ->
                 case Op of
                     add -> graph:create_edge(From, To, Permissions);
@@ -144,13 +144,13 @@ execute_operation(Op, From, To, Permissions, Trace, true) ->
         if
             ToZone =/= ?ZONE_ID -> throw({return,
                 case Op of
-                    add -> zone_client:add_edge(ToZone, From, To, Permissions, Trace, false);
-                    update -> zone_client:set_permissions(ToZone, From, To, Permissions, Trace, false);
-                    delete -> zone_client:remove_edge(ToZone, From, To, Trace, false)
+                    add -> zone_client:add_edge(ToZone, From, To, Permissions, Trace, true);
+                    update -> zone_client:set_permissions(ToZone, From, To, Permissions, Trace, true);
+                    delete -> zone_client:remove_edge(ToZone, From, To, Trace, true)
                 end});
             true -> ok
         end,
-        EdgeCond = Op == remove or Op == update,
+        EdgeCond = (Op == remove) or (Op == update),
         [{ok, true}, {ok, EdgeCond}] = [graph:vertex_exists(To), graph:edge_exists(From, To)],
         case Op of
             add -> graph:create_edge(From, To, Permissions);
