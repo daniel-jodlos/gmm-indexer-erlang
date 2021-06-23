@@ -13,14 +13,12 @@
     init/2,
     allowed_methods/2,
     content_types_accepted/2,
-    is_conflict/2,
     resource_exists/2
 ]).
 
 -export([
     from_json/2
 ]).
-
 
 %%%---------------------------
 %% cowboy_rest callbacks
@@ -29,22 +27,28 @@
 init(Req0, State) ->
     {ParsedParams, Req} =
         case maps:get(operation, State) of
-            Op when Op =:= add; Op =:= permissions ->
+            Op when Op =:= add; Op =:= update ->
                 {cowboy_req:match_qs([
                     {from, nonempty}, {to, nonempty}, {permissions, nonempty},
                     {trace, [], undefined}, {successive, nonempty}
                 ], Req0), Req0};
             delete ->
-                {cowboy_req:match_qs([
+                {maps:merge(cowboy_req:match_qs([
                     {from, nonempty}, {to, nonempty}, {trace, [], undefined}, {successive, nonempty}
-                ], Req0), Req0};
+                ], Req0), #{permissions => undefined}), Req0};
             bulk ->
                 {ok, Data, Req1} = cowboy_req:read_body(Req0),
                 ParsedJson = gmm_utils:decode(Data),
                 {ok, Map} = parse_bulk_request(ParsedJson),
                 {#{bulk_request => Map}, Req1}
         end,
-    NewState = maps:merge(State, ParsedParams),
+    NewState = maps:merge(State,
+        case maps:find(successive, ParsedParams) of
+            {ok, SuccessiveBin} ->
+                {ok, Successive} = gmm_utils:parse_boolean(SuccessiveBin),
+                maps:update(successive, Successive, ParsedParams);
+            _ -> ParsedParams
+        end),
     {cowboy_rest, Req, NewState}.
 
 allowed_methods(Req, State) ->
@@ -54,36 +58,19 @@ content_types_accepted(Req, State) ->
     {[{<<"application/json">>, from_json}], Req, State}.
 
 resource_exists(Req, State) ->
-    #{from := From, to := To} = State,
-    {ok, Result} = graph:edge_exists(From, To),
-    {Result, Req, State}.
-
-is_conflict(Req, State) ->
-    Result = case maps:get(operation, State) of
-                 add -> true;
-                 _ -> false
-             end,
-    {Result, Req, State}.
+    {false, Req, State}.
 
 %% POST handler
 from_json(Req, State) ->
-    Result = case maps:get(operation, State) of
-                 delete ->
-                     #{from := From, to := To} = State,
-                     case graph:edge_exists(From, To) of
-                         {ok, true} -> graph:remove_edge(From, To);
-                         _ -> {error, ""}
-                     end;
-                 permissions ->
-                     #{from := From, to := To, permissions := Permissions} = State,
-                     graph:update_edge(From, To, Permissions);
-                 add ->
-                     #{from := From, to := To, permissions := Permissions} = State,
-                     graph:create_edge(From, To, Permissions);
-                 bulk ->
-                     %% @todo execute bulk request parsed in init/2
-                     ok
-             end,
+    Result =
+        case maps:get(operation, State) of
+            Op when Op == add; Op == update; Op == delete ->
+                #{from := From, to := To, permissions := Permissions, trace := Trace, successive := Successive} = State,
+                execute_operation(Op, From, To, Permissions, Trace, Successive);
+            bulk ->
+                %% @todo execute bulk request parsed in init/2
+                ok
+        end,
     Flag = case Result of
                ok -> true;
                {error, _} -> false
@@ -118,3 +105,65 @@ parse_bulk_request(#{<<"sourceZone">> := SourceZone, <<"destinationZone">> := De
     end;
 parse_bulk_request(_) ->
     {error, "Invalid JSON"}.
+
+
+%%%---------------------------
+%% operation executor
+%%%---------------------------
+
+-spec execute_operation(Op :: atom(), From :: binary(), To :: binary(), Permissions :: binary() | undefined,
+    Trace :: binary(), Successive :: boolean()) -> ok | {error, any()}.
+execute_operation(Op, From, To, Permissions, Trace, false) ->
+    try
+        {ok, FromZone} = gmm_utils:owner_of(From),
+        ZoneId = gmm_utils:zone_id(),
+        if
+            %% @todo ZONE_ID is list "zone0", and not a binary <<"zone0">> - I need to do something about it
+            FromZone =/= ZoneId -> throw({return,
+                case Op of
+                    add -> zone_client:add_edge(FromZone, From, To, Permissions, Trace, false);
+                    update -> zone_client:set_permissions(FromZone, From, To, Permissions, Trace, false);
+                    delete -> zone_client:remove_edge(FromZone, From, To, Trace, false)
+                end});
+            true -> ok
+        end,
+        EdgeCond = (Op == delete) or (Op == update),
+        [{ok, true}, {ok, EdgeCond}] = [graph:vertex_exists(From), graph:edge_exists(From, To)],
+        ok = execute_operation(Op, From, To, Permissions, Trace, true),
+        case gmm_utils:owner_of(To) of
+            {ok, FromZone} -> ok; %% operation was already done on this zone in successive call
+            {ok, _} ->
+                case Op of
+                    add -> graph:create_edge(From, To, Permissions);
+                    update -> graph:update_edge(From, To, Permissions);
+                    delete -> graph:remove_edge(From, To)
+                end
+        end
+    catch
+        throw:{return, Result} -> Result;
+        _:_ -> {error, something}
+    end;
+execute_operation(Op, From, To, Permissions, Trace, true) ->
+    try
+        {ok, ToZone} = gmm_utils:owner_of(To),
+        ZoneId = gmm_utils:zone_id(),
+        if
+            ToZone =/= ZoneId -> throw({return,
+                case Op of
+                    add -> zone_client:add_edge(ToZone, From, To, Permissions, Trace, true);
+                    update -> zone_client:set_permissions(ToZone, From, To, Permissions, Trace, true);
+                    delete -> zone_client:remove_edge(ToZone, From, To, Trace, true)
+                end});
+            true -> ok
+        end,
+        EdgeCond = (Op == delete) or (Op == update),
+        [{ok, true}, {ok, EdgeCond}] = [graph:vertex_exists(To), graph:edge_exists(From, To)],
+        case Op of
+            add -> graph:create_edge(From, To, Permissions);
+            update -> graph:update_edge(From, To, Permissions);
+            delete -> graph:remove_edge(From, To)
+        end
+    catch
+        throw:{return, Result} -> Result;
+        _:_ -> {error, something}
+    end.
