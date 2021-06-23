@@ -44,13 +44,13 @@ init(Req0, State) ->
                 {ok, Map} = parse_bulk_request(ParsedJson),
                 {#{bulk_request => Map}, Req1}
         end,
-    case maps:find(successive, ParsedParams) of
-        {ok, SuccessiveBin} ->
-            {ok, Successive} = gmm_utils:parse_boolean(SuccessiveBin),
-            maps:update(successive, Successive, ParsedParams);
-        _ -> ok
-    end,
-    NewState = maps:merge(State, ParsedParams),
+    NewState = maps:merge(State,
+        case maps:find(successive, ParsedParams) of
+            {ok, SuccessiveBin} ->
+                {ok, Successive} = gmm_utils:parse_boolean(SuccessiveBin),
+                maps:update(successive, Successive, ParsedParams);
+            _ -> ok
+        end),
     {cowboy_rest, Req, NewState}.
 
 allowed_methods(Req, State) ->
