@@ -49,7 +49,7 @@ init(Req0, State) ->
             {ok, SuccessiveBin} ->
                 {ok, Successive} = gmm_utils:parse_boolean(SuccessiveBin),
                 maps:update(successive, Successive, ParsedParams);
-            _ -> ok
+            _ -> ParsedParams
         end),
     {cowboy_rest, Req, NewState}.
 
