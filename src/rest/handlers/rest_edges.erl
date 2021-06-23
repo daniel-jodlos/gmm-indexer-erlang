@@ -61,7 +61,8 @@ from_json(Req, State) ->
     Result =
         case maps:get(operation, State) of
             Op when Op == add; Op == update; Op == delete ->
-                #{from := From, to := To, permissions := Permissions, trace := Trace, successive := Successive} = State,
+                #{from := From, to := To, permissions := Permissions, trace := Trace, successive := SuccessiveBin} = State,
+                {ok, Successive} = gmm_utils:parse_boolean(SuccessiveBin),
                 execute_operation(Op, From, To, Permissions, Trace, Successive);
             bulk ->
                 %% @todo execute bulk request parsed in init/2
