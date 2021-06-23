@@ -44,6 +44,12 @@ init(Req0, State) ->
                 {ok, Map} = parse_bulk_request(ParsedJson),
                 {#{bulk_request => Map}, Req1}
         end,
+    case maps:find(successive, ParsedParams) of
+        {ok, SuccessiveBin} ->
+            {ok, Successive} = gmm_utils:parse_boolean(SuccessiveBin),
+            maps:update(successive, Successive, ParsedParams);
+        _ -> ok
+    end,
     NewState = maps:merge(State, ParsedParams),
     {cowboy_rest, Req, NewState}.
 
@@ -61,8 +67,7 @@ from_json(Req, State) ->
     Result =
         case maps:get(operation, State) of
             Op when Op == add; Op == update; Op == delete ->
-                #{from := From, to := To, permissions := Permissions, trace := Trace, successive := SuccessiveBin} = State,
-                {ok, Successive} = gmm_utils:parse_boolean(SuccessiveBin),
+                #{from := From, to := To, permissions := Permissions, trace := Trace, successive := Successive} = State,
                 execute_operation(Op, From, To, Permissions, Trace, Successive);
             bulk ->
                 %% @todo execute bulk request parsed in init/2
