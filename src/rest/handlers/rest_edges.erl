@@ -112,9 +112,10 @@ parse_bulk_request(_) ->
 execute_operation(Op, From, To, Permissions, Trace, false) ->
     try
         {ok, {FromZone, _}} = gmm_utils:split_vertex_id(From),
+        ZoneId = list_to_binary(?ZONE_ID),
         if
             %% @todo ZONE_ID is list "zone0", and not a binary <<"zone0">> - I need to do something about it
-            FromZone =/= ?ZONE_ID -> throw({return,
+            FromZone =/= ZoneId -> throw({return,
                 case Op of
                     add -> zone_client:add_edge(FromZone, From, To, Permissions, Trace, false);
                     update -> zone_client:set_permissions(FromZone, From, To, Permissions, Trace, false);
@@ -122,7 +123,7 @@ execute_operation(Op, From, To, Permissions, Trace, false) ->
                 end});
             true -> ok
         end,
-        EdgeCond = (Op == remove) or (Op == update),
+        EdgeCond = (Op == delete) or (Op == update),
         [{ok, true}, {ok, EdgeCond}] = [graph:vertex_exists(From), graph:edge_exists(From, To)],
         ok = execute_operation(Op, From, To, Permissions, Trace, true),
         case gmm_utils:split_vertex_id(To) of
@@ -141,8 +142,9 @@ execute_operation(Op, From, To, Permissions, Trace, false) ->
 execute_operation(Op, From, To, Permissions, Trace, true) ->
     try
         {ok, {ToZone, _}} = gmm_utils:split_vertex_id(To),
+        ZoneId = list_to_binary(?ZONE_ID),
         if
-            ToZone =/= ?ZONE_ID -> throw({return,
+            ToZone =/= ZoneId -> throw({return,
                 case Op of
                     add -> zone_client:add_edge(ToZone, From, To, Permissions, Trace, true);
                     update -> zone_client:set_permissions(ToZone, From, To, Permissions, Trace, true);
@@ -150,7 +152,7 @@ execute_operation(Op, From, To, Permissions, Trace, true) ->
                 end});
             true -> ok
         end,
-        EdgeCond = (Op == remove) or (Op == update),
+        EdgeCond = (Op == delete) or (Op == update),
         [{ok, true}, {ok, EdgeCond}] = [graph:vertex_exists(To), graph:edge_exists(From, To)],
         case Op of
             add -> graph:create_edge(From, To, Permissions);
