@@ -107,13 +107,13 @@ zone_id() ->
 
 %% Vertices
 
--spec create_vertex_id(Name :: binary(), Zone :: binary()) -> binary().
-create_vertex_id(Name, Zone) ->
+-spec create_vertex_id(Zone :: binary(), Name :: binary()) -> binary().
+create_vertex_id(Zone, Name) ->
     <<Zone/binary, "/", Name/binary>>.
 
 -spec create_vertex_id(Name :: binary()) -> binary().
 create_vertex_id(Name) ->
-    create_vertex_id(Name, zone_id()).
+    create_vertex_id(zone_id(), Name).
 
 -spec split_vertex_id(Bin :: binary()) -> {binary(), binary()}.
 split_vertex_id(Bin) ->
