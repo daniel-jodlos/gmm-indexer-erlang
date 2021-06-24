@@ -25,11 +25,12 @@
 %%%---------------------------
 
 init(Req, State) ->
-    ParsedParams = case maps:get(operation, State) of
-                       Op when Op =:= reaches; Op =:= effective_permissions ->
-                           cowboy_req:match_qs([{from, nonempty}, {to, nonempty}], Req);
-                       members -> cowboy_req:match_qs([{'of', nonempty}], Req)
-                   end,
+    ParsedParams =
+        case maps:get(operation, State) of
+            Op when Op =:= reaches; Op =:= effective_permissions ->
+                cowboy_req:match_qs([{from, nonempty}, {to, nonempty}], Req);
+            members -> cowboy_req:match_qs([{'of', nonempty}], Req)
+        end,
     NewState = maps:merge(State, ParsedParams),
     {cowboy_rest, Req, NewState}.
 
@@ -62,10 +63,11 @@ from_json(Req, State) ->
             {members, indexed} ->
                 execute(fun members_indexed/1, [maps:get('of', State)], <<"members">>)
         end,
-    RequestResult = case ExecutionResult of
-                        {ok, Map} -> {true, gmm_utils:encode(Map)};
-                        {error, _} -> false
-                    end,
+    RequestResult =
+        case ExecutionResult of
+            {ok, Map} -> {true, gmm_utils:encode(Map)};
+            {error, _} -> false
+        end,
     {RequestResult, Req, State}.
 
 
@@ -77,14 +79,15 @@ from_json(Req, State) ->
 execute(Fun, Args, FieldName) ->
     try
         StartTime = erlang:timestamp(),
-        Result = case length(Args) of
-                     1 ->
-                         [Arg] = Args,
-                         Fun(Arg);
-                     2 ->
-                         [Arg1, Arg2] = Args,
-                         Fun(Arg1, Arg2)
-                 end,
+        Result =
+            case length(Args) of
+                1 ->
+                    [Arg] = Args,
+                    Fun(Arg);
+                2 ->
+                    [Arg1, Arg2] = Args,
+                    Fun(Arg1, Arg2)
+            end,
         EndTime = erlang:timestamp(),
         Duration = timer:now_diff(EndTime, StartTime),
         case Result of

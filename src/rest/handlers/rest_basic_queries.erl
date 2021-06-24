@@ -26,15 +26,19 @@
 %%%---------------------------
 
 init(Req, State) ->
-    Method = cowboy_req:method(Req),
     ParsedParams =
         case maps:get(operation, State) of
             Op when Op =:= is_adjacent; Op =:= permissions ->
-                cowboy_req:match_qs([{from, nonempty}, {to, nonempty}], Req);
+                Map = cowboy_req:match_qs([{from, nonempty}, {to, nonempty}], Req),
+                ok = gmm_utils:validate_vertex_id(maps:get(from, Map)),
+                ok = gmm_utils:validate_vertex_id(maps:get(to, Map)),
+                Map;
             Op when Op =:= list_adjacent; Op =:= list_adjacent_reversed ->
-                cowboy_req:match_qs([{'of', nonempty}], Req)
+                Map = cowboy_req:match_qs([{'of', nonempty}], Req),
+                ok = gmm_utils:validate_vertex_id(maps:get('of', Map)),
+                Map
         end,
-    NewState = maps:merge(maps:put(method, Method, State), ParsedParams),
+    NewState = maps:merge(State, ParsedParams),
     {cowboy_rest, Req, NewState}.
 
 allowed_methods(Req, State) ->
@@ -48,52 +52,39 @@ resource_exists(Req, State) ->
     Flag =
         case State of
             #{'of' := Of} ->
-                {ok, OfZone} = gmm_utils:owner_of(Of),
-                case OfZone of
-                    ZoneId ->
-                        {ok, Exists} = graph:vertex_exists(Of),
-                        Exists;
+                case gmm_utils:owner_of(Of) of
+                    ZoneId -> {ok, Exists} = graph:vertex_exists(Of), Exists;
                     _ -> true
                 end;
             #{from := From, to := To} ->
                 ZoneId = gmm_utils:zone_id(),
-                VerticesExist = lists:all(
-                    fun(X) ->
-                        case gmm_utils:owner_of(X) of
-                            {ok, ZoneId} ->
-                                {ok, Exists} = graph:vertex_exists(X),
-                                Exists;
-                            _ -> true
-                        end
-                    end, [From, To]),
-                case VerticesExist of
-                    false -> false;
+                Checker = fun(X) -> {ok, Exists} = graph:vertex_exists(X),
+                    (gmm_utils:owner_of(X) =/= ZoneId) or Exists end,
+                VerticesExist = lists:all(Checker, [From, To]),
+                EdgeCheckNeeded = (maps:get(operation, State) == permissions) and on_this_zone(From, To),
+                case EdgeCheckNeeded of
                     true ->
-                        case maps:get(operation, State) of
-                            permissions ->
-                                OnThisZone = lists:any(
-                                    fun(X) -> case gmm_utils:owner_of(X) of {ok, ZoneId} -> true; _ -> false end end,
-                                    [From, To]),
-                                case OnThisZone of
-                                    false -> true;
-                                    true ->
-                                        {ok, EdgeExists} = graph:edge_exists(From, To),
-                                        EdgeExists
-                                end;
-                            _ -> true
-                        end
+                        {ok, EdgeExists} = graph:edge_exists(From, To),
+                        VerticesExist and EdgeExists;
+                    false -> VerticesExist
                 end
         end,
-    {Flag, Req, State}.
+    NewState = maps:put(resources_exist, Flag, State),
+    {false, Req, NewState}.
 
 %% POST handler
 from_json(Req, State) ->
     Result =
-        case maps:get(operation, State) of
-            is_adjacent -> is_adjacent(maps:get(from, State), maps:get(to, State));
-            list_adjacent -> list_adjacent(maps:get('of', State));
-            list_adjacent_reversed -> list_adjacent_reversed(maps:get('of', State));
-            permissions -> permissions(maps:get(from, State), maps:get(to, State))
+        case maps:get(resources_exist, State) of
+            true ->
+                case maps:get(operation, State) of
+                    is_adjacent -> is_adjacent(maps:get(from, State), maps:get(to, State));
+                    permissions -> permissions(maps:get(from, State), maps:get(to, State));
+                    list_adjacent -> list_adjacent(maps:get('of', State));
+                    list_adjacent_reversed -> list_adjacent_reversed(maps:get('of', State))
+                end;
+            false ->
+                {error, "Resource not found"}
         end,
     case Result of
         {ok, Value} -> {{true, gmm_utils:encode(Value)}, Req, State};
@@ -107,32 +98,13 @@ from_json(Req, State) ->
 
 -spec on_this_zone(V1 :: binary(), V2 :: binary()) -> boolean().
 on_this_zone(V1, V2) ->
-    ZoneId = gmm_utils:zone_id(),
-    lists:any(fun(X) -> case gmm_utils:owner_of(X) of {ok, ZoneId} -> true; _ -> false end end, [V1, V2]).
+    lists:any(fun(X) -> gmm_utils:owner_of(X) == gmm_utils:zone_id() end, [V1, V2]).
 
 -spec is_adjacent(From :: binary(), To :: binary()) -> {ok, boolean()} | {error, any()}.
 is_adjacent(From, To) ->
     case on_this_zone(From, To) of
         true -> graph:edge_exists(From, To);
-        false ->
-            {ok, FromZone} = gmm_utils:owner_of(From),
-            zone_client:is_adjacent(FromZone, From, To)
-    end.
-
--spec list_adjacent(Of :: binary()) -> {ok, list(binary())} | {error, any()}.
-list_adjacent(Of) ->
-    {ok, OfZone} = gmm_utils:owner_of(Of),
-    case gmm_utils:zone_id() of
-        OfZone -> graph:list_parents(Of);
-        _ -> zone_client:list_adjacent(OfZone, Of)
-    end.
-
--spec list_adjacent_reversed(Of :: binary()) -> {ok, list(binary())} | {error, any()}.
-list_adjacent_reversed(Of) ->
-    {ok, OfZone} = gmm_utils:owner_of(Of),
-    case gmm_utils:zone_id() of
-        OfZone -> graph:list_children(Of);
-        _ -> zone_client:list_adjacent_reversed(OfZone, Of)
+        false -> zone_client:is_adjacent(gmm_utils:owner_of(From), From, To)
     end.
 
 -spec permissions(From :: binary(), To :: binary()) -> {ok, binary()} | {error, any()}.
@@ -143,7 +115,21 @@ permissions(From, To) ->
                 {ok, #{<<"permissions">> := Permissions}} -> {ok, Permissions};
                 _ -> {error, "Didn't obtain edge"}
             end;
-        false ->
-            {ok, FromZone} = gmm_utils:owner_of(From),
-            zone_client:permissions(FromZone, From, To)
+        false -> zone_client:permissions(gmm_utils:owner_of(From), From, To)
+    end.
+
+-spec list_adjacent(Of :: binary()) -> {ok, list(binary())} | {error, any()}.
+list_adjacent(Of) ->
+    OfZone = gmm_utils:owner_of(Of),
+    case gmm_utils:zone_id() of
+        OfZone -> graph:list_parents(Of);
+        _ -> zone_client:list_adjacent(OfZone, Of)
+    end.
+
+-spec list_adjacent_reversed(Of :: binary()) -> {ok, list(binary())} | {error, any()}.
+list_adjacent_reversed(Of) ->
+    OfZone = gmm_utils:owner_of(Of),
+    case gmm_utils:zone_id() of
+        OfZone -> graph:list_children(Of);
+        _ -> zone_client:list_adjacent_reversed(OfZone, Of)
     end.

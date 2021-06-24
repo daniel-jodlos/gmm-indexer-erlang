@@ -28,7 +28,7 @@ end_per_suite(_Config) ->
     ok = application:stop(gmm_client).
 
 init_per_group(basic_flow, _Config) ->
-    timer:sleep(1000), %% from unknown reasons some delay is needed before executing first tests - without it tests fail with reason {badmatch, {error, closed}}
+    timer:sleep(5000), %% from unknown reasons some delay is needed before executing first tests - without it tests fail with reason {badmatch, {error, closed}}
     {ok, _} = application:ensure_all_started(gmm_client),
     ok;
 init_per_group(_Group, _Config) ->
@@ -44,32 +44,36 @@ vertices_test(_Config)->
     client:add_space("Space"),
     client:add_provider("Provider"),
     % when
-    UserId = client_test_helper:get_id_from_list(1),
-
-    % then
-    [
-      ?assertEqual("Jan", client_test_helper:get_vertex_name(UserId))
-    ],
-    % when
-    client:delete_vertex(UserId),
-    SpaceId = client_test_helper:get_id_from_list(1),
     IdsList = client_test_helper:get_ids_list(),
 
     % then
     [
-      ?assertEqual("Space", client_test_helper:get_vertex_name(SpaceId)),
-      ?assertNot(lists:member(UserId, IdsList))
+      ?assert(lists:member("zone1/Jan", IdsList)),
+      ?assert(lists:member("zone1/Friends", IdsList)),
+      ?assert(lists:member("zone1/Space", IdsList)),
+      ?assert(lists:member("zone1/Provider", IdsList))
     ],
-    client:delete_vertex(SpaceId).
+    % when
+    client:delete_vertex("zone1/Jan"),
+    NewIdsList = client_test_helper:get_ids_list(),
+
+    % then
+    [
+      ?assertNot(lists:member("zone1/Jan", NewIdsList)),
+      ?assert(lists:member("zone1/Friends", NewIdsList)),
+      ?assert(lists:member("zone1/Space", NewIdsList)),
+      ?assert(lists:member("zone1/Provider", NewIdsList))
+    ],
+    client:delete_vertex("zone1/Space").
 
 
 edges_test(_Config)->
   % given
   client:add_user("Jan"),
-  client:add_user("Filip"),
+  client:add_group("Group"),
 
   JanId = client_test_helper:get_id_from_list(1),
-  FilipId = client_test_helper:get_id_from_list(2),
+  GroupId = client_test_helper:get_id_from_list(2),
 
   Permissions = "01110",
   Trace = "trace",
@@ -78,27 +82,27 @@ edges_test(_Config)->
   NewPermissions = "00011",
 
   % when
-  client:add_edge(JanId, FilipId, Permissions, Trace, Successive),
+  client:add_edge(JanId, GroupId, Permissions, Trace, Successive),
 
   % then
     [
-      ?assertEqual("true", client_test_helper:check_edge_existance(JanId, FilipId)),
-      ?assertEqual("\""++Permissions++"\"", client_test_helper:check_permissions(JanId, FilipId))
+      ?assertEqual("true", client_test_helper:check_edge_existance(JanId, GroupId)),
+      ?assertEqual("\""++Permissions++"\"", client_test_helper:check_permissions(JanId, GroupId))
     ],
 
     % when
-    client:set_edge_permissions(JanId, FilipId, NewPermissions, Trace, Successive),
+    client:set_edge_permissions(JanId, GroupId, NewPermissions, Trace, Successive),
 
     % then
     [
-      ?assertEqual("\""++NewPermissions++"\"", client_test_helper:check_permissions(JanId, FilipId))
+      ?assertEqual("\""++NewPermissions++"\"", client_test_helper:check_permissions(JanId, GroupId))
     ],
     % when
-    client:delete_edge(JanId, FilipId, Trace, Successive),
+    client:delete_edge(JanId, GroupId, Trace, Successive),
 
     % then 
     [
-      ?assertEqual("false", client_test_helper:check_edge_existance(JanId, FilipId))
+      ?assertEqual("false", client_test_helper:check_edge_existance(JanId, GroupId))
     ],
     client:delete_vertex(JanId),
-    client:delete_vertex(FilipId).
+    client:delete_vertex(GroupId).
