@@ -133,25 +133,25 @@ edges_adding_test(_Config) ->
         ?assertEqual("true", client_test_helper:check_edge_existance("zone1/Group2", "zone1/Provider1")),
         ?assertEqual("\"10001\"", client_test_helper:check_permissions("zone1/Group2", "zone1/Provider1")),
 
-        ?assertEqual(0, length(User1Parents)),
-        ?assertEqual(2, length(User1Children)),
+        ?assertEqual(2, length(User1Parents)),
+        ?assertEqual(0, length(User1Children)),
 
-        ?assertEqual(1, length(Space1Parents)),
-        ?assertEqual(0, length(Space1Children)),
+        ?assertEqual(0, length(Space1Parents)),
+        ?assertEqual(1, length(Space1Children)),
 
         ?assertEqual(1, length(Group2Parents)),
         ?assertEqual(1, length(Group2Children)),
 
-        ?assertEqual(1, length(Provider1Parents)),
-        ?assertEqual(0, length(Provider1Children)),
+        ?assertEqual(0, length(Provider1Parents)),
+        ?assertEqual(1, length(Provider1Children)),
 
-        ?assert(lists:member("\"zone1/Group2\"", User1Children)),
-        ?assert(lists:member("\"zone1/Space1\"", User1Children)),
-        ?assert(lists:member("\"zone1/Provider1\"", Group2Children)),
+        ?assert(lists:member("\"zone1/Group2\"", User1Parents)),
+        ?assert(lists:member("\"zone1/Space1\"", User1Parents)),
+        ?assert(lists:member("\"zone1/Provider1\"", Group2Parents)),
 
-        ?assert(lists:member("\"zone1/User1\"", Space1Parents)),
-        ?assert(lists:member("\"zone1/User1\"", Group2Parents)),
-        ?assert(lists:member("\"zone1/Group2\"", Provider1Parents))
+        ?assert(lists:member("\"zone1/User1\"", Space1Children)),
+        ?assert(lists:member("\"zone1/User1\"", Group2Children)),
+        ?assert(lists:member("\"zone1/Group2\"", Provider1Children))
     ].
 
 edges_updating_test(_Config) ->
@@ -189,23 +189,23 @@ edges_deleting_test(_Config) ->
         ?assertEqual("true", client_test_helper:check_edge_existance("zone1/User1", "zone1/Group2")),
         ?assertEqual("false", client_test_helper:check_edge_existance("zone1/Group2", "zone1/Provider1")),
 
-        ?assertEqual(0, length(User1Parents)),
-        ?assertEqual(1, length(User1Children)),
+        ?assertEqual(1, length(User1Parents)),
+        ?assertEqual(0, length(User1Children)),
 
         ?assertEqual(0, length(Space1Parents)),
         ?assertEqual(0, length(Space1Children)),
 
-        ?assertEqual(1, length(Group2Parents)),
-        ?assertEqual(0, length(Group2Children)),
+        ?assertEqual(0, length(Group2Parents)),
+        ?assertEqual(1, length(Group2Children)),
 
         ?assertEqual(0, length(Provider1Parents)),
         ?assertEqual(0, length(Provider1Children)),
 
-        ?assert(lists:member("\"zone1/Group2\"", User1Children)),
-        ?assertNot(lists:member("\"zone1/Space1\"", User1Children)),
-        ?assertNot(lists:member("\"zone1/Provider1\"", Group2Children)),
+        ?assert(lists:member("\"zone1/Group2\"", User1Parents)),
+        ?assertNot(lists:member("\"zone1/Space1\"", User1Parents)),
+        ?assertNot(lists:member("\"zone1/Provider1\"", Group2Parents)),
 
-        ?assertNot(lists:member("\"zone1/User1\"", Space1Parents)),
-        ?assert(lists:member("\"zone1/User1\"", Group2Parents)),
-        ?assertNot(lists:member("\"zone1/Group2\"", Provider1Parents))
+        ?assertNot(lists:member("\"zone1/User1\"", Space1Children)),
+        ?assert(lists:member("\"zone1/User1\"", Group2Children)),
+        ?assertNot(lists:member("\"zone1/Group2\"", Provider1Children))
     ].
