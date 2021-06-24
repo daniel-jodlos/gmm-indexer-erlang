@@ -19,12 +19,14 @@
     from_json/2
 ]).
 
--dialyzer({nowarn_function, init/2}).
 
 %%%---------------------------
 %% cowboy_rest callbacks
 %%%---------------------------
 
+%% Dialyzer keeps warning that {ok, JsonMap} cannot match {error, any()}
+%% but it's intentional - if JSON is wrong, I want it to throw error
+-dialyzer({nowarn_function, init/2}).
 init(Req0, State) ->
     {ok, Data, Req} = cowboy_req:read_body(Req0),
     {ok, JsonMap} = parse_decoded_body(gmm_utils:decode(Data)),
