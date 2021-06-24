@@ -69,16 +69,22 @@ resource_exists(Req, State) ->
                     false -> VerticesExist
                 end
         end,
-    {Flag, Req, State}.
+    NewState = maps:put(resources_exist, Flag, State),
+    {false, Req, NewState}.
 
 %% POST handler
 from_json(Req, State) ->
     Result =
-        case maps:get(operation, State) of
-            is_adjacent -> is_adjacent(maps:get(from, State), maps:get(to, State));
-            permissions -> permissions(maps:get(from, State), maps:get(to, State));
-            list_adjacent -> list_adjacent(maps:get('of', State));
-            list_adjacent_reversed -> list_adjacent_reversed(maps:get('of', State))
+        case maps:get(resources_exist, State) of
+            true ->
+                case maps:get(operation, State) of
+                    is_adjacent -> is_adjacent(maps:get(from, State), maps:get(to, State));
+                    permissions -> permissions(maps:get(from, State), maps:get(to, State));
+                    list_adjacent -> list_adjacent(maps:get('of', State));
+                    list_adjacent_reversed -> list_adjacent_reversed(maps:get('of', State))
+                end;
+            false ->
+                {error, "Resource not found"}
         end,
     case Result of
         {ok, Value} -> {{true, gmm_utils:encode(Value)}, Req, State};

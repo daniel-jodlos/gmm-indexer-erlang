@@ -45,8 +45,7 @@
 
 -spec generate_id(binary()) -> {ok, binary()} | {error, any()}.
 generate_id(Name) ->
-    Zone = list_to_binary(?ZONE_ID),
-    Id = gmm_utils:create_vertex_id(Name, Zone),
+    Id = gmm_utils:create_vertex_id(Name),
     case persistence:exists(Id) of
         {ok, false} -> {ok, Id};
         {ok, true} -> {error, "Vertex exists"};
@@ -62,7 +61,7 @@ create_vertex(Type, Name) ->
             <<"type">> => Type,
             <<"id">> => Id,
             <<"name">> => Name,
-            <<"zone">> => list_to_binary(?ZONE_ID)
+            <<"zone">> => gmm_utils:zone_id()
         }),
     case persistence:set(Id, Json) of
         {error, Reason} -> {error, Reason};

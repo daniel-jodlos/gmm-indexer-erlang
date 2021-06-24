@@ -45,8 +45,8 @@ init(Req0, State) ->
         end,
     if
         Operation == add; Operation == update; Operation == delete ->
-            ok = gmm_utils:validate_vertex_id(maps:get(from, State)),
-            ok = gmm_utils:validate_vertex_id(maps:get(to, State));
+            ok = gmm_utils:validate_vertex_id(maps:get(from, ParsedParams)),
+            ok = gmm_utils:validate_vertex_id(maps:get(to, ParsedParams));
         true -> ok
     end,
     NewState = maps:merge(State,
@@ -80,10 +80,11 @@ from_json(Req, State) ->
                     maps:get(bulk_request, State),
                 execute_bulk_request()
         end,
-    Flag = case Result of
-               ok -> true;
-               {error, _} -> false
-           end,
+    Flag =
+        case Result of
+            ok -> true;
+            {error, _} -> false
+        end,
     {Flag, Req, State}.
 
 
