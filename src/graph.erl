@@ -219,22 +219,50 @@ validate(Results) ->
 
 -spec create_edge(From :: binary(), To :: binary(), Permissions :: binary()) -> ok | {error, any()}.
 create_edge(From, To, Permissions) ->
-    validate([
-        persistence:set_add(children_id(To), From),
-        persistence:set_add(parents_id(From), To),
-        persistence:set(edge_id(From, To), Permissions)
-    ]).
+    ZoneId = list_to_binary(?ZONE_ID),
+    {ok, {FromZone, _}} = gmm_utils:split_vertex_id(From),
+    {ok, {ToZone, _}} = gmm_utils:split_vertex_id(To),
+    case {FromZone, ToZone} of
+        {ZoneId, ZoneId} -> validate([
+            persistence:set_add(children_id(To), From),
+            persistence:set_add(parents_id(From), To),
+            persistence:set(edge_id(From, To), Permissions)
+        ]);
+        {ZoneId, _} -> validate([
+            persistence:set_add(parents_id(From), To),
+            persistence:set(edge_id(From, To), Permissions)
+        ]);
+        {_, ZoneId} -> validate([
+            persistence:set_add(children_id(To), From),
+            persistence:set(edge_id(From, To), Permissions)
+        ]);
+        {_, _} -> {error, vertices_not_found}
+    end.
 
 -spec update_edge(From :: binary(), To :: binary(), Permissions :: binary()) -> ok | {error, any()}.
 update_edge(From, To, Permissions) -> validate([persistence:set(edge_id(From, To), Permissions)]).
 
 -spec remove_edge(From :: binary(), To :: binary()) -> ok | {error, any()}.
 remove_edge(From, To) ->
-    validate([
-        persistence:del(edge_id(From, To)),
-        persistence:set_remove(children_id(To), From),
-        persistence:set_remove(parents_id(From), To)
-    ]).
+    ZoneId = gmm_utils:zone_id(),
+    {ok, FromZone} = gmm_utils:owner_of(From),
+    {ok, ToZone} = gmm_utils:owner_of(To),
+    case {FromZone, ToZone} of
+        {ZoneId, ZoneId} -> validate([
+            persistence:del(edge_id(From, To)),
+            persistence:set_remove(children_id(To), From),
+            persistence:set_remove(parents_id(From), To)
+        ]);
+        {ZoneId, _} -> validate([
+            persistence:del(edge_id(From, To)),
+            persistence:set_remove(parents_id(From), To)
+        ]);
+        {_, ZoneId} -> validate([
+            persistence:del(edge_id(From, To)),
+            persistence:set_remove(children_id(To), From)
+        ]);
+        {_, _} -> {error, vertices_not_found}
+    end.
 
 -spec edge_exists(From :: binary(), To :: binary()) -> {ok, boolean()} | {error, any()}.
 edge_exists(From, To) -> persistence:exists(edge_id(From, To)).
@@ -243,7 +271,6 @@ edge_exists(From, To) -> persistence:exists(edge_id(From, To)).
 get_edge(From, To) ->
     case persistence:get(edge_id(From, To)) of
         {error, Error} -> {error, Error};
-
         {ok, Permissions} ->
             {ok, #{<<"from">> => From, <<"to">> => To, <<"permissions">> => Permissions}}
     end.

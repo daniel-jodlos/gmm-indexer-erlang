@@ -8,7 +8,7 @@
 |-----------|------|--------|------------|
 | from, to, of, id | string | zone_id/name | ID of a vertex |
 | type, name | string |  | Some value |
-| permissions | string | xx-x- | Permissions set on given edge |
+| permissions | string | 11010 | Permissions set on given edge |
 | trace | string (optional) |  | Globally unique identifier of set of events about the same operation on the graph |
 | successive | boolean |  | I have no idea, but Kamil has it |
 | enabled | boolean |  | Stores info whether enable or disable some setting |
@@ -330,7 +330,7 @@
     </tr>
 </table>
 
-### Get children of given vertex
+### Get parents of given vertex
 
 <table>
     <tr>
@@ -357,7 +357,7 @@
     </tr>
 </table>
 
-### Get parents of given vertex
+### Get children of given vertex
 
 <table>
     <tr>
@@ -590,7 +590,7 @@ where x is a floating-point number with 6 decimal places, describing number of s
 
 WARNING: in current state our server doesn't send times longer than 24 hours.
 
-### Check existence of path (is 'to' effective child of 'from'?)
+### Check existence of path (is 'from' effective child of 'to'?)
 
 <table>
     <tr>
@@ -618,7 +618,7 @@ WARNING: in current state our server doesn't send times longer than 24 hours.
     </tr>
 </table>
 
-### Get effective permissions 'to' possesses about 'from'
+### Get effective permissions 'from' possesses about 'to'
 
 <table>
     <tr>

@@ -73,7 +73,7 @@ edges_test(_Config)->
 
   Permissions = "01110",
   Trace = "trace",
-  Successive = true,
+  Successive = false,
 
   NewPermissions = "00011",
 

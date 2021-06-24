@@ -11,10 +11,15 @@
     empty_json/0,
     encode/1,
     decode/1,
+    zone_id/0,
+    owner_of/1,
     create_vertex_id/1,
     create_vertex_id/2,
     split_bin/2,
     split_bin/1,
+    create_edge_id/2,
+    split_vertex_id/1,
+    split_edge_id/1,
     parse_boolean/1,
     convert_microseconds_to_iso_8601/1
 ]).
@@ -34,6 +39,18 @@ encode(Val) -> jiffy:encode(Val).
 
 -spec decode(binary()) -> any().
 decode(Val) -> jiffy:decode(Val, [return_maps]).
+
+%% Get id of this zone in binary form
+-spec zone_id() -> binary().
+zone_id() ->
+    list_to_binary(?ZONE_ID).
+
+-spec owner_of(Vertex :: binary()) -> {ok, binary()} | {error, any()}.
+owner_of(Vertex) ->
+    case split_vertex_id(Vertex) of
+        {ok, {Zone, _}} -> {ok, Zone};
+        {error, Reason} -> {error, Reason}
+    end.
 
 %% Binary string manipulation
 -spec create_vertex_id(Name :: binary()) -> binary().
@@ -56,6 +73,25 @@ split_bin(Bin, Delimiter) ->
 split_bin(Bin) ->
     %% default delimiter is '/'
     split_bin(Bin, <<"/">>).
+
+-spec split_vertex_id(Bin :: binary()) -> {ok, {binary(), binary()}} | {error, any()}.
+split_vertex_id(Bin) ->
+    case split_bin(Bin) of
+        {ok, [Zone, Name]} -> {ok, {Zone, Name}};
+        {ok, _} -> {error, "Wrong vertex id format"};
+        {error, Reason} -> {error, Reason}
+    end.
+
+-spec create_edge_id(From :: binary(), To :: binary()) -> binary().
+create_edge_id(From, To) -> <<"edge/", From/binary, "/", To/binary>>.
+
+-spec split_edge_id(Bin :: binary()) -> {ok, {binary(), binary()}} | {error, any()}.
+split_edge_id(Bin) ->
+    case split_bin(Bin) of
+        {ok, [<<"edge">>, From, To]} -> {ok, {From, To}};
+        {ok, _} -> {error, "Wrong edge id format"};
+        {error, Reason} -> {error, Reason}
+    end.
 
 %% Other functions
 -spec parse_boolean(binary()) -> {ok, boolean()} | {error, any()}.

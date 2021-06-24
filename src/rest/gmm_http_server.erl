@@ -40,7 +40,7 @@ start_server() ->
             %  POST {from, to, permissions[, trace], successive} -> void
             {"/graph/edges", rest_edges, #{operation => add}},
             %  POST {from, to, permissions[, trace], successive} -> void
-            {"/graph/edges/permissions", rest_edges, #{operation => permissions}},
+            {"/graph/edges/permissions", rest_edges, #{operation => update}},
             %  POST {from, to[, trace], successive} -> void
             {"/graph/edges/delete", rest_edges, #{operation => delete}},
 
