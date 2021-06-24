@@ -9,7 +9,17 @@
 -module(client_test_helper).
 -author("Piotr Świderski").
 
--export([get_id_from_list/1, get_ids_list/0, get_vertex_name/1, get_vertex_type/1, check_edge_existance/2, check_permissions/2, check_vertices_and_types/2]).
+-export([
+  get_id_from_list/1,
+  get_ids_list/0, 
+  get_vertex_name/1, 
+  get_vertex_type/1, 
+  check_edge_existance/2, 
+  check_permissions/2, 
+  check_vertices_and_types/2,
+  parents_list/1,
+  children_list/1
+]).
 
 % CONST
 -define(URL, "localhost:8080/").
@@ -88,3 +98,22 @@ check_permission_result(Result)->
 check_permissions(From, To)->
   {ok, _, Body, _} = client:get_edge_permissions(From, To),
   check_permission_result(Body).
+
+get_list_from_string(ListString) ->
+  string:tokens(string:slice(ListString, 1, length(ListString)-2), ",").
+
+get_list_from_body(Body)->
+  [Head | Tail] = Body,
+  {Key, Value} = Head,
+  case "location" -- binary:bin_to_list(Key) of
+    [] -> get_list_from_string(binary:bin_to_list(Value));
+    _ -> get_list_from_body(Tail)
+  end.
+
+parents_list(Of) ->
+  {ok, _, Body, _} = client:get_vertex_parents(Of),
+  get_list_from_body(Body).
+
+children_list(Of) ->
+  {ok, _, Body, _} = client:get_vertex_children(Of),
+  get_list_from_body(Body).
