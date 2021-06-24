@@ -28,7 +28,7 @@ end_per_suite(_Config) ->
     ok = application:stop(gmm_client).
 
 init_per_group(basic_flow, _Config) ->
-    timer:sleep(1000), %% from unknown reasons some delay is needed before executing first tests - without it tests fail with reason {badmatch, {error, closed}}
+    timer:sleep(5000), %% from unknown reasons some delay is needed before executing first tests - without it tests fail with reason {badmatch, {error, closed}}
     {ok, _} = application:ensure_all_started(gmm_client),
     ok;
 init_per_group(_Group, _Config) ->
