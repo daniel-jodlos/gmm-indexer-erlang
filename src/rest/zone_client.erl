@@ -23,18 +23,18 @@
     permissions/3, %% @todo necessary
     add_edge/5,
     add_edge/6, %% @todo necessary
-    add_edges/2, %% @todo necessary
+    add_edges/2, %% @todo optional
     remove_edge/4, %% @todo necessary
     remove_edge/5, %% @todo necessary
     set_permissions/5, %% @todo necessary
     set_permissions/6, %% @todo necessary
     add_vertex/2, %% @todo necessary
-    add_vertices/2, %% @todo necessary
+    add_vertices/2, %% @todo optional
     post_event/2, %% @todo ???
     post_events/2, %% @todo optional
     get_event_stats/1, %% @todo ignore
-    get_dependent_zones/1, %% @todo necessary
-    get_dependent_zones/2, %% @todo necessary
+    get_dependent_zones/1, %% @todo necessary later now optional
+    get_dependent_zones/2, %% @todo necessary later now optional
     is_instrumentation_enabled/1, %% @todo ???
     set_instrumentation_enabled/2, %% @todo ???
     set_indexation_enabled/2, %% @todo ignore
@@ -48,6 +48,9 @@
 %%%---------------------------
 %% Implementations
 %%%---------------------------
+% CONST
+-define(URL, "localhost:8080/").
+% TODO -> zones distinction, methods implementation, error handling, tests  
 
 -spec healthcheck(Zone:: binary()) -> {ok, boolean()} | {error, any()}.
 healthcheck(_Zone) ->
@@ -60,58 +63,109 @@ index_ready(Zone) when is_binary(Zone) ->
 index_ready(AllZones) when is_list(AllZones) ->
     {error, not_implemented}.
 
+% MUST
 -spec is_adjacent(Zone:: binary(), From:: binary(), To:: binary()) -> {ok, boolean()} | {error, any()}.
 is_adjacent(_Zone, _From, _To) ->
-    {error, not_implemented}.
+    application:ensure_all_started(hackney),
+    Url= ?URL++"is_adjacent?from="++binary:bin_to_list(_From)++"&to="++binary:bin_to_list(_To),
+    {ok, binary:binary_to_atom(requests:post_request_with_response_body(list_to_binary(Url)))}.
+    % TODO -> test and add errors handling
 
+% SHOULD
 -spec list_adjacent(Zone:: binary(), Of:: binary()) -> {ok, list(binary())} | {error, any()}.
 list_adjacent(_Zone, _Of) ->
-    {error, not_implemented}.
+    application:ensure_all_started(hackney),
+    Url= ?URL++"list_adjacent?of="++binary:bin_to_list(_Of),
+    {ok, binary:binary_to_list(requests:post_request_with_response_body(list_to_binary(Url)))}.
+    % TODO -> test and add errors handling
 
+% SHOULD
 -spec list_adjacent_reversed(Zone:: binary(), Of:: binary()) -> {ok, list(binary())} | {error, any()}.
 list_adjacent_reversed(_Zone, _Of) ->
-    {error, not_implemented}.
+    application:ensure_all_started(hackney),
+    Url= ?URL++"list_adjacent_reversed?of="++binary:bin_to_list(_Of),
+    {ok, binary:binary_to_list(requests:post_request_with_response_body(list_to_binary(Url)))}.
+    % TODO -> test and add errors handling
 
+% MUST
 -spec permissions(Zone::binary(), From:: binary(), To:: binary()) -> {ok, binary()} | {error, any()}.
 permissions(_Zone, _From, _To) ->
-    {error, not_implemented}.
+    application:ensure_all_started(hackney),
+    Url= ?URL++"permissions?from="++binary:bin_to_list(_From)++"&to="++binary:bin_to_list(_To),
+    requests:post_request_with_response_body(list_to_binary(Url)).
+    % TODO -> test and add errors handling
 
+% MUST
 -spec add_edge(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(), Trace:: binary()
     ) -> ok | {error, any()}.
 add_edge(_Zone, _From, _To, _Permissions, _Trace) ->
-    {error, not_implemented}.
+    TraceString = case _Trace of
+                    undefined -> "";
+                    _ -> "&trace="++_Trace
+                  end,
+    Url= ?URL++"graph/edges?from="++binary:bin_to_list(_From)++"&to="++binary:bin_to_list(_To)++"&permissions="++binary:bin_to_list(_Permissions)++TraceString,
+    requests:post_request(list_to_binary(Url)),
+    ok.
+    % TODO -> test and add errors handling
 
+% MUST
 -spec add_edge(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(), Trace:: binary(),
     Successive:: boolean()) -> ok | {error, any()}.
 add_edge(_Zone, _From, _To, _Permissions, _Trace, _Successive) ->
-    {error, not_implemented}.
+    TraceString = case _Trace of
+                    undefined -> "";
+                    _ -> "&trace="++_Trace
+                  end,
+    Url= ?URL++"graph/edges?from="++binary:bin_to_list(_From)++"&to="++binary:bin_to_list(_To)++"&permissions="++binary:bin_to_list(_Permissions)++TraceString++"&successive="++atom_to_list(_Successive),
+    client_requests:post_request(list_to_binary(Url)),
+    ok.
+    % TODO -> test and add errors handling
 
 -spec add_edges(Zone:: binary(), BulkRequest:: binary()) -> ok | {error, any()}.
 add_edges(_Zone, _BulkRequest) ->
     {error, not_implemented}.
 
+% MUST
 -spec remove_edge(Zone:: binary(), From:: binary(), To:: binary(), Trace:: binary()) -> ok | {error, any()}.
 remove_edge(Zone, From, To, Trace) ->
-    remove_edge(Zone, From, To, Trace, false).
+    application:ensure_all_started(hackney),
+    Url= ?URL++"graph/edges/delete?from="++From++"&to="++To++"&trace="++Trace,
+    requests:post_request(list_to_binary(Url)).
+    % TODO -> test and add errors handling
 
+% MUST
 -spec remove_edge(Zone:: binary(), From:: binary(), To:: binary(), Trace:: binary(),
     Successive:: boolean()) -> ok | {error, any()}.
 remove_edge(_Zone, _From, _To, _Trace, _Successive) ->
-    {error, not_implemented}.
+    application:ensure_all_started(hackney),
+    Url= ?URL++"graph/edges/delete?from="++_From++"&to="++_To++"&trace="++_Trace++"&successive="++atom_to_list(_Successive),
+    requests:post_request(list_to_binary(Url)).
+    % TODO -> test and add errors handling
 
+% MUST
 -spec set_permissions(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(),
     Trace:: binary()) -> ok | {error, any()}.
 set_permissions(Zone, From, To, Permissions, Trace) ->
-    set_permissions(Zone, From, To, Permissions, Trace, false).
+    application:ensure_all_started(hackney),
+    Url= ?URL++"graph/edges/permissions?from="++From++"&to="++To++"&permissions="++Permissions++"&trace="++Trace,
+    requests:post_request(list_to_binary(Url)).
+    % TODO -> test and add errors handling
 
+% MUST
 -spec set_permissions(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(),
     Trace:: binary(), Successive:: boolean()) -> ok | {error, any()}.
 set_permissions(_Zone, _From, _To, _Permissions, _Trace, _Successive) ->
-    {error, not_implemented}.
+    application:ensure_all_started(hackney),
+    Url= ?URL++"graph/edges/permissions?from="++_From++"&to="++_To++"&permissions="++_Permissions++"&trace="++_Trace++"&successive="++atom_to_list(_Successive),
+    requests:post_request(list_to_binary(Url)).
+    % TODO -> test and add errors handling
 
+% MUST
 -spec add_vertex(VertexId:: binary(), Type:: binary()) -> ok | {error, any()}.
 add_vertex(_VertexId, _Type) ->
-    {error, not_implemented}.
+    application:ensure_all_started(hackney),
+    Url= ?URL++"graph/vertices?type="++_Type++"&name="++_VertexId,
+    requests:post_request(list_to_binary(Url)).
 
 -spec add_vertices(Zone:: binary(), BulkRequest:: map()) -> ok | {error, any()}.
 add_vertices(_Zone, _BulkRequest) ->
@@ -162,14 +216,22 @@ wait_for_index(Zone, _Timeout) when is_binary(Zone) ->
 wait_for_index(Zones, _Timeout) when is_list(Zones) ->
     {error, not_implemented}.
 
+% MUST
 -spec reaches(Algo:: naive | reaches, Zone:: binary(), From:: binary(), To:: binary()
     ) -> {ok, map()} | {error, any()}.
 reaches(_Algo, _Zone, _From, _To) ->
-    {error, not_implemented}.
+    application:ensure_all_started(hackney),
+    Url= ?URL++"/naive/reaches?from="++binary:bin_to_list(_From)++"&to="++binary:bin_to_list(_To),
+    {ok, json_utils:decode(requests:post_request_with_response_body(list_to_binary(Url)))}.
+    % TODO -> test and add errors handling and algo
 
+% MUST
 -spec members(Algo:: naive | reaches, Zone:: binary(), Of:: binary()) -> {ok, map()} | {error, any()}.
 members(_Algo, _Zone, _Of) ->
-    {error, not_implemented}.
+    application:ensure_all_started(hackney),
+    Url= ?URL++"/naive/members?of="++binary:bin_to_list(_Of),
+    {ok, json_utils:decode(requests:post_request_with_response_body(list_to_binary(Url)))}.
+    % TODO -> test and add errors handling and algo
 
 -spec effective_permissions(Algo:: naive | reaches, Zone:: binary(), From:: binary(),
     To:: binary()) -> {ok, map()} | {error, any()}.

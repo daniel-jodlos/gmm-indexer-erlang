@@ -61,7 +61,7 @@ split_bin(Bin) ->
 -spec parse_boolean(binary()) -> {ok, boolean()} | {error, any()}.
 parse_boolean(Bin) ->
     try
-        case binary_to_atom(Bin) of
+        case binary:binary_to_atom(Bin) of
             Bool when is_boolean(Bool) -> {ok, Bool};
             _ -> {error, not_a_bool}
         end

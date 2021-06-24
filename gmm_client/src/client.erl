@@ -13,7 +13,7 @@
 %% API
 -export([add_user/1, add_group/1, add_space/1, add_provider/1, check_edge_existance/2,
   get_vertices_list/0, get_vertex_info/1, delete_vertex/1, set_edge_permissions/5, get_vertex_children/1,
-  add_edge/5, delete_edge/4, get_edge_permissions/2, get_vertex_parents/1]).
+  add_edge/5, delete_edge/4, get_edge_permissions/2, get_vertex_parents/1, is_adjacect/2, list_adjacent/1]).
 
 % CONST
 -define(URL, "localhost:8080/").
@@ -102,4 +102,33 @@ get_vertex_parents(Of)->
 delete_edge(From, To, Trace, Successive)->
   application:ensure_all_started(hackney),
   Url= ?URL++"graph/edges/delete?from="++From++"&to="++To++"&trace="++Trace++"&successive="++atom_to_list(Successive),
+  client_requests:post_request(list_to_binary(Url)).
+
+
+% TESTING PART
+%permissions/3, %% @todo necessary
+%add_edge/5,
+%add_edge/6, %% @todo necessary
+%add_edges/2, %% @todo necessary
+%remove_edge/4, %% @todo necessary
+%remove_edge/5, %% @todo necessary
+%set_permissions/5, %% @todo necessary
+%set_permissions/6, %% @todo necessary
+%add_vertex/2, %% @todo necessary
+%add_vertices/2, %% @todo necessary
+%get_dependent_zones/1, %% @todo necessary
+%get_dependent_zones/2, %% @todo necessary
+%reaches/4, %% @todo naive -> necessary, indexed -> ignore
+%members/3, %% @todo naive -> necessary, indexed -> ignore
+%effective_permissions/4 %% @todo naive -> necessary, indexed -> ignore
+
+is_adjacect(From, To)->
+  application:ensure_all_started(hackney),
+  Url= ?URL++"is_adjacent?from="++From++"&to="++To,
+  {ok, _, Body, _} =client_requests:post_body_request(list_to_binary(Url)),
+  Body.
+
+list_adjacent(Of)->
+  application:ensure_all_started(hackney),
+  Url= ?URL++"list_adjacent?of="++Of,
   client_requests:post_request(list_to_binary(Url)).
