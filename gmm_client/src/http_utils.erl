@@ -31,7 +31,7 @@ get_address(_) ->
 build_url(Address, Path) ->
     << Address/binary, "/", Path/binary >>.
 
--spec build_url(Address :: binary(), Path :: binary(), Params :: list(tuple(binary(), binary()))) -> binary().
+-spec build_url(Address :: binary(), Path :: binary(), Params :: list({binary(), binary()})) -> binary().
 build_url(Address, Path, []) ->
     build_url(Address, Path);
 build_url(Address, Path, [{FirstPar, FirstVal} | Rest]) ->
