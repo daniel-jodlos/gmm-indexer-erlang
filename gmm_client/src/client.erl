@@ -1,135 +1,114 @@
 %%%-------------------------------------------------------------------
-%%% @author Piotr Świderski
-%%% @copyright (C) 2021, <COMPANY>
 %%% @doc
-%%%
+%%%  Functions executing requests to public API offered by zones
 %%% @end
-%%% Created : 10. maj 2021 16:54
 %%%-------------------------------------------------------------------
 -module(client).
--author("Piotr Świderski").
+-author("Piotr Swiderski").
+
+-export([
+    add_vertex/3,
+    get_all_vertices/1,
+    get_vertex/1,
+    delete_vertex/1,
+    add_edge/4,
+    set_permissions/4,
+    delete_edge/3,
+    edge_exists/2,
+    get_permissions/2,
+    list_parents/1,
+    list_children/1
+]).
 
 
-%% API
--export([add_user/1, add_group/1, add_space/1, add_provider/1, check_edge_existance/2,
-  get_vertices_list/0, get_vertex_info/1, delete_vertex/1, set_edge_permissions/5, get_vertex_children/1,
-  add_edge/5, delete_edge/4, get_edge_permissions/2, get_vertex_parents/1, is_adjacect/2, list_adjacent/1]).
+%%%---------------------------
+%% Implementations
+%%%---------------------------
 
-% CONST
--define(URL, "localhost:8080/").
+%% VERTICES
 
-% Get Id List Section
-list_body_elements(Body) ->
-  Format = fun(Element) -> io:format("~s~n", [Element]) end,
-  lists:foreach(Format, string:split(Body, ",")).
+-spec add_vertex(Zone :: binary(), Type :: binary(), Name :: binary()) -> {ok, binary()} | {error, any()}.
+add_vertex(Zone, Type, Name) ->
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"graph/vertices">>,
+        [{<<"type">>, Type}, {<<"name">>, Name}]),
+    http_executor:post_request(Url, true).
 
-% VERTICES
+-spec get_all_vertices(Zone :: binary()) -> {ok, map()} | {error, any()}.
+get_all_vertices(Zone) ->
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"graph/vertices/listing">>),
+    http_executor:get_request(Url, true).
 
-add_user(Name)->
-  application:ensure_all_started(hackney),
-  Url= ?URL++"graph/vertices?type=user&name="++Name,
-  client_requests:post_request(list_to_binary(Url)).
+-spec get_vertex(Id :: binary()) -> {ok, map()} | {error, any()}.
+get_vertex(Id) ->
+    Zone = client_utils:owner_of(Id),
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"graph/vertices/details">>, [{<<"id">>, Id}]),
+    http_executor:get_request(Url, true).
 
-add_group(Name)->
-  application:ensure_all_started(hackney),
-  Url= ?URL++"graph/vertices?type=group&name="++Name,
-  client_requests:post_request(list_to_binary(Url)).
+-spec delete_vertex(Id :: binary()) -> ok | {error, any()}.
+delete_vertex(Id) ->
+    Zone = client_utils:owner_of(Id),
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"graph/vertices/delete">>, [{<<"id">>, Id}]),
+    http_executor:post_request(Url, false).
 
-add_space(Name)->
-  application:ensure_all_started(hackney),
-  Url= ?URL++"graph/vertices?type=space&name="++Name,
-  client_requests:post_request(list_to_binary(Url)).
+%% EDGES
 
-add_provider(Name)->
-  application:ensure_all_started(hackney),
-  Url= ?URL++"graph/vertices?type=provider&name="++Name,
-  client_requests:post_request(list_to_binary(Url)).
+-spec add_edge(From :: binary(), To :: binary(), Permissions :: binary(), Trace :: binary() | undefined) ->
+    ok | {error, any()}.
+add_edge(From, To, Permissions, Trace) ->
+    Zone = client_utils:owner_of(From),
+    {ok, Address} = http_utils:get_address(Zone),
+    Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"permissions">>, Permissions}, {<<"successive">>, <<"false">>}]
+        ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
+    Url = http_utils:build_url(Address, <<"graph/edges">>, Params),
+    http_executor:post_request(Url, false).
 
-get_vertices_list()->
-  application:ensure_all_started(hackney),
-  {ok, Body} = client_requests:get_simple_request_body(?URL++"graph/vertices/listing"),
-  list_body_elements(binary:bin_to_list(Body)).
+-spec set_permissions(From :: binary(), To :: binary(), Permissions :: binary(), Trace :: binary() | undefined) ->
+    ok | {error, any()}.
+set_permissions(From, To, Permissions, Trace) ->
+    Zone = client_utils:owner_of(From),
+    {ok, Address} = http_utils:get_address(Zone),
+    Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"permissions">>, Permissions}, {<<"successive">>, <<"false">>}]
+        ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
+    Url = http_utils:build_url(Address, <<"graph/edges/permissions">>, Params),
+    http_executor:post_request(Url, false).
 
-% do ewentualnej serializacji
-get_vertex_info(Id)->
-  application:ensure_all_started(hackney),
-  Url= ?URL++"graph/vertices/details?id="++Id,
-  {ok, Body} = client_requests:get_delete_request(Url, get),
-  list_body_elements(binary:bin_to_list(Body)).
+-spec delete_edge(From :: binary(), To :: binary(), Trace :: binary() | undefined) -> ok | {error, any()}.
+delete_edge(From, To, Trace) ->
+    Zone = client_utils:owner_of(From),
+    {ok, Address} = http_utils:get_address(Zone),
+    Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"successive">>, <<"false">>}]
+        ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
+    Url = http_utils:build_url(Address, <<"graph/edges/delete">>, Params),
+    http_executor:post_request(Url, false).
 
+-spec edge_exists(From :: binary(), To :: binary()) -> {ok, boolean()} | {error, any()}.
+edge_exists(From, To) ->
+    Zone = client_utils:owner_of(From),
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"is_adjacent">>, [{<<"from">>, From}, {<<"to">>, To}]),
+    http_executor:post_request(Url, true).
 
-delete_vertex(Id)->
-  application:ensure_all_started(hackney),
-  Url = ?URL++"graph/vertices/delete?id="++Id,
-  client_requests:post_request(Url).
+-spec get_permissions(From :: binary(), To :: binary()) -> {ok, binary()} | {error, any()}.
+get_permissions(From, To) ->
+    Zone = client_utils:owner_of(From),
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"permissions">>, [{<<"from">>, From}, {<<"to">>, To}]),
+    http_executor:post_request(Url, true).
 
-% EDGES
+-spec list_parents(Of :: binary()) -> {ok, list(binary())} | {error, any()}.
+list_parents(Of) ->
+    Zone = client_utils:owner_of(Of),
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"list_adjacent">>, [{<<"of">>, Of}]),
+    http_executor:post_request(Url, true).
 
-add_edge(From, To, Permissions, Trace, Successive)->
-  application:ensure_all_started(hackney),
-  TraceString = case Trace of
-                  undefined -> "";
-                  _ -> "&trace="++Trace
-                end,
-  Url= ?URL++"graph/edges?from="++From++"&to="++To++"&permissions="++Permissions++TraceString++"&successive="++atom_to_list(Successive),
-  client_requests:post_request(list_to_binary(Url)).
-
-% do ewentualnej serializacji
-set_edge_permissions(From, To, Permissions, Trace, Successive)->
-  application:ensure_all_started(hackney),
-  Url= ?URL++"graph/edges/permissions?from="++From++"&to="++To++"&permissions="++Permissions++"&trace="++Trace++"&successive="++atom_to_list(Successive),
-  client_requests:post_request(list_to_binary(Url)).
-
-check_edge_existance(From, To)->
-  application:ensure_all_started(hackney),
-  Url= ?URL++"is_adjacent?from="++From++"&to="++To,
-  client_requests:post_request(list_to_binary(Url)).
-
-get_edge_permissions(From, To)->
-  application:ensure_all_started(hackney),
-  Url= ?URL++"permissions?from="++From++"&to="++To,
-  client_requests:post_request(list_to_binary(Url)).
-
-get_vertex_children(Of)->
-  application:ensure_all_started(hackney),
-  Url= ?URL++"list_adjacent_reversed?of="++Of,
-  client_requests:post_request(list_to_binary(Url)).
-
-get_vertex_parents(Of)->
-  application:ensure_all_started(hackney),
-  Url= ?URL++"list_adjacent?of="++Of,
-  client_requests:post_request(list_to_binary(Url)).
-
-delete_edge(From, To, Trace, Successive)->
-  application:ensure_all_started(hackney),
-  Url= ?URL++"graph/edges/delete?from="++From++"&to="++To++"&trace="++Trace++"&successive="++atom_to_list(Successive),
-  client_requests:post_request(list_to_binary(Url)).
-
-
-% TESTING PART
-%permissions/3, %% @todo necessary
-%add_edge/5,
-%add_edge/6, %% @todo necessary
-%add_edges/2, %% @todo necessary
-%remove_edge/4, %% @todo necessary
-%remove_edge/5, %% @todo necessary
-%set_permissions/5, %% @todo necessary
-%set_permissions/6, %% @todo necessary
-%add_vertex/2, %% @todo necessary
-%add_vertices/2, %% @todo necessary
-%get_dependent_zones/1, %% @todo necessary
-%get_dependent_zones/2, %% @todo necessary
-%reaches/4, %% @todo naive -> necessary, indexed -> ignore
-%members/3, %% @todo naive -> necessary, indexed -> ignore
-%effective_permissions/4 %% @todo naive -> necessary, indexed -> ignore
-
-is_adjacect(From, To)->
-  application:ensure_all_started(hackney),
-  Url= ?URL++"is_adjacent?from="++From++"&to="++To,
-  {ok, _, Body, _} =client_requests:post_body_request(list_to_binary(Url)),
-  Body.
-
-list_adjacent(Of)->
-  application:ensure_all_started(hackney),
-  Url= ?URL++"list_adjacent?of="++Of,
-  client_requests:post_request(list_to_binary(Url)).
+-spec list_children(Of :: binary()) -> {ok, list(binary())} | {error, any()}.
+list_children(Of) ->
+    Zone = client_utils:owner_of(Of),
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"list_adjacent_reversed">>, [{<<"of">>, Of}]),
+    http_executor:post_request(Url, true).

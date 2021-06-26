@@ -108,8 +108,7 @@ zone_id() ->
 %% Vertices
 
 -spec create_vertex_id(Zone :: binary(), Name :: binary()) -> binary().
-create_vertex_id(Zone, Name) ->
-    <<Zone/binary, "/", Name/binary>>.
+create_vertex_id(Zone, Name) -> <<Zone/binary, "/", Name/binary>>.
 
 -spec create_vertex_id(Name :: binary()) -> binary().
 create_vertex_id(Name) ->
@@ -117,15 +116,11 @@ create_vertex_id(Name) ->
 
 -spec split_vertex_id(Bin :: binary()) -> {binary(), binary()}.
 split_vertex_id(Bin) ->
-    case split_bin(Bin) of
-        [Zone, Name] -> {Zone, Name}
-    end.
+    {_, _} = list_to_tuple(split_bin(Bin)).
 
 -spec owner_of(Vertex :: binary()) -> binary().
 owner_of(Vertex) ->
-    case split_vertex_id(Vertex) of
-        {Zone, _} -> Zone
-    end.
+    element(1, split_vertex_id(Vertex)).
 
 %% Edges
 
@@ -146,10 +141,8 @@ create_edge_id(From, To) -> <<"edge/", From/binary, "/", To/binary>>.
 
 -spec split_edge_id(Bin :: binary()) -> {binary(), binary()}.
 split_edge_id(Bin) ->
-    case split_bin(Bin) of
-        [<<"edge">>, Zone1, Name1, Zone2, Name2] ->
-            {create_vertex_id(Zone1, Name1), create_vertex_id(Zone2, Name2)}
-    end.
+    [<<"edge">>, Zone1, Name1, Zone2, Name2] = split_bin(Bin),
+    {create_vertex_id(Zone1, Name1), create_vertex_id(Zone2, Name2)}.
 
 
 %%%---------------------------
