@@ -6,6 +6,7 @@
 -module(client).
 -author("pawel").
 
+%% API
 -export([
     add_vertex/3,
     get_all_vertices/1,

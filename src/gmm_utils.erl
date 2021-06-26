@@ -124,8 +124,6 @@ owner_of(Vertex) ->
 
 %% Edges
 
-%% Other functions
-
 -spec create_edge_id(From :: binary(), To :: binary()) -> binary().
 create_edge_id(From, To) -> <<"edge/", From/binary, "/", To/binary>>.
 
