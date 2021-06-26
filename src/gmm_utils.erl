@@ -124,18 +124,6 @@ owner_of(Vertex) ->
 
 %% Edges
 
-%% Other functions
--spec parse_boolean(binary()) -> {ok, boolean()} | {error, any()}.
-parse_boolean(Bin) ->
-    try
-        case binary:binary_to_atom(Bin) of
-            Bool when is_boolean(Bool) -> {ok, Bool};
-            _ -> {error, not_a_bool}
-        end
-    catch
-        _:_ -> {error, not_a_bool}
-    end.
-
 -spec create_edge_id(From :: binary(), To :: binary()) -> binary().
 create_edge_id(From, To) -> <<"edge/", From/binary, "/", To/binary>>.
 
