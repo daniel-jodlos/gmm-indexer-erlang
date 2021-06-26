@@ -32,14 +32,19 @@ request(Method, Url, Body, GetResponse) ->
     application:ensure_all_started(hackney),
     ReqHeaders = [{<<"Content-Type">>, <<"application/json">>}],
     case hackney:request(Method, Url, ReqHeaders, Body) of
-        {ok, SCode, _, ConnRef} when SCode < 400 ->
-            case GetResponse of
-                true ->
+        {ok, SCode, Headers, ConnRef} when SCode < 400 ->
+            case {Method, GetResponse} of
+                {get, true} ->
                     case hackney:body(ConnRef) of
                         {ok, Bin} -> {ok, client_utils:decode(Bin)};
                         {error, R1} -> {error, R1}
                     end;
-                false -> ok
+                {post, true} ->
+                    case lists:keyfind(<<"location">>, 1, Headers) of
+                        false -> {error, "Answer not found"};
+                        {_, Bin} -> {ok, client_utils:decode(Bin)}
+                    end;
+                {_, false} -> ok
             end;
         {ok, SCode, _, _} -> {error, SCode};
         {error, R2} -> {error, R2}

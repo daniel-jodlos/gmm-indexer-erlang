@@ -45,14 +45,14 @@ get_all_vertices(Zone) ->
 get_vertex(Id) ->
     Zone = client_utils:owner_of(Id),
     {ok, Address} = http_utils:get_address(Zone),
-    Url = http_utils:build_url(Address, <<"graph/vertices/details">>, [<<"id">>, Id]),
+    Url = http_utils:build_url(Address, <<"graph/vertices/details">>, [{<<"id">>, Id}]),
     http_executor:get_request(Url, true).
 
 -spec delete_vertex(Id :: binary()) -> ok | {error, any()}.
 delete_vertex(Id) ->
     Zone = client_utils:owner_of(Id),
     {ok, Address} = http_utils:get_address(Zone),
-    Url = http_utils:build_url(Address, <<"graph/vertices/delete">>, [<<"id">>, Id]),
+    Url = http_utils:build_url(Address, <<"graph/vertices/delete">>, [{<<"id">>, Id}]),
     http_executor:post_request(Url, false).
 
 %% EDGES
@@ -63,7 +63,7 @@ add_edge(From, To, Permissions, Trace) ->
     Zone = client_utils:owner_of(From),
     {ok, Address} = http_utils:get_address(Zone),
     Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"permissions">>, Permissions}, {<<"successive">>, <<"false">>}]
-        ++ (case Trace of undefined -> []; _ -> [<<"trace">>, Trace] end),
+        ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
     Url = http_utils:build_url(Address, <<"graph/edges">>, Params),
     http_executor:post_request(Url, false).
 
@@ -73,7 +73,7 @@ set_permissions(From, To, Permissions, Trace) ->
     Zone = client_utils:owner_of(From),
     {ok, Address} = http_utils:get_address(Zone),
     Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"permissions">>, Permissions}, {<<"successive">>, <<"false">>}]
-        ++ (case Trace of undefined -> []; _ -> [<<"trace">>, Trace] end),
+        ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
     Url = http_utils:build_url(Address, <<"graph/edges/permissions">>, Params),
     http_executor:post_request(Url, false).
 
@@ -82,7 +82,7 @@ delete_edge(From, To, Trace) ->
     Zone = client_utils:owner_of(From),
     {ok, Address} = http_utils:get_address(Zone),
     Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"successive">>, <<"false">>}]
-        ++ (case Trace of undefined -> []; _ -> [<<"trace">>, Trace] end),
+        ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
     Url = http_utils:build_url(Address, <<"graph/edges/delete">>, Params),
     http_executor:post_request(Url, false).
 
@@ -92,7 +92,7 @@ edge_exists(From, To) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"is_adjacent">>, [{<<"from">>, From}, {<<"to">>, To}]),
     case http_executor:post_request(Url, true) of
-        {ok, Bin} -> client_utils:parse_boolean(Bin);
+        {ok, Bin} -> {ok, Bin}; %throw(Bin), client_utils:parse_boolean(Bin);
         {error, Reason} -> {error, Reason}
     end.
 

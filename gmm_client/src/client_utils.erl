@@ -130,6 +130,6 @@ split_edge_id(Bin) ->
 %% More complex functions
 %%%---------------------------
 
--spec lists_equal(L1 :: list(), L1 :: list()) -> boolean().
+-spec lists_equal(L1 :: list(), L2 :: list()) -> boolean().
 lists_equal(L1, L2) ->
     (length(L1) == length(L2)) and (lists:sort(L1) -- lists:sort(L2) == []).
