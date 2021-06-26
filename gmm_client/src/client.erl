@@ -4,7 +4,7 @@
 %%% @end
 %%%-------------------------------------------------------------------
 -module(client).
--author("Piotr Swiderski").
+-author("pawel").
 
 -export([
     add_vertex/3,
