@@ -28,7 +28,7 @@
     remove_edge/5, %% @todo necessary
     set_permissions/5, %% @todo necessary
     set_permissions/6, %% @todo necessary
-    add_vertex/2, %% @todo necessary
+    add_vertex/3, %% @todo necessary
     add_vertices/2, %% @todo optional
     post_event/2, %% @todo ???
     post_events/2, %% @todo optional
@@ -66,83 +66,77 @@ index_ready(AllZones) when is_list(AllZones) ->
 % MUST
 -spec is_adjacent(Zone:: binary(), From:: binary(), To:: binary()) -> {ok, boolean()} | {error, any()}.
 is_adjacent(_Zone, _From, _To) ->
-    Url= ?URL++"is_adjacent?from="++binary:bin_to_list(_From)++"&to="++binary:bin_to_list(_To),
-    {ResultNumber, ResultMessage} = requests:post_request_with_response_body(list_to_binary(Url)),
+    {ok, Address} = http_utils:get_address(_Zone),
+    Url = http_utils:build_url(Address, <<"is_adjacent">>, [{<<"from">>, _From}, {<<"to">>, _To}]),
+    {ResultNumber, ResultMessage} = requests:post_request_with_response_body(Url),
     if ResultNumber < 400 ->
-      {ok, binary:binary_to_atom(ResultMessage)};
+      {ok, binary_to_atom(ResultMessage, utf8)};
     ResultNumber > 399 ->
       {error, ResultMessage}
   end.
-    % TODO -> test
-
 % SHOULD POTENTIAL
 -spec list_adjacent(Zone:: binary(), Of:: binary()) -> {ok, list(binary())} | {error, any()}.
 list_adjacent(_Zone, _Of) ->
-    Url= ?URL++"list_adjacent?of="++binary:bin_to_list(_Of),
-    {ResultNumber, ResultMessage} = requests:post_request_with_response_body(list_to_binary(Url)),
+    {ok, Address} = http_utils:get_address(_Zone),
+    Url = http_utils:build_url(Address, <<"list_adjacent">>, [{<<"of">>, _Of}]),
+    {ResultNumber, ResultMessage} = requests:post_request_with_response_body(Url),
     if ResultNumber < 400 ->
-      {ok, binary:binary_to_list(ResultMessage)};
+      {ok, binary_to_list(ResultMessage)};
     ResultNumber > 399 ->
       {error, ResultMessage}
   end.
-    % TODO -> test and add errors handling
 
 % SHOULD POTENTIAL
 -spec list_adjacent_reversed(Zone:: binary(), Of:: binary()) -> {ok, list(binary())} | {error, any()}.
 list_adjacent_reversed(_Zone, _Of) ->
-    Url= ?URL++"list_adjacent_reversed?of="++binary:bin_to_list(_Of),
-    {ResultNumber, ResultMessage} = requests:post_request_with_response_body(list_to_binary(Url)),
+    {ok, Address} = http_utils:get_address(_Zone),
+    Url = http_utils:build_url(Address, <<"list_adjacent_reversed">>, [{<<"of">>, _Of}]),
+    {ResultNumber, ResultMessage} = requests:post_request_with_response_body(Url),
     if ResultNumber < 400 ->
-      {ok, binary:binary_to_list(ResultMessage)};
+      {ok, binary_to_list(ResultMessage)};
     ResultNumber > 399 ->
       {error, ResultMessage}
   end.
-    % TODO -> test and add errors handling
 
 % MUST POTENTIAL
 -spec permissions(Zone::binary(), From:: binary(), To:: binary()) -> {ok, binary()} | {error, any()}.
 permissions(_Zone, _From, _To) ->
-    Url= ?URL++"permissions?from="++binary:bin_to_list(_From)++"&to="++binary:bin_to_list(_To),
-    {ResultNumber, ResultMessage} = requests:post_request_with_response_body(list_to_binary(Url)),
+    {ok, Address} = http_utils:get_address(_Zone),
+    Url = http_utils:build_url(Address, <<"permissions">>, [{<<"from">>, _From}, {<<"to">>, _To}]),
+    {ResultNumber, ResultMessage} = requests:post_request_with_response_body(Url),
     if ResultNumber < 400 ->
       {ok, ResultMessage};
     ResultNumber > 399 ->
       {error, ResultMessage}
   end.
-    % TODO -> test and
 % MUST
 -spec add_edge(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(), Trace:: binary()
     ) -> ok | {error, any()}.
 add_edge(_Zone, _From, _To, _Permissions, _Trace) ->
-    TraceString = case _Trace of
-                    undefined -> "";
-                    _ -> "&trace="++_Trace
-                  end,
-    Url= ?URL++"graph/edges?from="++binary:bin_to_list(_From)++"&to="++binary:bin_to_list(_To)++"&permissions="++binary:bin_to_list(_Permissions)++TraceString,
-    {ok, ResultNumber, _, _} = requests:post_request(list_to_binary(Url)),
+    {ok, Address} = http_utils:get_address(_Zone),
+    Params = [{<<"from">>, _From}, {<<"to">>, _To}, {<<"permissions">>, _Permissions}, {<<"successive">>, <<"false">>}]
+    ++ (case _Trace of undefined -> []; _ -> [{<<"trace">>, _Trace}] end),
+    Url = http_utils:build_url(Address, <<"graph/edges">>, Params),
+    {ok, ResultNumber, _, _} = requests:post_request(Url),
     if ResultNumber < 400 ->
         ok;
       ResultNumber > 399 ->
         {error, "Error Occured during adding edge"}
     end.
-    % TODO -> test and
 
 % MUST
 -spec add_edge(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(), Trace:: binary(),
     Successive:: boolean()) -> ok | {error, any()}.
 add_edge(_Zone, _From, _To, _Permissions, _Trace, _Successive) ->
-    TraceString = case _Trace of
-                    undefined -> "";
-                    _ -> "&trace="++_Trace
-                  end,
-    Url= ?URL++"graph/edges?from="++binary:bin_to_list(_From)++"&to="++binary:bin_to_list(_To)++"&permissions="++binary:bin_to_list(_Permissions)++TraceString++"&successive="++atom_to_list(_Successive),
-    {ok, ResultNumber, _, _} = requests:post_request(list_to_binary(Url)),
+    {ok, Address} = http_utils:get_address(_Zone),
+    Params = [{<<"from">>, _From}, {<<"to">>, _To}, {<<"permissions">>, _Permissions}, {<<"successive">>, atom_to_binary(_Successive, utf8)}]
+      ++ (case _Trace of undefined -> []; _ -> [{<<"trace">>, _Trace}] end),
+    Url = http_utils:build_url(Address, <<"graph/edges">>, Params),{ok, ResultNumber, _, _} = requests:post_request(Url),
     if ResultNumber < 400 ->
         ok;
       ResultNumber > 399 ->
         {error, "Error Occured during adding edge"}
     end.
-    % TODO -> test
 
 -spec add_edges(Zone:: binary(), BulkRequest:: binary()) -> ok | {error, any()}.
 add_edges(_Zone, _BulkRequest) ->
@@ -151,59 +145,69 @@ add_edges(_Zone, _BulkRequest) ->
 % MUST
 -spec remove_edge(Zone:: binary(), From:: binary(), To:: binary(), Trace:: binary()) -> ok | {error, any()}.
 remove_edge(Zone, From, To, Trace) ->
-    Url= ?URL++"graph/edges/delete?from="++From++"&to="++To++"&trace="++Trace,
-    {ok, ResultNumber, _, _} = requests:post_request(list_to_binary(Url)),
+    {ok, Address} = http_utils:get_address(Zone),
+    Params = [{<<"from">>, From}, {<<"to">>, To}]
+      ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
+    Url = http_utils:build_url(Address, <<"graph/edges/delete">>, Params),
+    {ok, ResultNumber, _, _} = requests:post_request(Url),
     if ResultNumber < 400 ->
         ok;
       ResultNumber > 399 ->
         {error, "Error Occured during adding edge"}
     end.
-    % TODO -> test and add errors handling
 
 % MUST
 -spec remove_edge(Zone:: binary(), From:: binary(), To:: binary(), Trace:: binary(),
     Successive:: boolean()) -> ok | {error, any()}.
 remove_edge(_Zone, _From, _To, _Trace, _Successive) ->
-    Url= ?URL++"graph/edges/delete?from="++_From++"&to="++_To++"&trace="++_Trace++"&successive="++atom_to_list(_Successive),
-    {ok, ResultNumber, _, _} = requests:post_request(list_to_binary(Url)),
+    {ok, Address} = http_utils:get_address(_Zone),
+    Params = [{<<"from">>, _From}, {<<"to">>, _To}, {<<"successive">>, atom_to_binary(_Successive, utf8)}]
+      ++ (case _Trace of undefined -> []; _ -> [{<<"trace">>, _Trace}] end),
+    Url = http_utils:build_url(Address, <<"graph/edges/delete">>, Params),
+    {ok, ResultNumber, _, _} = requests:post_request(Url),
     if ResultNumber < 400 ->
         ok;
       ResultNumber > 399 ->
         {error, "Error Occured during removing edge"}
     end.
-    % TODO -> test and add errors handling
 
 % MUST
 -spec set_permissions(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(),
     Trace:: binary()) -> ok | {error, any()}.
 set_permissions(Zone, From, To, Permissions, Trace) ->
-    Url= ?URL++"graph/edges/permissions?from="++From++"&to="++To++"&permissions="++Permissions++"&trace="++Trace,
-    {ok, ResultNumber, _, _} = requests:post_request(list_to_binary(Url)),
+    {ok, Address} = http_utils:get_address(Zone),
+    Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"permissions">>, Permissions}]
+      ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
+    Url = http_utils:build_url(Address, <<"graph/edges/permissions">>, Params),
+    {ok, ResultNumber, _, _} = requests:post_request(Url),
     if ResultNumber < 400 ->
         ok;
       ResultNumber > 399 ->
         {error, "Error Occured during setting permissions"}
     end.
-    % TODO -> test and add errors handling
 
 % MUST
 -spec set_permissions(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(),
     Trace:: binary(), Successive:: boolean()) -> ok | {error, any()}.
 set_permissions(_Zone, _From, _To, _Permissions, _Trace, _Successive) ->
-    Url= ?URL++"graph/edges/permissions?from="++_From++"&to="++_To++"&permissions="++_Permissions++"&trace="++_Trace++"&successive="++atom_to_list(_Successive),
-    {ok, ResultNumber, _, _} = requests:post_request(list_to_binary(Url)),
+    {ok, Address} = http_utils:get_address(_Zone),
+    Params = [{<<"from">>, _From}, {<<"to">>, _To}, {<<"permissions">>, _Permissions}, {<<"successive">>, atom_to_binary(_Successive, utf8)}]
+      ++ (case _Trace of undefined -> []; _ -> [{<<"trace">>, _Trace}] end),
+    Url = http_utils:build_url(Address, <<"graph/edges/permissions">>, Params),
+    {ok, ResultNumber, _, _} = requests:post_request(Url),
     if ResultNumber < 400 ->
         ok;
       ResultNumber > 399 ->
         {error, "Error Occured during setting permissions"}
     end.
-    % TODO -> test and add errors handling
 
 % MUST
--spec add_vertex(VertexId:: binary(), Type:: binary()) -> ok | {error, any()}.
-add_vertex(_VertexId, _Type) ->
-    Url= ?URL++"graph/vertices?type="++_Type++"&name="++_VertexId,
-    {ok, ResultNumber, _, _} = requests:post_request(list_to_binary(Url)),
+-spec add_vertex(Zone:: binary(), Name:: binary(), Type:: binary()) -> ok | {error, any()}.
+add_vertex(_Zone, _Name, _Type) ->
+    {ok, Address} = http_utils:get_address(_Zone),
+    Url = http_utils:build_url(Address, <<"graph/vertices">>,
+      [{<<"type">>, _Type}, {<<"name">>, _Name}]),
+    {ok, ResultNumber, _, _} = requests:post_request(Url),
     if ResultNumber < 400 ->
         ok;
       ResultNumber > 399 ->
@@ -263,26 +267,39 @@ wait_for_index(Zones, _Timeout) when is_list(Zones) ->
 -spec reaches(Algo:: naive | reaches, Zone:: binary(), From:: binary(), To:: binary()
     ) -> {ok, map()} | {error, any()}.
 reaches(_Algo, _Zone, _From, _To) ->
-    Url= ?URL++"/naive/reaches?from="++binary:bin_to_list(_From)++"&to="++binary:bin_to_list(_To),
-    {ResultNumber, ResultMessage} = requests:post_request_with_response_body(list_to_binary(Url)),
-    if ResultNumber < 400 ->
-      {ok, json_utils:decode(ResultMessage)};
-    ResultNumber > 399 ->
-      {error, ResultMessage}
-  end.    
-% TODO -> test and add errors handling and algo
+    case _Algo of
+      naive ->
+        {ok, Address} = http_utils:get_address(_Zone),
+        Url = http_utils:build_url(Address, <<"naive/reaches">>, [{<<"from">>, _From}, {<<"to">>, _To}]),
+        {ResultNumber, ResultMessage} = requests:post_request_with_response_body(Url),
+        if ResultNumber < 400 ->
+          {ok, json_utils:decode(ResultMessage)};
+          ResultNumber > 399 ->
+            {error, ResultMessage}
+        end;
+
+      reaches ->
+        {error, not_implemented}
+    end.
+
 
 % MUST POTENTIAL
 -spec members(Algo:: naive | reaches, Zone:: binary(), Of:: binary()) -> {ok, map()} | {error, any()}.
 members(_Algo, _Zone, _Of) ->
-    Url= ?URL++"/naive/members?of="++binary:bin_to_list(_Of),
-    {ResultNumber, ResultMessage} = requests:post_request_with_response_body(list_to_binary(Url)),
-    if ResultNumber < 400 ->
-      {ok, json_utils:decode(ResultMessage)};
-    ResultNumber > 399 ->
-      {error, ResultMessage}
+  case _Algo of
+    naive ->
+      {ok, Address} = http_utils:get_address(_Zone),
+      Url = http_utils:build_url(Address, <<"naive/members">>, [{<<"of">>, _Of}]),
+      {ResultNumber, ResultMessage} = requests:post_request_with_response_body(Url),
+      if ResultNumber < 400 ->
+        {ok, json_utils:decode(ResultMessage)};
+        ResultNumber > 399 ->
+          {error, ResultMessage}
+      end;
+
+    reaches ->
+      {error, not_implemented}
   end.
-    % TODO -> test and add errors handling and algo
 
 -spec effective_permissions(Algo:: naive | reaches, Zone:: binary(), From:: binary(),
     To:: binary()) -> {ok, map()} | {error, any()}.

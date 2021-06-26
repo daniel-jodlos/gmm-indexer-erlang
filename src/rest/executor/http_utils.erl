@@ -22,6 +22,10 @@
 -spec get_address(Zone :: binary()) -> {ok, binary()} | {error, any()}.
 get_address(<<"zone1">>) ->
     {ok, <<"localhost:8080">>};
+get_address(<<"zone2">>) ->
+    {ok, <<"localhost:8081">>};
+get_address(<<"zone3">>) ->
+    {ok, <<"localhost:8082">>};
 get_address(_) ->
     {error, "Zone couldn't be located"}.
 
