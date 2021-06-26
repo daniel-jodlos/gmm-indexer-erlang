@@ -40,7 +40,8 @@ init(Req0, State) ->
                 {cowboy_req:match_qs([{id, nonempty}], Req0), Req0};
             {<<"POST">>, bulk} ->
                 {ok, Data, Req1} = cowboy_req:read_body(Req0),
-                {#{body => Data}, Req1}
+                {ok, List} = parse_bulk_list(Data),
+                {#{body => List}, Req1}
         end,
     NewState = maps:merge(State, ParsedParams),
     {cowboy_rest, Req, NewState}.
@@ -55,14 +56,15 @@ content_types_provided(Req, State) ->
     {[{<<"application/json">>, to_json}], Req, State}.
 
 resource_exists(Req, State) ->
-    Result = case maps:get(operation, State) of
-                 add ->
-                     Id = gmm_utils:create_vertex_id(maps:get(name, State)),
-                     graph:vertex_exists(Id);
-                 Op when Op =:= details; Op =:= delete -> graph:vertex_exists(maps:get(id, State));
-                 listing -> {ok, true};
-                 bulk -> {ok, true} %% @todo maybe change it to actually check stuff, but I don't think so
-             end,
+    Result =
+        case maps:get(operation, State) of
+            add ->
+                Id = gmm_utils:create_vertex_id(maps:get(name, State)),
+                graph:vertex_exists(Id);
+            Op when Op =:= details; Op =:= delete -> graph:vertex_exists(maps:get(id, State));
+            listing -> {ok, true};
+            bulk -> {ok, true} %% @todo maybe change it to actually check stuff, but I don't think so
+        end,
     {ok, Bool} = Result,
     {Bool, Req, State}.
 
@@ -70,15 +72,9 @@ resource_exists(Req, State) ->
 from_json(Req, State) ->
     ExecutionResult =
         case maps:get(operation, State) of
-            add -> add_vertex(maps:get(type, State), maps:get(name, State));
+            add -> graph:create_vertex(maps:get(type, State), maps:get(name, State));
             delete -> graph:remove_vertex(maps:get(id, State));
-            bulk ->
-                case parse_bulk_list(maps:get(body, State)) of
-                    {ok, List} ->
-                        lists:foreach(fun({Type, Name}) -> add_vertex(Type, Name) end, List),
-                        ok;
-                    {error, Reason} -> {error, Reason}
-                end
+            bulk -> lists:foreach(fun({Type, Name}) -> graph:create_vertex(Type, Name) end, maps:get(body, State))
         end,
     RequestResult =
         case ExecutionResult of
@@ -90,10 +86,11 @@ from_json(Req, State) ->
 
 %% GET handler
 to_json(Req, State) ->
-    {ok, Result} = case maps:get(operation, State) of
-                       details -> graph:get_vertex(maps:get(id, State));
-                       listing -> graph:list_vertices()
-                   end,
+    {ok, Result} =
+        case maps:get(operation, State) of
+            details -> graph:get_vertex(maps:get(id, State));
+            listing -> graph:list_vertices()
+        end,
     {gmm_utils:encode(Result), Req, State}.
 
 
@@ -101,16 +98,11 @@ to_json(Req, State) ->
 %% internal functions
 %%%---------------------------
 
--spec add_vertex(binary(), binary()) -> {ok, binary()} | {error, any()}.
-add_vertex(Type, Name) when Type =:= <<"user">>; Type =:= <<"group">>; Type =:= <<"space">>; Type =:= <<"provider">> ->
-    graph:create_vertex(Type, Name);
-add_vertex(_, _) ->
-    {error, "Unrecognized vertex type"}.
-
 -spec parse_vertex_data(binary()) -> {ok, {binary(), binary()}} | {error, any()}.
 parse_vertex_data(Bin) when is_binary(Bin) ->
     case gmm_utils:split_bin(Bin) of
-        {ok, [Type, Name]} -> {ok, {Type, Name}};
+        [Type, Name] when Type =:= <<"user">>; Type =:= <<"group">>; Type =:= <<"space">>; Type =:= <<"provider">> ->
+            {ok, {Type, Name}};
         _ -> {error, "Invalid vertex data"}
     end;
 parse_vertex_data(_) ->

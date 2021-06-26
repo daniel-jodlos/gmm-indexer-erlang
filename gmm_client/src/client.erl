@@ -92,13 +92,14 @@ get_edge_permissions(From, To)->
 
 get_vertex_children(Of)->
   application:ensure_all_started(hackney),
-  Url= ?URL++"is_adjacent?of="++Of,
+  Url= ?URL++"list_adjacent_reversed?of="++Of,
   client_requests:post_request(list_to_binary(Url)).
 
 get_vertex_parents(Of)->
   application:ensure_all_started(hackney),
-  Url= ?URL++"is_adjacent_reversed?of="++Of,
+  Url= ?URL++"list_adjacent?of="++Of,
   client_requests:post_request(list_to_binary(Url)).
+
 delete_edge(From, To, Trace, Successive)->
   application:ensure_all_started(hackney),
   Url= ?URL++"graph/edges/delete?from="++From++"&to="++To++"&trace="++Trace++"&successive="++atom_to_list(Successive),

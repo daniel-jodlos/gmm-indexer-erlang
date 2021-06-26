@@ -57,17 +57,18 @@ resource_exists(Req, State) ->
 
 %% POST/PUT handler
 from_json(Req, State) ->
-    Result = case maps:get(operation, State) of
-                 instrumentation ->
-                     parse_bool_and_execute(maps:get(enabled, State), fun set_instrumentation/1);
-                 indexation ->
-                     parse_bool_and_execute(maps:get(enabled, State), fun set_indexation/1);
-                 dependent_zones ->
-                     case parse_dependent_zones(maps:get(body, State)) of
-                         {ok, List} -> set_dependent_zones(List);
-                         {error, Reason} -> {error, Reason}
-                     end
-             end,
+    Result =
+        case maps:get(operation, State) of
+            instrumentation ->
+                parse_bool_and_execute(maps:get(enabled, State), fun set_instrumentation/1);
+            indexation ->
+                parse_bool_and_execute(maps:get(enabled, State), fun set_indexation/1);
+            dependent_zones ->
+                case parse_dependent_zones(maps:get(body, State)) of
+                    {ok, List} -> set_dependent_zones(List);
+                    {error, Reason} -> {error, Reason}
+                end
+        end,
     case Result of
         ok -> {true, Req, State};
         {ok, Value} -> {{true, gmm_utils:encode(Value)}, Req, State};
@@ -77,11 +78,12 @@ from_json(Req, State) ->
 %% GET handler
 to_json(Req, State) ->
     %% Result should be boolean
-    Result = case maps:get(operation, State) of
-                 health_check -> {ok, true};
-                 index_ready -> is_index_up_to_date();
-                 instrumentation -> get_instrumentation()
-             end,
+    Result =
+        case maps:get(operation, State) of
+            health_check -> {ok, true};
+            index_ready -> is_index_up_to_date();
+            instrumentation -> get_instrumentation()
+        end,
     {ok, Value} = Result,
     {gmm_utils:encode(Value), Req, State}.
 
