@@ -1,6 +1,6 @@
 %%%-------------------------------------------------------------------
 %%% @doc
-%%%  Level of abstraction above raw http requests
+%%%  Functions executing requests to public API offered by zones
 %%% @end
 %%%-------------------------------------------------------------------
 -module(client).
@@ -91,10 +91,7 @@ edge_exists(From, To) ->
     Zone = client_utils:owner_of(From),
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"is_adjacent">>, [{<<"from">>, From}, {<<"to">>, To}]),
-    case http_executor:post_request(Url, true) of
-        {ok, Bin} -> {ok, Bin}; %throw(Bin), client_utils:parse_boolean(Bin);
-        {error, Reason} -> {error, Reason}
-    end.
+    http_executor:post_request(Url, true).
 
 -spec get_permissions(From :: binary(), To :: binary()) -> {ok, binary()} | {error, any()}.
 get_permissions(From, To) ->

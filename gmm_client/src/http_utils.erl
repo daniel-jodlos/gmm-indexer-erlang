@@ -23,7 +23,7 @@
 get_address(<<"zone1">>) ->
     {ok, <<"localhost:8080">>};
 get_address(_) ->
-    {error, "Zone couldn't be located"}.
+    {error, "Zone not found"}.
 
 %% URL builder
 

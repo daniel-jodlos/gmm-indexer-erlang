@@ -12,9 +12,8 @@
     encode/1,
     decode/1,
 
-    parse_boolean/1,
+    bin_to_bool/1,
     validate_vertex_id/1,
-    validate_edge_id/1,
 
     split_bin/2,
     split_bin/1,
@@ -22,9 +21,6 @@
     create_vertex_id/2,
     split_vertex_id/1,
     owner_of/1,
-
-    create_edge_id/2,
-    split_edge_id/1,
 
     lists_equal/2
 ]).
@@ -45,13 +41,12 @@ decode(Val) -> jiffy:decode(Val, [return_maps]).
 
 
 %%%---------------------------
-%% Argument's validation
+%% Argument's parsing
 %%%---------------------------
 
--spec parse_boolean(binary()) -> {ok, boolean()} | {error, any()}.
-parse_boolean(<<"true">>) -> {ok, true};
-parse_boolean(<<"false">>) -> {ok, false};
-parse_boolean(_) -> {error, "Not a bool in binary format"}.
+-spec bin_to_bool(binary()) -> boolean().
+bin_to_bool(<<"true">>) -> true;
+bin_to_bool(<<"false">>) -> false.
 
 -spec validate_vertex_id(Bin :: binary()) -> ok | {error, any()}.
 validate_vertex_id(Bin) when is_binary(Bin) ->
@@ -62,18 +57,6 @@ validate_vertex_id(Bin) when is_binary(Bin) ->
         end
     catch _:_ -> {error, "Couldn't split"} end;
 validate_vertex_id(_) ->
-    {error, "Not a binary"}.
-
--spec validate_edge_id(Bin :: binary()) -> ok | {error, any()}.
-validate_edge_id(Bin) when is_binary(Bin) ->
-    try
-        case split_bin(Bin) of
-            [<<"edge">>, Zone1, Name1, Zone2, Name2] when byte_size(Zone1) > 0,
-                byte_size(Name1) > 0, byte_size(Zone2) > 0, byte_size(Name2) > 0 -> ok;
-            _ -> {error, "Invalid format"}
-        end
-    catch _:_ -> {error, "Couldn't split"} end;
-validate_edge_id(_) ->
     {error, "Not a binary"}.
 
 
@@ -103,27 +86,11 @@ create_vertex_id(Zone, Name) ->
 
 -spec split_vertex_id(Bin :: binary()) -> {binary(), binary()}.
 split_vertex_id(Bin) ->
-    case split_bin(Bin) of
-        [Zone, Name] -> {Zone, Name}
-    end.
+    {_, _} = list_to_tuple(split_bin(Bin)).
 
 -spec owner_of(Vertex :: binary()) -> binary().
 owner_of(Vertex) ->
-    case split_vertex_id(Vertex) of
-        {Zone, _} -> Zone
-    end.
-
-%% Edges
-
--spec create_edge_id(From :: binary(), To :: binary()) -> binary().
-create_edge_id(From, To) -> <<"edge/", From/binary, "/", To/binary>>.
-
--spec split_edge_id(Bin :: binary()) -> {binary(), binary()}.
-split_edge_id(Bin) ->
-    case split_bin(Bin) of
-        [<<"edge">>, Zone1, Name1, Zone2, Name2] ->
-            {create_vertex_id(Zone1, Name1), create_vertex_id(Zone2, Name2)}
-    end.
+    element(1, split_vertex_id(Vertex)).
 
 
 %%%---------------------------
