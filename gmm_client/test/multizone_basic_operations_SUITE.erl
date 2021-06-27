@@ -74,16 +74,16 @@ vertices_adding_test(_Config) ->
         <<"providers">> => [<<"zone1/Provider3">>]
     },
     Zone2ExpectedVertices = #{
-        <<"users">> => [<<"zone1/User2">>],
-        <<"groups">> => [<<"zone1/Group2">>],
+        <<"users">> => [<<"zone2/User2">>],
+        <<"groups">> => [<<"zone2/Group2">>],
         <<"spaces">> => [],
-        <<"providers">> => [<<"zone1/Provider2">>]
+        <<"providers">> => [<<"zone2/Provider2">>]
     },
     Zone3ExpectedVertices = #{
-        <<"users">> => [<<"zone1/User3">>],
-        <<"groups">> => [<<"zone1/Group1">>],
-        <<"spaces">> => [<<"zone1/Space1">>],
-        <<"providers">> => [<<"zone1/Provider1">>]
+        <<"users">> => [<<"zone3/User3">>],
+        <<"groups">> => [<<"zone3/Group1">>],
+        <<"spaces">> => [<<"zone3/Space1">>],
+        <<"providers">> => [<<"zone3/Provider1">>]
     },
 
     % then
@@ -130,15 +130,15 @@ vertices_deleting_test(_Config) ->
     },
     Zone2ExpectedVertices = #{
         <<"users">> => [],
-        <<"groups">> => [<<"zone1/Group2">>],
+        <<"groups">> => [<<"zone2/Group2">>],
         <<"spaces">> => [],
-        <<"providers">> => [<<"zone1/Provider2">>]
+        <<"providers">> => [<<"zone2/Provider2">>]
     },
     Zone3ExpectedVertices = #{
         <<"users">> => [],
         <<"groups">> => [],
-        <<"spaces">> => [<<"zone1/Space1">>],
-        <<"providers">> => [<<"zone1/Provider1">>]
+        <<"spaces">> => [<<"zone3/Space1">>],
+        <<"providers">> => [<<"zone3/Provider1">>]
     },
 
     % then
