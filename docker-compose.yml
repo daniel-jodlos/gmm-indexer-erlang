@@ -11,7 +11,7 @@ services:
         command: [ "redis-server", "/redis.conf", "--port", "6379" ]
 
     gmm_server:
-        build: .
+        image: gmmindexererlang:latest
         container_name: gmm_server
         stdin_open: true
         environment:
@@ -33,7 +33,7 @@ services:
         command: [ "redis-server", "/redis.conf", "--port", "6380" ]
 
     gmm_server2:
-        build: .
+        image: gmmindexererlang:latest
         container_name: gmm_server2
         stdin_open: true
         environment:
@@ -55,7 +55,7 @@ services:
         command: [ "redis-server", "/redis.conf", "--port", "6381" ]
 
     gmm_server3:
-        build: .
+        image: gmmindexererlang:latest
         container_name: gmm_server3
         stdin_open: true
         environment:
