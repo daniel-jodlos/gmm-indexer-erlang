@@ -191,8 +191,8 @@ edges_adding_test(_Config) ->
     ?assertEqual({ok, true}, client:edge_exists(<<"zone1/User1">>, <<"zone2/Group2">>)),
     ?assertEqual({ok, <<"10101">>}, client:get_permissions(<<"zone1/User1">>, <<"zone2/Group2">>)),
 
-    ?assertEqual({ok, true}, client:edge_exists(<<"zone1/Group2">>, <<"zone3/Provider1">>)),
-    ?assertEqual({ok, <<"10001">>}, client:get_permissions(<<"zone1/Group2">>, <<"zone3/Provider1">>)),
+    ?assertEqual({ok, true}, client:edge_exists(<<"zone2/Group2">>, <<"zone3/Provider1">>)),
+    ?assertEqual({ok, <<"10001">>}, client:get_permissions(<<"zone2/Group2">>, <<"zone3/Provider1">>)),
 
     ?assertEqual(2, length(User1Parents)),
     ?assertEqual(0, length(User1Children)),
