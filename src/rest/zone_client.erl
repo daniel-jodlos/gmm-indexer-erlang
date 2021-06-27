@@ -117,7 +117,7 @@ add_edges(Zone, BulkRequest) ->
 -spec remove_edge(Zone:: binary(), From:: binary(), To:: binary(), Trace:: binary()) -> ok | {error, any()}.
 remove_edge(Zone, From, To, Trace) ->
     {ok, Address} = http_utils:get_address(Zone),
-    Params = [{<<"from">>, From}, {<<"to">>, To}]
+    Params = [{<<"from">>, From}, {<<"to">>, To},  {<<"successive">>, <<"false">>}]
       ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
     Url = http_utils:build_url(Address, <<"graph/edges/delete">>, Params),
     http_executor:post_request(Url, false).
@@ -137,7 +137,7 @@ remove_edge(Zone, From, To, Trace, Successive) ->
     Trace:: binary()) -> ok | {error, any()}.
 set_permissions(Zone, From, To, Permissions, Trace) ->
     {ok, Address} = http_utils:get_address(Zone),
-    Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"permissions">>, Permissions}]
+    Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"permissions">>, Permissions}, {<<"successive">>, <<"false">>}]
       ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
     Url = http_utils:build_url(Address, <<"graph/edges/permissions">>, Params),
     http_executor:post_request(Url, false).
@@ -236,4 +236,10 @@ members(Algo, Zone, Of) ->
 -spec effective_permissions(Algo:: naive | reaches, Zone:: binary(), From:: binary(),
     To:: binary()) -> {ok, map()} | {error, any()}.
 effective_permissions(Algo, Zone, From, To) ->
-    {error, not_implemented}.
+    Path = case Algo of
+               naive -> <<"naive/effective_permissions">>;
+               indexed -> <<"indexed/effective_permissions">>
+           end,
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, Path, [{<<"from">>, From}, {<<"to">>, To}]),
+    http_executor:post_request(Url, true).
