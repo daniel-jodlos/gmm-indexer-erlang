@@ -93,11 +93,7 @@ permissions(Zone, From, To) ->
 -spec add_edge(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(), Trace:: binary()
     ) -> ok | {error, any()}.
 add_edge(Zone, From, To, Permissions, Trace) ->
-    {ok, Address} = http_utils:get_address(Zone),
-    Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"permissions">>, Permissions}, {<<"successive">>, <<"false">>}]
-    ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
-    Url = http_utils:build_url(Address, <<"graph/edges">>, Params),
-    http_executor:post_request(Url, false).
+    add_edge(Zone, From, To, Permissions, Trace, false).
 
 % MUST
 -spec add_edge(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(), Trace:: binary(),
@@ -116,11 +112,7 @@ add_edges(Zone, BulkRequest) ->
 % MUST
 -spec remove_edge(Zone:: binary(), From:: binary(), To:: binary(), Trace:: binary()) -> ok | {error, any()}.
 remove_edge(Zone, From, To, Trace) ->
-    {ok, Address} = http_utils:get_address(Zone),
-    Params = [{<<"from">>, From}, {<<"to">>, To},  {<<"successive">>, <<"false">>}]
-      ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
-    Url = http_utils:build_url(Address, <<"graph/edges/delete">>, Params),
-    http_executor:post_request(Url, false).
+    remove_edge(Zone, From, To, Trace, false).
 
 % MUST
 -spec remove_edge(Zone:: binary(), From:: binary(), To:: binary(), Trace:: binary(),
@@ -136,11 +128,7 @@ remove_edge(Zone, From, To, Trace, Successive) ->
 -spec set_permissions(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(),
     Trace:: binary()) -> ok | {error, any()}.
 set_permissions(Zone, From, To, Permissions, Trace) ->
-    {ok, Address} = http_utils:get_address(Zone),
-    Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"permissions">>, Permissions}, {<<"successive">>, <<"false">>}]
-      ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
-    Url = http_utils:build_url(Address, <<"graph/edges/permissions">>, Params),
-    http_executor:post_request(Url, false).
+    set_permissions(Zone, From, To, Permissions, Trace, false).
 
 % MUST
 -spec set_permissions(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(),
