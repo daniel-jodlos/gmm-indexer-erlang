@@ -21,5 +21,4 @@ RUN apk add --no-cache openssl && \
 
 COPY --from=0 /buildroot/_build/prod/rel/prod /prod
 
-EXPOSE 8080
 CMD ["/prod/bin/prod", "console"]
