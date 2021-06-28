@@ -124,6 +124,7 @@ effective_permissions_naive(From, To) ->
         Other -> zone_client:effective_permissions(naive, Other, From, To)
     end.
 
+-spec do_effective_permissions_naive(binary(), binary()) -> {ok, binary()} | {error, any()}.
 do_effective_permissions_naive(From, To) ->
     JoinPermissions = fun
         (<<"no-route">>, Permissions) -> Permissions;
@@ -174,6 +175,7 @@ do_members_naive(Of) ->
             end
     end.
 
+-spec local_do_members_naive(binary()) -> {ok, sets:set()}.
 local_do_members_naive(Of) ->
     case graph:list_children(Of) of
         {ok, Children} ->
