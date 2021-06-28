@@ -63,7 +63,7 @@ operations_test(_Config) ->
     client:add_edge(<<"zone1/User1">>, <<"zone1/Group1">>, <<"01110">>, <<"trace1">>),
     client:add_edge(<<"zone1/Group1">>, <<"zone1/Provider1">>, <<"10101">>, <<"trace2">>),
     client:add_edge(<<"zone1/User2">>, <<"zone3/Space4">>, <<"00100">>, <<"trace3">>),
-    client:add_edge(<<"zone2/User3">>, <<"zone2/Group3">>, <<"11111">>, <<"trace4">>),
+    client:add_edge(<<"zone2/User3">>, <<"zone2/Group3">>, <<"00011">>, <<"trace4">>),
     client:add_edge(<<"zone2/Group3">>, <<"zone2/Group2">>, <<"00010">>, <<"trace5">>),
     client:add_edge(<<"zone2/Group2">>, <<"zone1/Space2">>, <<"10000">>, <<"trace6">>),
     client:add_edge(<<"zone2/Space3">>, <<"zone2/Provider2">>, <<"01100">>, <<"trace7">>),
@@ -74,15 +74,92 @@ operations_test(_Config) ->
     client:add_edge(<<"zone3/Space4">>, <<"zone2/Provider2">>, <<"11110">>, <<"trace12">>),
 
     % then
-    ok.
+    {ok, MembersResponse1} = client:naive_members(<<"zone3/Space4">>),
+    {ok, MembersResponse2} = client:naive_members(<<"zone2/Group2">>),
+    {ok, MembersResponse3} = client:naive_members(<<"zone1/Space1">>),
+    {ok, MembersResponse4} = client:naive_members(<<"zone1/Provider1">>),
+
+    {ok, ReachesResponse1} = client:naive_reaches(<<"zone2/User3">>, <<"zone3/Provider3">>),
+    {ok, ReachesResponse2} = client:naive_reaches(<<"zone3/User5">>, <<"zone3/Space4">>),
+    {ok, ReachesResponse3} = client:naive_reaches(<<"zone2/User3">>, <<"zone2/Provider2">>),
+    {ok, ReachesResponse4} = client:naive_reaches(<<"zone1/User1">>, <<"zone1/Provider1">>),
+
+    {ok, EPResponse1} = client:naive_effective_permissions(<<"zone1/User1">>, <<"zone1/Provider1">>),
+    {ok, EPResponse2} = client:naive_effective_permissions(<<"zone3/User5">>, <<"zone2/Provider2">>),
+    {ok, EPResponse3} = client:naive_effective_permissions(<<"zone2/User3">>, <<"zone2/Provider2">>),
+
+    ?assert(client_utils:lists_equal(
+        maps:get(<<"members">>, MembersResponse1),
+        [<<"zone1/User2">>, <<"zone2/User3">>, <<"zone2/Group3">>, <<"zone3/User4">>, <<"zone3/User5">>, <<"zone3/Group4">>]
+    )),
+    ?assert(client_utils:lists_equal(
+        maps:get(<<"members">>, MembersResponse2),
+        [<<"zone2/User3">>, <<"zone2/Group3">>, <<"zone3/User4">>]
+    )),
+    ?assert(client_utils:lists_equal(
+        maps:get(<<"members">>, MembersResponse3),
+        []
+    )),
+    ?assert(client_utils:lists_equal(
+        maps:get(<<"members">>, MembersResponse4),
+        [<<"zone1/User1">>, <<"zone1/Group1">>]
+    )),
+
+    ?assertEqual(false, maps:get(<<"reaches">>, ReachesResponse1)),
+    ?assertEqual(true, maps:get(<<"reaches">>, ReachesResponse2)),
+    ?assertEqual(true, maps:get(<<"reaches">>, ReachesResponse3)),
+    ?assertEqual(true, maps:get(<<"reaches">>, ReachesResponse4)),
+
+    ?assertEqual(<<"01110">>, maps:get(<<"effectivePermissions">>, EPResponse1)),
+    ?assertEqual(<<"01101">>, maps:get(<<"effectivePermissions">>, EPResponse2)),
+    ?assertEqual(<<"00011">>, maps:get(<<"effectivePermissions">>, EPResponse3)).
 
 operations_after_graph_update_test(_Config) ->
     % when
-    client:delete_edge(<<"zone1/User1">>, <<"zone1/Group1">>, <<"trace1">>),
     client:delete_edge(<<"zone2/Group3">>, <<"zone2/Group2">>, <<"trace5">>),
-    client:delete_edge(<<"zone2/Group3">>, <<"zone3/Group4">>, <<"trace9">>),
     client:delete_edge(<<"zone3/User5">>, <<"zone3/Group4">>, <<"trace10">>),
-    client:delete_edge(<<"zone3/Group4">>, <<"zone3/Space4">>, <<"trace11">>),
+    client:set_permissions(<<"zone2/Group3">>, <<"zone3/Group4">>, <<"00010">>, <<"trace9">>),
+    client:set_permissions(<<"zone3/Space4">>, <<"zone2/Provider2">>, <<"01010">>, <<"trace12">>),
+    client:add_edge(<<"zone2/Group2">>, <<"zone3/Provider3">>, <<"01101">>, <<"trace13">>),
+    client:add_edge(<<"zone3/User5">>, <<"zone3/Space3">>, <<"01101">>, <<"trace14">>),
 
     % then
-    ok.
+    {ok, MembersResponse1} = client:naive_members(<<"zone3/Space4">>),
+    {ok, MembersResponse2} = client:naive_members(<<"zone2/Group2">>),
+    {ok, MembersResponse3} = client:naive_members(<<"zone1/Space1">>),
+    {ok, MembersResponse4} = client:naive_members(<<"zone1/Provider1">>),
+
+    {ok, ReachesResponse1} = client:naive_reaches(<<"zone2/User3">>, <<"zone3/Provider3">>),
+    {ok, ReachesResponse2} = client:naive_reaches(<<"zone3/User5">>, <<"zone3/Space4">>),
+    {ok, ReachesResponse3} = client:naive_reaches(<<"zone2/User3">>, <<"zone2/Provider2">>),
+    {ok, ReachesResponse4} = client:naive_reaches(<<"zone1/User1">>, <<"zone1/Provider1">>),
+
+    {ok, EPResponse1} = client:naive_effective_permissions(<<"zone1/User1">>, <<"zone1/Provider1">>),
+    {ok, EPResponse2} = client:naive_effective_permissions(<<"zone3/User5">>, <<"zone2/Provider2">>),
+    {ok, EPResponse3} = client:naive_effective_permissions(<<"zone2/User3">>, <<"zone2/Provider2">>),
+    
+    ?assert(client_utils:lists_equal(
+        maps:get(<<"members">>, MembersResponse1),
+        [<<"zone1/User2">>, <<"zone2/User3">>, <<"zone2/Group3">>, <<"zone3/User4">>, <<"zone3/Group4">>]
+    )),
+    ?assert(client_utils:lists_equal(
+        maps:get(<<"members">>, MembersResponse2),
+        []
+    )),
+    ?assert(client_utils:lists_equal(
+        maps:get(<<"members">>, MembersResponse3),
+        []
+    )),
+    ?assert(client_utils:lists_equal(
+        maps:get(<<"members">>, MembersResponse4),
+        [<<"zone1/User1">>, <<"zone1/Group1">>]
+    )),
+
+    ?assertEqual(false, maps:get(<<"reaches">>, ReachesResponse1)),
+    ?assertEqual(false, maps:get(<<"reaches">>, ReachesResponse2)),
+    ?assertEqual(true, maps:get(<<"reaches">>, ReachesResponse3)),
+    ?assertEqual(true, maps:get(<<"reaches">>, ReachesResponse4)),
+
+    ?assertEqual(<<"01110">>, maps:get(<<"effectivePermissions">>, EPResponse1)),
+    ?assertEqual(<<"00000">>, maps:get(<<"effectivePermissions">>, EPResponse2)),
+    ?assertEqual(<<"00011">>, maps:get(<<"effectivePermissions">>, EPResponse3)).
