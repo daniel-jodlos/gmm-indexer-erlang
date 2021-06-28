@@ -117,7 +117,10 @@ reaches_indexed(_From, _To) ->
 effective_permissions_naive(From, To) ->
     MyZoneId = gmm_utils:zone_id(),
     case gmm_utils:owner_of(From) of
-        MyZoneId -> {ok, #{<<"effectivePermissions">> => do_effective_permissions_naive(From, To), <<"duration">> => 0}};
+        MyZoneId -> case do_effective_permissions_naive(From, To) of
+            {ok, Perms} -> {ok, #{<<"effectivePermissions">> => Perms, <<"duration">> => 0}};
+            {error, Error} -> {error, Error}
+        end;
         Other -> zone_client:effective_permissions(naive, Other, From, To)
     end.
 
@@ -127,10 +130,10 @@ do_effective_permissions_naive(From, To) ->
         (Permissions, <<"no-route">>) -> Permissions;
         (A, B) -> gmm_utils:permissions_or(A,B)
     end,
-    case graph:list_children(From) of
+    case graph:list_children(To) of
         {ok, Children} ->
-            case lists:member(To, Children) of
-                true -> {ok, graph:get_edge(From, To)};
+            case lists:member(From, Children) of
+                true -> graph:get_edge(From, To);
                 false ->
                     lists:foldl(fun
                         (_, {error, Error}) -> {error, Error};
@@ -163,15 +166,15 @@ members_naive(Of) ->
 do_members_naive(Of) ->
     MyZoneId = gmm_utils:zone_id(),
     case gmm_utils:owner_of(Of) of
-        MyZoneId -> do_do_members_naive(Of);
+        MyZoneId -> local_do_members_naive(Of);
         Other ->
             case zone_client:members(naive, Other, Of) of
-                {ok, #{<<"members">> := Members}} -> sets:from_list(Members);
+                {ok, #{<<"members">> := Members}} -> {ok, sets:from_list(Members)}; 
                 {error, Error} -> {error, Error}
             end
     end.
 
-do_do_members_naive(Of) ->
+local_do_members_naive(Of) ->
     case graph:list_children(Of) of
         {ok, Children} ->
             Res = lists:foldr(fun
