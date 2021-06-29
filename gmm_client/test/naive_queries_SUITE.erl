@@ -74,45 +74,37 @@ operations_test(_Config) ->
     client:add_edge(<<"zone3/Space4">>, <<"zone2/Provider2">>, <<"11110">>, <<"trace12">>),
 
     % then
-    {ok, MembersResponse1} = client:naive_members(<<"zone3/Space4">>),
-    {ok, MembersResponse2} = client:naive_members(<<"zone2/Group2">>),
-    {ok, MembersResponse3} = client:naive_members(<<"zone1/Space1">>),
-    {ok, MembersResponse4} = client:naive_members(<<"zone1/Provider1">>),
+    {ok, #{<<"members">> := MembersResponse1}} = client:naive_members(<<"zone3/Space4">>),
+    {ok, #{<<"members">> := MembersResponse2}} = client:naive_members(<<"zone2/Group2">>),
+    {ok, #{<<"members">> := MembersResponse3}} = client:naive_members(<<"zone1/Space1">>),
+    {ok, #{<<"members">> := MembersResponse4}} = client:naive_members(<<"zone1/Provider1">>),
 
-    {ok, ReachesResponse1} = client:naive_reaches(<<"zone2/User3">>, <<"zone3/Provider3">>),
-    {ok, ReachesResponse2} = client:naive_reaches(<<"zone3/User5">>, <<"zone3/Space4">>),
-    {ok, ReachesResponse3} = client:naive_reaches(<<"zone2/User3">>, <<"zone2/Provider2">>),
-    {ok, ReachesResponse4} = client:naive_reaches(<<"zone1/User1">>, <<"zone1/Provider1">>),
+    {ok, #{<<"reaches">> := ReachesResponse1}} = client:naive_reaches(<<"zone2/User3">>, <<"zone3/Provider3">>),
+    {ok, #{<<"reaches">> := ReachesResponse2}} = client:naive_reaches(<<"zone3/User5">>, <<"zone3/Space4">>),
+    {ok, #{<<"reaches">> := ReachesResponse3}} = client:naive_reaches(<<"zone2/User3">>, <<"zone2/Provider2">>),
+    {ok, #{<<"reaches">> := ReachesResponse4}} = client:naive_reaches(<<"zone1/User1">>, <<"zone1/Provider1">>),
 
-    {ok, EPResponse1} = client:naive_effective_permissions(<<"zone1/User1">>, <<"zone1/Provider1">>),
-    {ok, EPResponse2} = client:naive_effective_permissions(<<"zone3/User5">>, <<"zone2/Provider2">>),
-    {ok, EPResponse3} = client:naive_effective_permissions(<<"zone2/User3">>, <<"zone2/Provider2">>),
+    {ok, #{<<"effectivePermissions">> := EPResponse1}} =
+        client:naive_effective_permissions(<<"zone1/User1">>, <<"zone1/Provider1">>),
+    {ok, #{<<"effectivePermissions">> := EPResponse2}} =
+        client:naive_effective_permissions(<<"zone3/User5">>, <<"zone2/Provider2">>),
+    {ok, #{<<"effectivePermissions">> := EPResponse3}} =
+        client:naive_effective_permissions(<<"zone2/User3">>, <<"zone2/Provider2">>),
 
-    ?assert(client_utils:lists_equal(
-        maps:get(<<"members">>, MembersResponse1),
-        [<<"zone1/User2">>, <<"zone2/User3">>, <<"zone2/Group3">>, <<"zone3/User4">>, <<"zone3/User5">>, <<"zone3/Group4">>]
-    )),
-    ?assert(client_utils:lists_equal(
-        maps:get(<<"members">>, MembersResponse2),
-        [<<"zone2/User3">>, <<"zone2/Group3">>, <<"zone3/User4">>]
-    )),
-    ?assert(client_utils:lists_equal(
-        maps:get(<<"members">>, MembersResponse3),
-        []
-    )),
-    ?assert(client_utils:lists_equal(
-        maps:get(<<"members">>, MembersResponse4),
-        [<<"zone1/User1">>, <<"zone1/Group1">>]
-    )),
+    ?assert(client_utils:lists_equal(MembersResponse1, [<<"zone1/User2">>,
+        <<"zone2/User3">>, <<"zone2/Group3">>, <<"zone3/User4">>, <<"zone3/User5">>, <<"zone3/Group4">>])),
+    ?assert(client_utils:lists_equal(MembersResponse2, [<<"zone2/User3">>, <<"zone2/Group3">>, <<"zone3/User4">>])),
+    ?assert(client_utils:lists_equal(MembersResponse3, [])),
+    ?assert(client_utils:lists_equal(MembersResponse4, [<<"zone1/User1">>, <<"zone1/Group1">>])),
 
-    ?assertEqual(false, maps:get(<<"reaches">>, ReachesResponse1)),
-    ?assertEqual(true, maps:get(<<"reaches">>, ReachesResponse2)),
-    ?assertEqual(true, maps:get(<<"reaches">>, ReachesResponse3)),
-    ?assertEqual(true, maps:get(<<"reaches">>, ReachesResponse4)),
+    ?assertEqual(false, ReachesResponse1),
+    ?assertEqual(true, ReachesResponse2),
+    ?assertEqual(true, ReachesResponse3),
+    ?assertEqual(true, ReachesResponse4),
 
-    ?assertEqual(<<"01110">>, maps:get(<<"effectivePermissions">>, EPResponse1)),
-    ?assertEqual(<<"01101">>, maps:get(<<"effectivePermissions">>, EPResponse2)),
-    ?assertEqual(<<"00011">>, maps:get(<<"effectivePermissions">>, EPResponse3)).
+    ?assertEqual(<<"01110">>, EPResponse1),
+    ?assertEqual(<<"01101">>, EPResponse2),
+    ?assertEqual(<<"00011">>, EPResponse3).
 
 operations_after_graph_update_test(_Config) ->
     % when
@@ -124,42 +116,34 @@ operations_after_graph_update_test(_Config) ->
     client:add_edge(<<"zone3/User5">>, <<"zone3/Space3">>, <<"01101">>, <<"trace14">>),
 
     % then
-    {ok, MembersResponse1} = client:naive_members(<<"zone3/Space4">>),
-    {ok, MembersResponse2} = client:naive_members(<<"zone2/Group2">>),
-    {ok, MembersResponse3} = client:naive_members(<<"zone1/Space1">>),
-    {ok, MembersResponse4} = client:naive_members(<<"zone1/Provider1">>),
+    {ok, #{<<"members">> := MembersResponse1}} = client:naive_members(<<"zone3/Space4">>),
+    {ok, #{<<"members">> := MembersResponse2}} = client:naive_members(<<"zone2/Group2">>),
+    {ok, #{<<"members">> := MembersResponse3}} = client:naive_members(<<"zone1/Space1">>),
+    {ok, #{<<"members">> := MembersResponse4}} = client:naive_members(<<"zone1/Provider1">>),
 
-    {ok, ReachesResponse1} = client:naive_reaches(<<"zone2/User3">>, <<"zone3/Provider3">>),
-    {ok, ReachesResponse2} = client:naive_reaches(<<"zone3/User5">>, <<"zone3/Space4">>),
-    {ok, ReachesResponse3} = client:naive_reaches(<<"zone2/User3">>, <<"zone2/Provider2">>),
-    {ok, ReachesResponse4} = client:naive_reaches(<<"zone1/User1">>, <<"zone1/Provider1">>),
+    {ok, #{<<"reaches">> := ReachesResponse1}} = client:naive_reaches(<<"zone2/User3">>, <<"zone3/Provider3">>),
+    {ok, #{<<"reaches">> := ReachesResponse2}} = client:naive_reaches(<<"zone3/User5">>, <<"zone3/Space4">>),
+    {ok, #{<<"reaches">> := ReachesResponse3}} = client:naive_reaches(<<"zone2/User3">>, <<"zone2/Provider2">>),
+    {ok, #{<<"reaches">> := ReachesResponse4}} = client:naive_reaches(<<"zone1/User1">>, <<"zone1/Provider1">>),
 
-    {ok, EPResponse1} = client:naive_effective_permissions(<<"zone1/User1">>, <<"zone1/Provider1">>),
-    {ok, EPResponse2} = client:naive_effective_permissions(<<"zone3/User5">>, <<"zone2/Provider2">>),
-    {ok, EPResponse3} = client:naive_effective_permissions(<<"zone2/User3">>, <<"zone2/Provider2">>),
+    {ok, #{<<"effectivePermissions">> := EPResponse1}} =
+        client:naive_effective_permissions(<<"zone1/User1">>, <<"zone1/Provider1">>),
+    {ok, #{<<"effectivePermissions">> := EPResponse2}} =
+        client:naive_effective_permissions(<<"zone3/User5">>, <<"zone2/Provider2">>),
+    {ok, #{<<"effectivePermissions">> := EPResponse3}} =
+        client:naive_effective_permissions(<<"zone2/User3">>, <<"zone2/Provider2">>),
     
-    ?assert(client_utils:lists_equal(
-        maps:get(<<"members">>, MembersResponse1),
-        [<<"zone1/User2">>, <<"zone2/User3">>, <<"zone2/Group3">>, <<"zone3/User4">>, <<"zone3/Group4">>]
-    )),
-    ?assert(client_utils:lists_equal(
-        maps:get(<<"members">>, MembersResponse2),
-        []
-    )),
-    ?assert(client_utils:lists_equal(
-        maps:get(<<"members">>, MembersResponse3),
-        []
-    )),
-    ?assert(client_utils:lists_equal(
-        maps:get(<<"members">>, MembersResponse4),
-        [<<"zone1/User1">>, <<"zone1/Group1">>]
-    )),
+    ?assert(client_utils:lists_equal(MembersResponse1, [<<"zone1/User2">>,
+        <<"zone2/User3">>, <<"zone2/Group3">>, <<"zone3/User4">>, <<"zone3/Group4">>])),
+    ?assert(client_utils:lists_equal(MembersResponse2, [])),
+    ?assert(client_utils:lists_equal(MembersResponse3, [])),
+    ?assert(client_utils:lists_equal(MembersResponse4, [<<"zone1/User1">>, <<"zone1/Group1">>])),
 
-    ?assertEqual(false, maps:get(<<"reaches">>, ReachesResponse1)),
-    ?assertEqual(false, maps:get(<<"reaches">>, ReachesResponse2)),
-    ?assertEqual(true, maps:get(<<"reaches">>, ReachesResponse3)),
-    ?assertEqual(true, maps:get(<<"reaches">>, ReachesResponse4)),
+    ?assertEqual(false, ReachesResponse1),
+    ?assertEqual(false, ReachesResponse2),
+    ?assertEqual(true, ReachesResponse3),
+    ?assertEqual(true, ReachesResponse4),
 
-    ?assertEqual(<<"01110">>, maps:get(<<"effectivePermissions">>, EPResponse1)),
-    ?assertEqual(<<"00000">>, maps:get(<<"effectivePermissions">>, EPResponse2)),
-    ?assertEqual(<<"00011">>, maps:get(<<"effectivePermissions">>, EPResponse3)).
+    ?assertEqual(<<"01110">>, EPResponse1),
+    ?assertEqual(<<"00000">>, EPResponse2),
+    ?assertEqual(<<"00011">>, EPResponse3).
