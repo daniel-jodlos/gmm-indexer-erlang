@@ -27,7 +27,7 @@ get_address(<<"zone2">>) ->
 get_address(<<"zone3">>) ->
     {ok, <<"gmm_server3:8082">>};
 get_address(_) ->
-    {error, "Zone couldn't be located"}.
+    {error, "Zone not found"}.
 
 %% URL builder
 

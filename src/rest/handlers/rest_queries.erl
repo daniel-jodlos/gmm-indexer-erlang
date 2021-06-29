@@ -101,23 +101,46 @@ execute(Fun, Args, FieldName) ->
 
 
 %%%---------------------------
-%% Implementations
+%% Naive Implementations
 %%%---------------------------
 
-%% @todo
+%% Reaches
+
 -spec reaches_naive(binary(), binary()) -> {ok, boolean()} | {error, any()}.
 reaches_naive(From, To) ->
-    case members_naive(To) of
-        {error, Error} -> {error, Error};
-        {ok, EffChildren} -> {ok, lists:member(From, EffChildren)}
+    ZoneId = gmm_utils:zone_id(),
+    case gmm_utils:owner_of(From) of
+        ZoneId ->
+            case graph:edge_exists(From, To) of
+                {ok, true} -> {ok, true};
+                {error, Reason} -> {error, Reason};
+                _ -> reaches_naive_check_parents(From, To)
+            end;
+        Other ->
+            case zone_client:reaches(naive, Other, From, To) of
+                {ok, #{<<"reaches">> := Bool}} -> {ok, Bool};
+                {error, Reason} -> {error, Reason}
+            end
     end.
 
-%% @todo
--spec reaches_indexed(binary(), binary()) -> {ok, boolean()} | {error, any()}.
-reaches_indexed(_From, _To) ->
-    {ok, false}.
+-spec reaches_naive_check_parents(binary(), binary()) -> {ok, boolean()} | {error, any()}.
+reaches_naive_check_parents(From, To) ->
+    case graph:list_parents(From) of
+        {ok, Parents} ->
+            lists:foldr(
+                fun
+                    (_, {error, Reason}) -> {error, Reason};
+                    (_, {ok, true}) -> {ok, true};
+                    (Parent, _) -> reaches_naive(Parent, To)
+                end,
+                {ok, false},
+                Parents
+            );
+        {error, Reason} -> {error, Reason}
+    end.
 
-%% @todo
+%% Effective permissions
+
 -spec effective_permissions_naive(binary(), binary()) -> {ok, binary()} | {error, any()}.
 effective_permissions_naive(From, To) ->
     ZoneId = gmm_utils:zone_id(),
@@ -132,11 +155,7 @@ effective_permissions_naive(From, To) ->
 
 -spec effective_permissions_naive_locally(From :: binary(), To :: binary()) -> {ok, binary()} | {error, any()}.
 effective_permissions_naive_locally(From, To) ->
-    JoinPermissions = fun
-%%        (<<"no-route">>, Permissions) -> Permissions;
-%%        (Permissions, <<"no-route">>) -> Permissions;
-        (A, B) -> gmm_utils:permissions_or(A,B)
-    end,
+    JoinPermissions = fun(A, B) -> gmm_utils:permissions_or(A,B) end,
     case graph:list_parents(From) of
         {ok, Parents} ->
             lists:foldr(
@@ -159,13 +178,8 @@ effective_permissions_naive_locally(From, To) ->
         {error, Reason} -> {error, Reason}
     end.
 
+%% Members
 
-%% @todo
--spec effective_permissions_indexed(binary(), binary()) -> {ok, binary()} | {error, any()}.
-effective_permissions_indexed(_From, _To) ->
-    {ok, <<"">>}.
-
-%% @todo
 -spec members_naive(binary()) -> {ok, list(binary())} | {error, any()}.
 members_naive(Of) ->
     ZoneId = gmm_utils:zone_id(),
@@ -199,6 +213,21 @@ members_naive_locally(Of) ->
             end;
         {error, Error} -> {error, Error}
     end.
+
+
+%%%---------------------------
+%% Indexed Implementations
+%%%---------------------------
+
+%% @todo
+-spec reaches_indexed(binary(), binary()) -> {ok, boolean()} | {error, any()}.
+reaches_indexed(_From, _To) ->
+    {ok, false}.
+
+%% @todo
+-spec effective_permissions_indexed(binary(), binary()) -> {ok, binary()} | {error, any()}.
+effective_permissions_indexed(_From, _To) ->
+    {ok, <<"00000">>}.
 
 %% @todo
 -spec members_indexed(binary()) -> {ok, list(binary())} | {error, any()}.
