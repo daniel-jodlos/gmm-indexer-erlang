@@ -18,7 +18,10 @@
     edge_exists/2,
     get_permissions/2,
     list_parents/1,
-    list_children/1
+    list_children/1,
+    naive_members/1,
+    naive_reaches/2,
+    naive_effective_permissions/2
 ]).
 
 
@@ -112,4 +115,25 @@ list_children(Of) ->
     Zone = client_utils:owner_of(Of),
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"list_adjacent_reversed">>, [{<<"of">>, Of}]),
+    http_executor:post_request(Url, true).
+
+-spec naive_members(Of :: binary()) -> {ok, map()} | {error, any()}.
+naive_members(Of) ->
+    Zone = client_utils:owner_of(Of),
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"naive/members">>, [{<<"of">>, Of}]),
+    http_executor:post_request(Url, true).
+
+-spec naive_reaches(From :: binary(), To :: binary()) -> {ok, map()} | {error, any()}.
+naive_reaches(From, To) ->
+    Zone = client_utils:owner_of(From),
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"naive/reaches">>, [{<<"from">>, From}, {<<"to">>, To}]),
+    http_executor:post_request(Url, true).
+
+-spec naive_effective_permissions(From :: binary(), To :: binary()) -> {ok, map()} | {error, any()}.
+naive_effective_permissions(From, To) ->
+    Zone = client_utils:owner_of(From),
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"naive/effective_permissions">>, [{<<"from">>, From}, {<<"to">>, To}]),
     http_executor:post_request(Url, true).
