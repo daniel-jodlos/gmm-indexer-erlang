@@ -90,13 +90,13 @@ permissions(Zone, From, To) ->
     http_executor:post_request(Url, true).
 
 % MUST
--spec add_edge(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(), Trace:: binary()
+-spec add_edge(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: gmm_utils:permissions(), Trace:: binary()
     ) -> ok | {error, any()}.
 add_edge(Zone, From, To, Permissions, Trace) ->
     add_edge(Zone, From, To, Permissions, Trace, false).
 
 % MUST
--spec add_edge(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(), Trace:: binary(),
+-spec add_edge(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: gmm_utils:permissions(), Trace:: binary(),
     Successive:: boolean()) -> ok | {error, any()}.
 add_edge(Zone, From, To, Permissions, Trace, Successive) ->
     {ok, Address} = http_utils:get_address(Zone),
@@ -125,13 +125,13 @@ remove_edge(Zone, From, To, Trace, Successive) ->
     http_executor:post_request(Url, false).
 
 % MUST
--spec set_permissions(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(),
+-spec set_permissions(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: gmm_utils:permissions(),
     Trace:: binary()) -> ok | {error, any()}.
 set_permissions(Zone, From, To, Permissions, Trace) ->
     set_permissions(Zone, From, To, Permissions, Trace, false).
 
 % MUST
--spec set_permissions(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: binary(),
+-spec set_permissions(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: gmm_utils:permissions(),
     Trace:: binary(), Successive:: boolean()) -> ok | {error, any()}.
 set_permissions(Zone, From, To, Permissions, Trace, Successive) ->
     {ok, Address} = http_utils:get_address(Zone),

@@ -28,8 +28,8 @@
     create_edge_id/2,
     split_edge_id/1,
 
-    convert_microseconds_to_iso_8601/1,
-    parse_boolean/1,
+    list_other_zones/0,
+    batch_size/0,
     convert_microseconds_to_iso_8601/1,
     permissions_and/2,
     permissions_or/2
@@ -37,6 +37,10 @@
 
 -include("records.hrl").
 
+-type permissions() :: <<_:5*8>>.
+-export_type([
+    permissions/0
+]).
 
 %%%---------------------------
 %% JSON manipulation
@@ -141,6 +145,13 @@ split_edge_id(Bin) ->
 %% More complex functions
 %%%---------------------------
 
+-spec list_other_zones() -> list(binary()).
+list_other_zones() ->
+    [<<"zone1">>, <<"zone2">>, <<"zone3">>] -- [gmm_utils:zone_id()].
+
+-spec batch_size() -> integer().
+batch_size() -> 5.
+
 %% Assumption: time to parse is smaller than 1 day, or rather: result of this function is time modulo 24 hours
 -spec convert_microseconds_to_iso_8601(integer()) -> binary().
 convert_microseconds_to_iso_8601(TotalMicroseconds) when TotalMicroseconds >= 0 ->
@@ -170,13 +181,16 @@ convert_microseconds_to_iso_8601(TotalMicroseconds) when TotalMicroseconds >= 0 
     TimeString = "PT" ++ HoursString ++ MinutesString ++ SecondsString,
     list_to_binary(TimeString).
 
+-spec char_to_boolean(char()) -> boolean().
 char_to_boolean($0) -> false;
 char_to_boolean($1) -> true.
 
+-spec boolean_to_char(boolean()) -> char().
 boolean_to_char(true) -> $1;
 boolean_to_char(false) -> $0.
 
--type permissions() :: <<_:5*8>>.
+-spec combine_permissions(A :: permissions(), B :: permissions(),
+    Fun :: fun((permissions(), permissions()) -> permissions())) -> permissions().
 combine_permissions(A, B, Fun) ->
     Alist = lists:map(fun char_to_boolean/1, binary_to_list(A)),
     Blist = lists:map(fun char_to_boolean/1, binary_to_list(B)),
@@ -186,7 +200,6 @@ combine_permissions(A, B, Fun) ->
 -spec permissions_and(A :: permissions(), B :: permissions()) -> permissions().
 permissions_and(A,B) ->
     combine_permissions(A,B, fun (X,Y) -> X and Y end).
-
 
 -spec permissions_or(A :: permissions(), B :: permissions()) -> permissions().
 permissions_or(A,B) ->

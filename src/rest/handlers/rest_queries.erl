@@ -141,7 +141,7 @@ reaches_naive_check_parents(From, To) ->
 
 %% Effective permissions
 
--spec effective_permissions_naive(binary(), binary()) -> {ok, binary()} | {error, any()}.
+-spec effective_permissions_naive(binary(), binary()) -> {ok, gmm_utils:permissions()} | {error, any()}.
 effective_permissions_naive(From, To) ->
     ZoneId = gmm_utils:zone_id(),
     case gmm_utils:owner_of(From) of
@@ -153,7 +153,8 @@ effective_permissions_naive(From, To) ->
             end
     end.
 
--spec effective_permissions_naive_locally(From :: binary(), To :: binary()) -> {ok, binary()} | {error, any()}.
+-spec effective_permissions_naive_locally(From :: binary(), To :: binary()) ->
+    {ok, gmm_utils:permissions()} | {error, any()}.
 effective_permissions_naive_locally(From, To) ->
     JoinPermissions = fun(A, B) -> gmm_utils:permissions_or(A,B) end,
     case graph:list_parents(From) of
@@ -225,7 +226,7 @@ reaches_indexed(_From, _To) ->
     {ok, false}.
 
 %% @todo
--spec effective_permissions_indexed(binary(), binary()) -> {ok, binary()} | {error, any()}.
+-spec effective_permissions_indexed(binary(), binary()) -> {ok, gmm_utils:permissions()} | {error, any()}.
 effective_permissions_indexed(_From, _To) ->
     {ok, <<"00000">>}.
 

@@ -28,8 +28,9 @@ start_link() -> supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 %%                  modules => modules()}   % optional
 
 init([]) ->
-  SupFlags = #{strategy => one_for_one, intensity => 0, period => 1},
-  ChildSpecs = [#{id => ?REDIS_SERVER, start => {persistence, start_link, [?REDIS_SERVER]}}],
-  {ok, {SupFlags, ChildSpecs}}.
+    SupFlags = #{strategy => one_for_one, intensity => 0, period => 1},
+    ChildSpecs =
+        [#{id => ?REDIS_SERVER, start => {persistence, start_link, [?REDIS_SERVER]}}] ++ outbox:specs_for_supervisor(),
+    {ok, {SupFlags, ChildSpecs}}.
 
 %% internal functions
