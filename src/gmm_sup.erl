@@ -8,8 +8,11 @@
 
 -behaviour(supervisor).
 
--export([start_link/0]).
--export([init/1]).
+-export([
+    start_link/0,
+    init/1,
+    create_inbox_servant/1
+]).
 
 -define(SERVER, ?MODULE).
 
@@ -28,9 +31,36 @@ start_link() -> supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 %%                  modules => modules()}   % optional
 
 init([]) ->
-    SupFlags = #{strategy => one_for_one, intensity => 0, period => 1},
-    ChildSpecs =
-        [#{id => ?REDIS_SERVER, start => {persistence, start_link, [?REDIS_SERVER]}}] ++ outbox:specs_for_supervisor(),
+    %% register itself
+    ets:new(supervisor, [named_table]),
+    ets:insert(supervisor, {pid, self()}),
+
+    %% create ets tables
+    ets:new(outboxes, [named_table]),
+    ets:new(inboxes, [named_table]),
+
+    %% spawn child processes
+    SupFlags = #{
+        strategy => one_for_one,
+        intensity => 0,
+        period => 1
+    },
+    RedisSpec = #{
+        id => ?REDIS_SERVER,
+        start => {persistence, start_link, [?REDIS_SERVER]}
+    },
+    ChildSpecs = [RedisSpec] ++ outbox:specs_for_supervisor(),
     {ok, {SupFlags, ChildSpecs}}.
 
 %% internal functions
+
+create_inbox_servant(Vertex) ->
+    Supervisor = ets:lookup_element(supervisor, pid, 2),
+    ChildSpec = #{
+        id => << "inbox_", Vertex/binary >>,
+        start => {inbox, init_inbox, [Vertex]}
+    },
+    try
+        supervisor:start_child(Supervisor, ChildSpec)
+    catch {error, {already_started, Pid}} -> Pid
+    end.

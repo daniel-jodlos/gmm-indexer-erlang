@@ -8,7 +8,6 @@
 
 %% API
 -export([
-%%    start_outboxes/0,
     specs_for_supervisor/0,
     init_outbox/1,
     post/2,
@@ -24,7 +23,7 @@
 specs_for_supervisor() ->
     lists:map(
         fun(Zone) -> #{
-            id => list_to_atom("outbox_" ++ binary_to_list(Zone)),
+            id => << "outbox_", Zone/binary >>,
             start => {outbox, init_outbox, [Zone]}
         } end, gmm_utils:list_other_zones()
     ).
@@ -37,9 +36,9 @@ init_outbox(Zone) ->
     timer:send_after(initial_delay(), send),
     outbox_routine(Zone).
 
--spec post(Target :: binary(), Event :: map()) -> ok.
-post(Target, Event) ->
-    Zone = gmm_utils:owner_of(Target),
+-spec post(Vertex :: binary(), Event :: map()) -> ok.
+post(Vertex, Event) ->
+    Zone = gmm_utils:owner_of(Vertex),
     outbox_pid(Zone) ! {event, Event},
     ok.
 
@@ -48,6 +47,7 @@ is_empty(Zone) ->
     outbox_pid(Zone) ! {is_empty, self()},
     receive
         {is_empty, Bool} -> Bool
+    after 1000 -> false
     end.
 
 -spec all_empty() -> boolean().
@@ -108,18 +108,21 @@ collect_answers(Acc, 0) -> Acc;
 collect_answers(Acc, MsgToRead) ->
     receive
         {is_empty, Bool} -> collect_answers(Acc and Bool, MsgToRead - 1)
+    after 1000 -> false
     end.
 
 %% Servant process
 
 outbox_routine(Zone) ->
     receive
-        {event, Event} -> queue_event(Zone, Event);
-        {is_empty, Pid} -> Pid ! {is_empty, check_emptiness(Zone)};
+        {is_empty, Pid} ->
+            Pid ! {is_empty, check_emptiness(Zone)};
         send ->
             {Batch, Remaining} = poll_batch(ets:lookup_element(outboxes, Zone, 4)),
             {FinalQueue, Delay} = try_sending(Zone, Batch, Remaining),
             ets:update_element(outboxes, Zone, [{3, Delay}, {4, FinalQueue}]),
-            timer:send_after(Delay, send)
+            timer:send_after(Delay, send);
+        {event, Event} ->
+            queue_event(Zone, Event)
     end,
     outbox_routine(Zone).
