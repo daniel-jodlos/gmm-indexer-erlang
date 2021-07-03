@@ -37,13 +37,17 @@ post(Vertex, Event) ->
 
 -spec is_empty() -> boolean().
 is_empty() ->
-    Count = ets:foldl(fun({_, Pid, _, _}, Acc) -> Pid ! {is_empty, self()}, Acc+1 end, 0, inboxes),
+    Count = ets:foldl(
+        fun({_, Pid, _, _}, Acc) ->
+            Pid ! {is_empty, self()}, Acc + 1
+        end, 0, inboxes),
     collect_answers(true, Count).
 
 -spec free_vertex(Vertex :: binary()) -> free_vertex.
 free_vertex(Vertex) ->
     Pid = ets:lookup_element(inboxes, Vertex, 2),
     Pid ! free_vertex.
+
 
 %%%---------------------------
 %% Internal functions
@@ -101,7 +105,6 @@ poll_event(Vertex) ->
             ets:update_element(inboxes, Vertex, {4, Rest}),
             Event
     end.
-
 
 %% Servant process
 

@@ -39,7 +39,7 @@ init_outbox(Zone) ->
 -spec post(Vertex :: binary(), Event :: map()) -> ok.
 post(Vertex, Event) ->
     Zone = gmm_utils:owner_of(Vertex),
-    outbox_pid(Zone) ! {event, Event},
+    outbox_pid(Zone) ! {event, {Vertex, Event}},
     ok.
 
 -spec is_empty(Zone :: binary()) -> boolean().
@@ -53,8 +53,11 @@ is_empty(Zone) ->
 -spec all_empty() -> boolean().
 all_empty() ->
     %% imitate ets:foreach
-    ets:foldl(fun({_, Pid, _, _}, _) -> Pid ! {is_empty, self()}, 0 end, 0, outboxes),
-    collect_answers(true, length(gmm_utils:list_other_zones())).
+    Count = ets:foldl(
+        fun({_, Pid, _, _}, Acc) ->
+            Pid ! {is_empty, self()}, Acc + 1
+        end, 0, outboxes),
+    collect_answers(true, Count).
 
 
 %%%---------------------------
@@ -69,10 +72,11 @@ backoff_factor() -> 1.2.
 outbox_pid(Zone) ->
     ets:lookup_element(outboxes, Zone, 2).
 
--spec queue_event(Zone :: binary(), Event :: binary()) -> ok.
-queue_event(Zone, Event) ->
+-spec queue_event(Zone :: binary(), Vertex :: binary(), Event :: binary()) -> ok.
+queue_event(Zone, Vertex, Event) ->
+    {Zone, Name} = gmm_utils:split_vertex_id(Vertex),
     OldQueue = ets:lookup_element(outboxes, Zone, 4),
-    ets:update_element(outboxes, Zone, {4, OldQueue ++ [Event]}),
+    ets:update_element(outboxes, Zone, {4, OldQueue ++ [{Name, Event}]}),
     ok.
 
 -spec check_emptiness(Zone :: binary()) -> boolean().
@@ -94,7 +98,14 @@ poll_batch(Events) ->
 try_sending(_, [], Remaining) ->
     {Remaining, initial_delay()};
 try_sending(Zone, Batch, Remaining) ->
-    BulkObject = #{batch => Batch}, %% @todo change it to correct format !!!!
+    MessagesList = lists:map(
+        fun({Name, Event}) ->
+            #{
+                <<"vn">> => Name,
+                <<"e">> => Event
+            }
+        end, Batch),
+    BulkObject = #{<<"messages">> => MessagesList},
     case zone_client:post_events(Zone, BulkObject) of
         ok -> {Remaining, initial_delay()};
         {error, _} ->
@@ -122,7 +133,7 @@ outbox_routine(Zone) ->
             {FinalQueue, Delay} = try_sending(Zone, Batch, Remaining),
             ets:update_element(outboxes, Zone, [{3, Delay}, {4, FinalQueue}]),
             timer:send_after(Delay, send);
-        {event, Event} ->
-            queue_event(Zone, Event)
+        {event, {Vertex, Event}} ->
+            queue_event(Zone, Vertex, Event)
     end,
     outbox_routine(Zone).
