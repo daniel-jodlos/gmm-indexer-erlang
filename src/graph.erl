@@ -216,7 +216,7 @@ validate(Results) ->
     lists:foldl(Reducer, ok, Results).
 
 
--spec create_edge(From :: binary(), To :: binary(), Permissions :: gmm_utils:permissions()) -> ok | {error, any()}.
+-spec create_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
 create_edge(From, To, Permissions) ->
     ZoneId = gmm_utils:zone_id(),
     FromZone = gmm_utils:owner_of(From),
@@ -238,7 +238,7 @@ create_edge(From, To, Permissions) ->
         {_, _} -> {error, vertices_not_found}
     end.
 
--spec update_edge(From :: binary(), To :: binary(), Permissions :: gmm_utils:permissions()) -> ok | {error, any()}.
+-spec update_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
 update_edge(From, To, Permissions) -> validate([persistence:set(edge_id(From, To), Permissions)]).
 
 -spec remove_edge(From :: binary(), To :: binary()) -> ok | {error, any()}.

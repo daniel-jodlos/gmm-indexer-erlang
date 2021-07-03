@@ -19,6 +19,8 @@
     from_json/2
 ]).
 
+-include("records.hrl").
+
 
 %%%---------------------------
 %% cowboy_rest callbacks
@@ -141,7 +143,7 @@ reaches_naive_check_parents(From, To) ->
 
 %% Effective permissions
 
--spec effective_permissions_naive(binary(), binary()) -> {ok, gmm_utils:permissions()} | {error, any()}.
+-spec effective_permissions_naive(binary(), binary()) -> {ok, permissions()} | {error, any()}.
 effective_permissions_naive(From, To) ->
     ZoneId = gmm_utils:zone_id(),
     case gmm_utils:owner_of(From) of
@@ -226,7 +228,7 @@ reaches_indexed(_From, _To) ->
     {ok, false}.
 
 %% @todo
--spec effective_permissions_indexed(binary(), binary()) -> {ok, gmm_utils:permissions()} | {error, any()}.
+-spec effective_permissions_indexed(binary(), binary()) -> {ok, permissions()} | {error, any()}.
 effective_permissions_indexed(_From, _To) ->
     {ok, <<"00000">>}.
 
