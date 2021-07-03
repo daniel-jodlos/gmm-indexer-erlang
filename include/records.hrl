@@ -9,7 +9,7 @@
 
 -author("pawel").
 
-%%-record(state, {table = users_table}).
-
 -define(REDIS_SERVER, redis_server).
 -define(ZONE_ID, os:getenv("ZONE_ID", "zone0")).
+
+-type permissions() :: <<_:5*8>>.

@@ -20,6 +20,7 @@
     from_json/2
 ]).
 
+-include("records.hrl").
 
 %%%---------------------------
 %% cowboy_rest callbacks
@@ -107,7 +108,7 @@ is_adjacent(From, To) ->
         false -> zone_client:is_adjacent(gmm_utils:owner_of(From), From, To)
     end.
 
--spec permissions(From :: binary(), To :: binary()) -> {ok, binary()} | {error, any()}.
+-spec permissions(From :: binary(), To :: binary()) -> {ok, permissions()} | {error, any()}.
 permissions(From, To) ->
     case on_this_zone(From, To) of
         true ->

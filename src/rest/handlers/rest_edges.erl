@@ -20,6 +20,8 @@
     from_json/2
 ]).
 
+-include("records.hrl").
+
 %%%---------------------------
 %% cowboy_rest callbacks
 %%%---------------------------
@@ -125,8 +127,9 @@ parse_bulk_request(_) ->
 %% single operation executor
 %%%---------------------------
 
--spec execute_operation(Op :: atom(), From :: binary(), To :: binary(), Permissions :: binary() | undefined,
-    Trace :: binary(), Successive :: boolean()) -> ok | {error, any()}.
+-spec execute_operation(Op :: atom(), From :: binary(), To :: binary(),
+    Permissions :: permissions() | undefined, Trace :: binary(), Successive :: boolean())
+        -> ok | {error, any()}.
 execute_operation(Op, From, To, Permissions, Trace, Successive) ->
     VertexZone =
         case Successive of
@@ -140,7 +143,7 @@ execute_operation(Op, From, To, Permissions, Trace, Successive) ->
     end.
 
 
--spec redirect(Zone :: binary(), Op :: atom(), From :: binary(), To :: binary(), Permissions :: binary(),
+-spec redirect(Zone :: binary(), Op :: atom(), From :: binary(), To :: binary(), Permissions :: permissions(),
     Trace :: binary(), Successive :: boolean()) -> ok | {error, any()}.
 redirect(Zone, Op, From, To, Permissions, Trace, Successive) ->
     case Op of
@@ -150,8 +153,8 @@ redirect(Zone, Op, From, To, Permissions, Trace, Successive) ->
     end.
 
 
--spec execute_locally(Op :: atom(), From :: binary(), To :: binary(), Permissions :: binary(), Trace :: binary(),
-    Successive :: boolean()) -> ok | {error, any()}.
+-spec execute_locally(Op :: atom(), From :: binary(), To :: binary(), Permissions :: permissions(),
+    Trace :: binary(), Successive :: boolean()) -> ok | {error, any()}.
 execute_locally(Op, From, To, Permissions, Trace, false) ->
     SuccessiveCallResult =
         case conditions_met(Op, From, To, false) of
@@ -179,8 +182,8 @@ conditions_met(Op, From, To, Successive) ->
     end.
 
 
--spec modify_state(Op :: atom(), From :: binary(), To :: binary(), Permissions :: binary(), Successive :: boolean(),
-    OneZoneOperation :: boolean()) -> ok | {error, any()}.
+-spec modify_state(Op :: atom(), From :: binary(), To :: binary(), Permissions :: permissions(),
+    Successive :: boolean(), OneZoneOperation :: boolean()) -> ok | {error, any()}.
 modify_state(_, _, _, _, false, true) ->
     ok;
 modify_state(add, From, To, Permissions, _, _) ->
