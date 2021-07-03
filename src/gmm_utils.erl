@@ -37,10 +37,6 @@
 
 -include("records.hrl").
 
-%%-type permissions() :: <<_:5*8>>.
-%%-export_type([
-%%    permissions/0
-%%]).
 
 %%%---------------------------
 %% JSON manipulation

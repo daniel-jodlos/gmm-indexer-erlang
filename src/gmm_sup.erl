@@ -49,7 +49,7 @@ init([]) ->
         id => ?REDIS_SERVER,
         start => {persistence, start_link, [?REDIS_SERVER]}
     },
-    ChildSpecs = [RedisSpec] ++ outbox:specs_for_supervisor(),
+    ChildSpecs = [RedisSpec | outbox:specs_for_supervisor()],
     {ok, {SupFlags, ChildSpecs}}.
 
 %% internal functions
@@ -60,7 +60,4 @@ create_inbox_servant(Vertex) ->
         id => << "inbox_", Vertex/binary >>,
         start => {inbox, init_inbox, [Vertex]}
     },
-    try
-        supervisor:start_child(Supervisor, ChildSpec)
-    catch {error, {already_started, Pid}} -> Pid
-    end.
+    supervisor:start_child(Supervisor, ChildSpec).
