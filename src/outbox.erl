@@ -15,10 +15,6 @@
     all_empty/0
 ]).
 
-%% @todo resolve this sh*t
--dialyzer({nowarn_function, outbox_routine/2}).
--dialyzer({nowarn_function, maximum_delay/0}).
--dialyzer({nowarn_function, backoff_factor/0}).
 
 %%%---------------------------
 %% Exported functions
@@ -102,7 +98,7 @@ poll_batch(Zone) when is_binary(Zone) ->
     end.
 
 -spec try_sending(Zone :: binary(), Batch :: list(map())) -> ok | no_events | {error, any()}.
-try_sending(_, []) ->
+try_sending(_, Batch) when length(Batch) == 0 ->
     no_events;
 try_sending(Zone, Batch) ->
     NameEventPairs = lists:map(

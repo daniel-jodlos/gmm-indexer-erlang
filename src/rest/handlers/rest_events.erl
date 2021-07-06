@@ -27,28 +27,17 @@
 %% cowboy_rest callbacks
 %%%---------------------------
 
-init(Req0, State) ->
-    Method = cowboy_req:method(Req0),
-    #{operation := Operation} = State,
-    {ParsedParams, Req} =
-        case {Method, Operation} of
-            {<<"POST">>, single_event} ->
-                Params = cowboy_req:match_qs([{id, nonempty}], Req0),
-                {ok, Data, Req1} = cowboy_req:read_body(Req0),
-                Event = gmm_utils:decode(Data),
-                ok = validate_event(Event),
-                {maps:merge(Params, #{body => Event}), Req1};
-            {<<"POST">>, bulk} ->
-                {ok, Data, Req1} = cowboy_req:read_body(Req0),
-                BulkEvents = gmm_utils:decode(Data),
-                ok = validate_bulk_events(BulkEvents),
-                #{<<"messages">> := MessagesList} = BulkEvents,
-                {#{body => MessagesList}, Req1};
-            {<<"GET">>, stats} ->
-                {#{}, Req0}
-        end,
-    NewState = maps:merge(State, ParsedParams),
-    {cowboy_rest, Req, NewState}.
+init(Req = #{method := <<"GET">>}, State = #{operation := stats}) ->
+    {cowboy_rest, Req, State};
+init(Req0 = #{method := <<"POST">>}, State0 = #{operation := single_event}) ->
+    State1 = gmm_utils:parse_rest_params(Req0, State0, [{id, nonempty}], [{id, fun gmm_utils:validate_vertex_id/1}]),
+    {Req, State2} = gmm_utils:parse_rest_body(Req0, State1, fun parse_event/1),
+    {cowboy_rest, Req, State2};
+init(Req0 = #{method := <<"POST">>}, State0 = #{operation := bulk}) ->
+    {Req, NewState} = gmm_utils:parse_rest_body(Req0, State0, fun parse_bulk_events/1),
+    {cowboy_rest, Req, NewState};
+init(Req, _) ->
+    {cowboy_rest, Req, bad_request}.
 
 allowed_methods(Req, State) ->
     {[<<"POST">>, <<"GET">>], Req, State}.
@@ -59,27 +48,25 @@ content_types_accepted(Req, State) ->
 content_types_provided(Req, State) ->
     {[{<<"application/json">>, to_json}], Req, State}.
 
+resource_exists(Req, bad_request) ->
+    {false, Req, bad_request};
 resource_exists(Req, State) ->
     {true, Req, State}.
 
 %% todo
 %% POST handler
-from_json(Req, State) ->
-    Result =
-        case maps:get(operation, State) of
-            single_event -> io:format("~p\n", [maps:get(body, State)]), ok;
-            bulk -> io:format("~p\n", [maps:get(body, State)]), {error, ""}
-        end,
-    SuccessFlag =
-        case Result of
-            ok -> true;
-            {error, _} -> false
-        end,
-    {SuccessFlag, Req, State}.
+from_json(Req, bad_request) ->
+    {false, Req, bad_request};
+from_json(Req, State = #{operation := single_event, id := Vertex, body := Event}) ->
+    io:format("~p, ~p\n", [Vertex, Event]),
+    {false, Req, State};
+from_json(Req, State = #{operation := bulk, body := List}) ->
+    io:format("~p\n", [List]),
+    {false, Req, List}.
 
 %% @todo
 %% GET handler
-to_json(Req, State) ->
+to_json(Req, State = #{operation := stats}) ->
     Map = #{
         <<"processing">> => 0,
         <<"processingNanos">> => 0.0,
@@ -104,6 +91,29 @@ to_json(Req, State) ->
 %% internal functions
 %%%---------------------------
 
+-spec parse_event(binary()) -> {ok, map()} | {error, any()}.
+parse_event(Bin) ->
+    Event = gmm_utils:decode(Bin),
+    case validate_event(Event) of
+        ok -> {ok, Event};
+        {error, Reason} -> {error, Reason}
+    end.
+
+-spec parse_bulk_events(binary()) -> {ok, map()} | {error, any()}.
+parse_bulk_events(Bin) ->
+    case gmm_utils:decode(Bin) of
+        #{<<"messages">> := List} when is_list(List) ->
+            Parser =
+                fun(#{<<"vn">> := VertexName, <<"e">> := Event}) when is_binary(VertexName) -> validate_event(Event);
+                    (_) -> {error, "Invalid JSON"}
+                end,
+            case lists:all(fun(X) -> Parser(X) == ok end, List) of
+                true -> {ok, List};
+                false -> {error, "Some event is invalid"}
+            end;
+        _ -> {error, "Invalid JSON"}
+    end.
+
 -spec validate_event(any()) -> ok | {error, any()}.
 validate_event(#{<<"type">> := Type, <<"trace">> := Trace, <<"sender">> := Sender,
                 <<"originalSender">> := OriginalSender, <<"effectiveVertices">> := EffectiveVertices}) when
@@ -119,21 +129,3 @@ validate_event(#{<<"type">> := Type, <<"trace">> := Trace, <<"sender">> := Sende
     end;
 validate_event(_) ->
     {error, "Event's JSON in a wrong format"}.
-
--spec validate_bulk_events(any()) -> ok | {error, any()}.
-validate_bulk_events(#{<<"messages">> := List}) when is_list(List) ->
-    Fun =
-        fun(#{<<"vn">> := Vn, <<"e">> := Event}) when is_binary(Vn) ->
-            case validate_event(Event) of
-                ok -> true;
-                {error, _} -> false
-            end;
-        (_) ->
-            false
-        end,
-    case lists:all(Fun, List) of
-        true -> ok;
-        false -> {error, "One of events is not in correct format"}
-    end;
-validate_bulk_events(_) ->
-    {error, "Bulk event's JSON in a wrong format"}.

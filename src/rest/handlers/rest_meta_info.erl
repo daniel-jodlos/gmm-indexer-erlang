@@ -26,21 +26,25 @@
 %% cowboy_rest callbacks
 %%%---------------------------
 
-init(Req0, State) ->
-    Method = cowboy_req:method(Req0),
-    {Req, ParsedParams} =
-        case {maps:get(operation, State), Method} of
-            {health_check, <<"GET">>} -> {Req0, #{}};
-            {index_ready, <<"GET">>} -> {Req0, #{}};
-            {dependent_zones, <<"POST">>} ->
-                {ok, Data, Req1} = cowboy_req:read_body(Req0),
-                {Req1, #{body => Data}};
-            {instrumentation, <<"GET">>} -> {Req0, #{}};
-            {instrumentation, <<"PUT">>} -> {Req0, cowboy_req:match_qs([{enabled, nonempty}], Req0)};
-            {indexation, <<"PUT">>} -> {Req0, cowboy_req:match_qs([{enabled, nonempty}], Req0)}
-        end,
-    NewState = maps:merge(maps:put(method, Method, State), ParsedParams),
-    {cowboy_rest, Req, NewState}.
+init(Req = #{method := <<"GET">>}, State = #{operation := health_check}) ->
+    {cowboy_rest, Req, State};
+init(Req = #{method := <<"GET">>}, State = #{operation := index_ready}) ->
+    {cowboy_rest, Req, State};
+init(Req = #{method := <<"GET">>}, State = #{operation := instrumentation}) ->
+    {cowboy_rest, Req, State};
+init(Req = #{method := <<"PUT">>}, State = #{operation := instrumentation}) ->
+    NewState = gmm_utils:parse_rest_params(Req, State, [{enabled, nonempty}],
+        [{enabled, fun gmm_utils:parse_boolean/1}]),
+    {cowboy_rest, Req, NewState};
+init(Req = #{method := <<"PUT">>}, State = #{operation := indexation}) ->
+    NewState = gmm_utils:parse_rest_params(Req, State, [{enabled, nonempty}],
+        [{enabled, fun gmm_utils:parse_boolean/1}]),
+    {cowboy_rest, Req, NewState};
+init(Req0 = #{method := <<"POST">>}, State = #{operation := dependent_zones}) ->
+    {Req, NewState} = gmm_utils:parse_rest_body(Req0, State, fun parse_dependent_zones/1),
+    {cowboy_rest, Req, NewState};
+init(Req, _) ->
+    {cowboy_rest, Req, bad_request}.
 
 allowed_methods(Req, State) ->
     {[<<"GET">>, <<"POST">>, <<"PUT">>], Req, State}.
@@ -52,42 +56,34 @@ content_types_provided(Req, State) ->
     {[{<<"application/json">>, to_json}], Req, State}.
 
 %% @todo implement case for dependent_zones, if needed
+resource_exists(Req, bad_request) ->
+    {false, Req, bad_request};
 resource_exists(Req, State) ->
     {true, Req, State}.
 
 %% POST/PUT handler
-from_json(Req, State) ->
-    Result =
-        case maps:get(operation, State) of
-            instrumentation ->
-                parse_bool_and_execute(maps:get(enabled, State), fun set_instrumentation/1);
-            indexation ->
-                parse_bool_and_execute(maps:get(enabled, State), fun set_indexation/1);
-            dependent_zones ->
-                case parse_dependent_zones(maps:get(body, State)) of
-                    {ok, List} -> set_dependent_zones(List);
-                    {error, Reason} -> {error, Reason}
-                end
-        end,
-    case Result of
-        ok -> {true, Req, State};
-        {ok, Value} ->
-            Req1 = cowboy_req:set_resp_body(gmm_utils:encode(Value), Req),
-            {true, Req1, State};
-        _ -> {false, Req, State}
-    end.
+from_json(Req, bad_request) ->
+    {false, Req, bad_request};
+from_json(Req, State = #{operation := instrumentation, enabled := Bool}) ->
+    ok = set_instrumentation(Bool),
+    {true, Req, State};
+from_json(Req, State = #{operation := indexation, enabled := Bool}) ->
+    ok = set_indexation(Bool),
+    {true, Req, State};
+from_json(Req0, State = #{operation := dependent_zones, body := List}) ->
+    {ok, NewList} = set_dependent_zones(List),
+    Req = cowboy_req:set_resp_body(gmm_utils:encode(#{<<"zones">> => NewList}), Req0),
+    {true, Req, State}.
 
 %% GET handler
-to_json(Req, State) ->
-    %% Result should be boolean
-    Result =
-        case maps:get(operation, State) of
-            health_check -> {ok, true};
-            index_ready -> is_index_up_to_date();
-            instrumentation -> get_instrumentation()
-        end,
-    {ok, Value} = Result,
-    {gmm_utils:encode(Value), Req, State}.
+to_json(Req, State = #{operation := health_check}) ->
+    {gmm_utils:encode(true), Req, State};
+to_json(Req, State = #{operation := index_ready}) ->
+    {ok, Bool} = is_index_up_to_date(),
+    {gmm_utils:encode(Bool), Req, State};
+to_json(Req, State = #{operation := instrumentation}) ->
+    {ok, Bool} = get_instrumentation(),
+    {gmm_utils:encode(Bool), Req, State}.
 
 
 %%%---------------------------
@@ -128,14 +124,7 @@ parse_dependent_zones(Data) ->
         List when is_list(List) ->
             case lists:all(fun is_binary/1, List) of
                 true -> {ok, List};
-                false -> {error, "Some element is not binary string"}
+                false -> {error, "Incorrect list"}
             end;
-        _ -> {error, "Json is not not a list"}
-    end.
-
--spec parse_bool_and_execute(binary(), fun((boolean()) -> ok | {error, any()})) -> ok | {error, any()}.
-parse_bool_and_execute(Arg, Fun) ->
-    case gmm_utils:parse_boolean(Arg) of
-        {ok, Bool} -> Fun(Bool);
-        {error, Reason} -> {error, Reason}
+        _ -> {error, "Invalid JSON"}
     end.

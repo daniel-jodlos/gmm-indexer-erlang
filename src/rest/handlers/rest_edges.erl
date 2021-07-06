@@ -26,39 +26,26 @@
 %% cowboy_rest callbacks
 %%%---------------------------
 
-init(Req0, State) ->
-    Operation = maps:get(operation, State),
-    {ParsedParams, Req} =
-        case Operation of
-            Op when Op =:= add; Op =:= update ->
-                {cowboy_req:match_qs([
-                    {from, nonempty}, {to, nonempty}, {permissions, nonempty},
-                    {trace, [], undefined}, {successive, nonempty}
-                ], Req0), Req0};
-            delete ->
-                {maps:merge(cowboy_req:match_qs([
-                    {from, nonempty}, {to, nonempty}, {trace, [], undefined}, {successive, nonempty}
-                ], Req0), #{permissions => undefined}), Req0};
-            bulk ->
-                {ok, Data, Req1} = cowboy_req:read_body(Req0),
-                ParsedJson = gmm_utils:decode(Data),
-                {ok, Map} = parse_bulk_request(ParsedJson),
-                {#{bulk_request => Map}, Req1}
-        end,
-    if
-        Operation == add; Operation == update; Operation == delete ->
-            ok = gmm_utils:validate_vertex_id(maps:get(from, ParsedParams)),
-            ok = gmm_utils:validate_vertex_id(maps:get(to, ParsedParams));
-        true -> ok
-    end,
-    NewState = maps:merge(State,
-        case maps:find(successive, ParsedParams) of
-            {ok, SuccessiveBin} ->
-                {ok, Successive} = gmm_utils:parse_boolean(SuccessiveBin),
-                maps:update(successive, Successive, ParsedParams);
-            _ -> ParsedParams
-        end),
-    {cowboy_rest, Req, NewState}.
+init(Req, State = #{operation := Op}) when Op == add; Op == update ->
+    NewState = gmm_utils:parse_rest_params(Req, State,
+        [{from, nonempty}, {to, nonempty}, {permissions, nonempty}, {trace, [], undefined}, {successive, nonempty}],
+        [{from, fun gmm_utils:validate_vertex_id/1}, {to, fun gmm_utils:validate_vertex_id/1},
+            {successive, fun gmm_utils:parse_boolean/1}]),
+    {cowboy_rest, Req, NewState};
+init(Req, State = #{operation := delete}) ->
+    NewState = gmm_utils:parse_rest_params(Req, State,
+        [{from, nonempty}, {to, nonempty}, {trace, [], undefined}, {successive, nonempty}],
+        [{from, fun gmm_utils:validate_vertex_id/1}, {to, fun gmm_utils:validate_vertex_id/1},
+            {successive, fun gmm_utils:parse_boolean/1}]),
+    case NewState of
+        bad_request -> {cowboy_rest, Req, bad_request};
+        _ -> {cowboy_rest, Req, maps:merge(NewState, #{permissions => undefined})}
+    end;
+init(Req0, State = #{operation := bulk}) ->
+    {Req, NewState} = gmm_utils:parse_rest_body(Req0, State, fun parse_bulk_request/1),
+    {cowboy_rest, Req, NewState};
+init(Req, _) ->
+    {cowboy_rest, Req, bad_request}.
 
 allowed_methods(Req, State) ->
     {[<<"POST">>], Req, State}.
@@ -70,25 +57,18 @@ resource_exists(Req, State) ->
     {false, Req, State}.
 
 %% POST handler
-from_json(Req, State) ->
-    Result =
-        case maps:get(operation, State) of
-            Op when Op == add; Op == update; Op == delete ->
-                #{from := From, to := To, permissions := Permissions, trace := Trace, successive := Successive} = State,
-                execute_operation(Op, From, To, Permissions, Trace, Successive);
-            bulk ->
-                %% @todo execute bulk request parsed in init/2
-                #{src_zone := _SourceZone, dst_zone := _DestinationZone, successive := _Successive, edges := _Edges} =
-                    maps:get(bulk_request, State),
-                execute_bulk_request()
-        end,
-    Flag =
-        case Result of
-            ok -> true;
-            {error, _} -> false
-        end,
-    {Flag, Req, State}.
-
+from_json(Req, bad_request) ->
+    {false, Req, bad_request};
+from_json(Req, State = #{operation := Op, from := From, to := To, permissions := Permissions, trace := Trace,
+        successive := Successive}) when Op == add; Op == update; Op == delete ->
+    ok = execute_operation(Op, From, To, Permissions, Trace, Successive),
+    {true, Req, State};
+%%from_json(Req, State = #{operation := bulk, body := #{
+%%        src_zone := _SrcZone, dst_zone := _DstZone, successive = _Successive, edges := _Edges}}) ->
+from_json(Req, State = #{operation := bulk, body := _}) ->
+    %% @todo execute bulk request parsed in init/2
+    {error, _} = execute_bulk_request(),
+    {true, Req, State}.
 
 %%%---------------------------
 %% internal functions
@@ -108,19 +88,26 @@ parse_edge_string(Bin) when is_binary(Bin) ->
 parse_edge_string(_) ->
     {error, "Argument is not a binary"}.
 
--spec parse_bulk_request(any()) -> {ok, map()} | {error, any()}.
-parse_bulk_request(#{<<"sourceZone">> := SourceZone, <<"destinationZone">> := DestinationZone,
-                        <<"successive">> := SuccessiveBin, <<"edges">> := List})
-        when is_binary(SourceZone), is_binary(DestinationZone), is_list(List) ->
-    ParsedEdges = lists:map(fun parse_edge_string/1, List),
-    case {gmm_utils:parse_boolean(SuccessiveBin), lists:all(fun({ok, _}) -> true; (_) -> false end, ParsedEdges)} of
-        {{ok, Successive}, true} ->
-            {_, ParsedList} = lists:unzip(ParsedEdges),
-            {ok, #{src_zone => SourceZone, dst_zone => DestinationZone, successive => Successive, edges => ParsedList}};
+-spec parse_bulk_request(binary()) -> {ok, map()} | {error, any()}.
+parse_bulk_request(Bin) ->
+    case gmm_utils:decode(Bin) of
+        #{<<"sourceZone">> := SourceZone, <<"destinationZone">> := DestinationZone, <<"successive">> := SuccessiveBin,
+                <<"edges">> := List} when is_binary(SourceZone), is_binary(DestinationZone), is_list(List) ->
+            ParsedEdges = lists:map(fun parse_edge_string/1, List),
+            case gmm_utils:parse_boolean(SuccessiveBin) of
+                {ok, Successive} ->
+                    case lists:all(fun({ok, _}) -> true; (_) -> false end, ParsedEdges) of
+                        true -> {_, ParsedList} = lists:unzip(ParsedEdges),
+                            {ok, #{
+                                src_zone => SourceZone, dst_zone => DestinationZone,
+                                successive => Successive, edges => ParsedList
+                            }};
+                        false -> {error, "Invalid JSON"}
+                    end;
+                {error, Reason} -> {error, Reason}
+            end;
         _ -> {error, "Invalid JSON"}
-    end;
-parse_bulk_request(_) ->
-    {error, "Invalid JSON"}.
+    end.
 
 
 %%%---------------------------

@@ -29,22 +29,17 @@
 init(Req = #{method := <<"POST">>}, State = #{operation := add}) ->
     NewState = gmm_utils:parse_rest_params(Req, State, [{type, nonempty}, {name, nonempty}], []),
     {cowboy_rest, Req, NewState};
-
 init(Req = #{method := <<"GET">>}, State = #{operation := details}) ->
     NewState = gmm_utils:parse_rest_params(Req, State, [{id, nonempty}], [{id, fun gmm_utils:validate_vertex_id/1}]),
     {cowboy_rest, Req, NewState};
-
 init(Req = #{method := <<"GET">>}, State = #{operation := listing}) ->
     {cowboy_rest, Req, State};
-
 init(Req = #{method := <<"POST">>}, State = #{operation := delete}) ->
     NewState = gmm_utils:parse_rest_params(Req, State, [{id, nonempty}], [{id, fun gmm_utils:validate_vertex_id/1}]),
     {cowboy_rest, Req, NewState};
-
 init(Req0 = #{method := <<"POST">>}, State = #{operation := bulk}) ->
     {Req, NewState} = gmm_utils:parse_rest_body(Req0, State, fun parse_bulk_list/1),
     {cowboy_rest, Req, NewState};
-
 init(Req, _) ->
     {cowboy_rest, Req, bad_request}.
 
@@ -89,22 +84,8 @@ from_json(Req, State = #{operation := delete, id := Id}) ->
     ok = graph:remove_vertex(Id),
     {true, Req, State};
 from_json(Req, State = #{operation := bulk, body := List}) ->
-    lists:foreach(fun({Type, Name}) -> ok = graph:create_vertex(Type, Name) end, List),
+    lists:foreach(fun({Type, Name}) -> {ok, _} = graph:create_vertex(Type, Name) end, List),
     {true, Req, State}.
-%%from_json(Req, State) ->
-%%    ExecutionResult =
-%%        case maps:get(operation, State) of
-%%            add -> graph:create_vertex(maps:get(type, State), maps:get(name, State));
-%%            delete -> graph:remove_vertex(maps:get(id, State));
-%%            bulk -> lists:foreach(fun({Type, Name}) -> graph:create_vertex(Type, Name) end, maps:get(body, State))
-%%        end,
-%%    case ExecutionResult of
-%%        ok ->
-%%            {true, Req, State};
-%%        {ok, Val} ->
-%%            Req1 = cowboy_req:set_resp_body(gmm_utils:encode(Val), Req),
-%%            {true, Req1, State}
-%%    end.
 
 %% GET handler
 to_json(Req, State = #{operation := details, id := Id}) ->

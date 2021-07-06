@@ -26,14 +26,12 @@
 %% cowboy_rest callbacks
 %%%---------------------------
 
-init(Req, State) ->
-    ParsedParams =
-        case maps:get(operation, State) of
-            Op when Op =:= reaches; Op =:= effective_permissions ->
-                cowboy_req:match_qs([{from, nonempty}, {to, nonempty}], Req);
-            members -> cowboy_req:match_qs([{'of', nonempty}], Req)
-        end,
-    NewState = maps:merge(State, ParsedParams),
+init(Req, State = #{operation := Op}) when Op == reaches; Op == effective_permissions ->
+    NewState = gmm_utils:parse_rest_params(Req, State, [{from, nonempty}, {to, nonempty}],
+        [{from, fun gmm_utils:validate_vertex_id/1}, {to, fun gmm_utils:validate_vertex_id/1}]),
+    {cowboy_rest, Req, NewState};
+init(Req, State = #{operation := members}) ->
+    NewState = gmm_utils:parse_rest_params(Req, State, [{'of', nonempty}], [{'of', fun gmm_utils:validate_vertex_id/1}]),
     {cowboy_rest, Req, NewState}.
 
 allowed_methods(Req, State) ->
@@ -46,9 +44,8 @@ resource_exists(Req, State) ->
     {true, Req, State}.
 
 %% POST handler
-from_json(Req, State) ->
-    #{operation := Operation, algorithm := Algorithm} = State,
-    ExecutionResult =
+from_json(Req, State = #{operation := Operation, algorithm := Algorithm}) ->
+    {ok, Result} =
         case {Operation, Algorithm} of
             {reaches, naive} ->
                 execute(fun reaches_naive/2, [maps:get(from, State), maps:get(to, State)], <<"reaches">>);
@@ -65,16 +62,8 @@ from_json(Req, State) ->
             {members, indexed} ->
                 execute(fun members_indexed/1, [maps:get('of', State)], <<"members">>)
         end,
-
-    %% @todo !!! - continue correcting this sh*t
-    {Flag, NewReq} =
-        case ExecutionResult of
-            {ok, Map} ->
-                Req1 = cowboy_req:set_resp_body(gmm_utils:encode(Map), Req),
-                {true, Req1};
-            {error, _} -> {false, Req}
-        end,
-    {Flag, NewReq, State}.
+    Req1 = cowboy_req:set_resp_body(gmm_utils:encode(Result), Req),
+    {true, Req1, State}.
 
 
 %%%---------------------------
