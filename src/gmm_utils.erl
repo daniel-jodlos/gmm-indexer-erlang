@@ -213,7 +213,7 @@ parse_rest_params(Req, State, ParamsSpec, ParsingSpec) ->
         ParsedParams =
             lists:foldl(
                 fun({Key, Fun}, Acc) ->
-                    case Fun(maps:get(Key, State)) of
+                    case Fun(maps:get(Key, Acc)) of
                         ok -> Acc;
                         {ok, Value} -> maps:update(Key, Value, Acc)
                     end
@@ -224,12 +224,12 @@ parse_rest_params(Req, State, ParamsSpec, ParsingSpec) ->
     catch _:_ -> bad_request end.
 
 -spec parse_rest_body( Req :: cowboy_req:req(), State :: rest_handler_state(),
-    Parser :: fun((any()) -> {ok, any()}) ) -> {cowboy_req:req(), rest_handler_state()}.
+    Parser :: fun((binary()) -> {ok, any()}) ) -> {cowboy_req:req(), rest_handler_state()}.
 parse_rest_body(Req, bad_request, _) ->
     {Req, bad_request};
 parse_rest_body(Req0, State, Parser) ->
     try
         {ok, Data, Req1} = cowboy_req:read_body(Req0),
-        {ok, Body} = Parser( gmm_utils:decode(Data) ),
+        {ok, Body} = Parser( Data ),
         {Req1, maps:merge(State, #{body => Body})}
     catch _:_ -> {Req0, bad_request} end.
