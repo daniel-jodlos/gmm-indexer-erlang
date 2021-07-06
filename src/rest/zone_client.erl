@@ -69,28 +69,28 @@ index_ready(AllZones) when is_list(AllZones) ->
 is_adjacent(Zone, From, To) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"is_adjacent">>, [{<<"from">>, From}, {<<"to">>, To}]),
-    http_executor:post_request(Url, true).
+    http_executor:post(Url, true).
 
 % SHOULD POTENTIAL
 -spec list_adjacent(Zone:: binary(), Of:: binary()) -> {ok, list(binary())} | {error, any()}.
 list_adjacent(Zone, Of) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"list_adjacent">>, [{<<"of">>, Of}]),
-    http_executor:post_request(Url, true).
+    http_executor:post(Url, true).
 
 % SHOULD POTENTIAL
 -spec list_adjacent_reversed(Zone:: binary(), Of:: binary()) -> {ok, list(binary())} | {error, any()}.
 list_adjacent_reversed(Zone, Of) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"list_adjacent_reversed">>, [{<<"of">>, Of}]),
-    http_executor:post_request(Url, true).
+    http_executor:post(Url, true).
 
 % MUST POTENTIAL
 -spec permissions(Zone::binary(), From:: binary(), To:: binary()) -> {ok, binary()} | {error, any()}.
 permissions(Zone, From, To) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"permissions">>, [{<<"from">>, From}, {<<"to">>, To}]),
-    http_executor:post_request(Url, true).
+    http_executor:post(Url, true).
 
 % MUST
 -spec add_edge(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: permissions(), Trace:: binary()
@@ -106,7 +106,7 @@ add_edge(Zone, From, To, Permissions, Trace, Successive) ->
     Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"permissions">>, Permissions}, {<<"successive">>, atom_to_binary(Successive, utf8)}]
       ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
     Url = http_utils:build_url(Address, <<"graph/edges">>, Params),
-    http_executor:post_request(Url, false).
+    http_executor:post(Url, false).
 
 -spec add_edges(Zone:: binary(), BulkRequest:: binary()) -> ok | {error, any()}.
 add_edges(Zone, BulkRequest) ->
@@ -125,7 +125,7 @@ remove_edge(Zone, From, To, Trace, Successive) ->
     Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"successive">>, atom_to_binary(Successive, utf8)}]
       ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
     Url = http_utils:build_url(Address, <<"graph/edges/delete">>, Params),
-    http_executor:post_request(Url, false).
+    http_executor:post(Url, false).
 
 % MUST
 -spec set_permissions(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: permissions(),
@@ -141,7 +141,7 @@ set_permissions(Zone, From, To, Permissions, Trace, Successive) ->
     Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"permissions">>, Permissions}, {<<"successive">>, atom_to_binary(Successive, utf8)}]
       ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
     Url = http_utils:build_url(Address, <<"graph/edges/permissions">>, Params),
-    http_executor:post_request(Url, false).
+    http_executor:post(Url, false).
 
 % MUST
 -spec add_vertex(Zone:: binary(), Name:: binary(), Type:: binary()) -> ok | {error, any()}.
@@ -149,7 +149,7 @@ add_vertex(Zone, Name, Type) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"graph/vertices">>,
       [{<<"type">>, Type}, {<<"name">>, Name}]),
-    http_executor:post_request(Url, false).
+    http_executor:post(Url, false).
 
 -spec add_vertices(Zone:: binary(), BulkRequest:: map()) -> ok | {error, any()}.
 add_vertices(Zone, BulkRequest) ->
@@ -214,7 +214,7 @@ reaches(Algo, Zone, From, To) ->
            end,
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, Path, [{<<"from">>, From}, {<<"to">>, To}]),
-    http_executor:post_request(Url, true).
+    http_executor:post(Url, true).
 
 
 % MUST POTENTIAL
@@ -226,7 +226,7 @@ members(Algo, Zone, Of) ->
           end,
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, Path, [{<<"of">>, Of}]),
-    http_executor:post_request(Url, true).
+    http_executor:post(Url, true).
 
 -spec effective_permissions(Algo:: naive | reaches, Zone:: binary(), From:: binary(),
     To:: binary()) -> {ok, map()} | {error, any()}.
@@ -237,4 +237,4 @@ effective_permissions(Algo, Zone, From, To) ->
            end,
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, Path, [{<<"from">>, From}, {<<"to">>, To}]),
-    http_executor:post_request(Url, true).
+    http_executor:post(Url, true).

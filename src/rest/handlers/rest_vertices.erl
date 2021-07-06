@@ -76,13 +76,20 @@ from_json(Req, State) ->
             delete -> graph:remove_vertex(maps:get(id, State));
             bulk -> lists:foreach(fun({Type, Name}) -> graph:create_vertex(Type, Name) end, maps:get(body, State))
         end,
-    RequestResult =
-        case ExecutionResult of
-            ok -> true;
-            {ok, Val} -> {true, gmm_utils:encode(Val)};
-            {error, _} -> false
-        end,
-    {RequestResult, Req, State}.
+    case ExecutionResult of
+        ok -> {true, Req, State};
+        {ok, Val} ->
+            Req1 = cowboy_req:set_resp_body(gmm_utils:encode(Val), Req),
+            {true, Req1, State};
+        {error, _} -> {false, Req, State}
+    end.
+%%    RequestResult =
+%%        case ExecutionResult of
+%%            ok -> true;
+%%            {ok, Val} -> {true, gmm_utils:encode(Val)};
+%%            {error, _} -> false
+%%        end,
+%%    {RequestResult, Req, State}.
 
 %% GET handler
 to_json(Req, State) ->

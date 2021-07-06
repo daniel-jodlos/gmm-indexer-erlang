@@ -15,6 +15,11 @@
     all_empty/0
 ]).
 
+%% @todo resolve this sh*t
+-dialyzer({nowarn_function, outbox_routine/2}).
+-dialyzer({nowarn_function, maximum_delay/0}).
+-dialyzer({nowarn_function, backoff_factor/0}).
+
 %%%---------------------------
 %% Exported functions
 %%%---------------------------
@@ -31,10 +36,10 @@ specs_for_supervisor() ->
 init_outbox(Zone) ->
     case ets:member(outboxes, Zone) of
         true -> ets:update_element(outboxes, Zone, {2, self()});
-        false -> ets:insert(outboxes, {Zone, self(), initial_delay(), []})
+        false -> ets:insert(outboxes, {Zone, self(), []})
     end,
     timer:send_after(initial_delay(), send),
-    outbox_routine(Zone).
+    outbox_routine(Zone, initial_delay()).
 
 -spec post(Vertex :: binary(), Event :: map()) -> ok.
 post(Vertex, Event) ->
@@ -72,47 +77,48 @@ backoff_factor() -> 1.2.
 outbox_pid(Zone) ->
     ets:lookup_element(outboxes, Zone, 2).
 
+%% @todo powinien wywalac sie ten kto zglasza event, nie outbox
 -spec queue_event(Zone :: binary(), Vertex :: binary(), Event :: binary()) -> ok.
 queue_event(Zone, Vertex, Event) ->
     {Zone, Name} = gmm_utils:split_vertex_id(Vertex),
-    OldQueue = ets:lookup_element(outboxes, Zone, 4),
+    OldQueue = ets:lookup_element(outboxes, Zone, 3),
     ets:update_element(outboxes, Zone, {4, OldQueue ++ [{Name, Event}]}),
     ok.
 
 -spec check_emptiness(Zone :: binary()) -> boolean().
 check_emptiness(Zone) ->
-    case ets:lookup_element(outboxes, Zone, 4) of
+    case ets:lookup_element(outboxes, Zone, 3) of
         [] -> true;
         _ -> false
     end.
 
--spec poll_batch(Events :: list(map())) -> {list(map()), list(map())}.
-poll_batch(Events) ->
+-spec poll_batch(Zone :: binary()) -> {list(map()), list(map())}.
+poll_batch(Zone) when is_binary(Zone) ->
+    Events = ets:lookup_element(outboxes, Zone, 3),
     BatchSize = gmm_utils:batch_size(),
     case length(Events) of
         Small when Small =< BatchSize -> {Events, []};
         _Large -> lists:split(BatchSize, Events)
     end.
 
--spec try_sending(Zone :: binary(), Batch :: list(map()), Remaining :: list(map())) -> {list(map()), integer()}.
-try_sending(_, [], Remaining) ->
-    {Remaining, initial_delay()};
-try_sending(Zone, Batch, Remaining) ->
+-spec try_sending(Zone :: binary(), Batch :: list(map())) -> ok | no_events | {error, any()}.
+try_sending(_, []) ->
+    no_events;
+try_sending(Zone, Batch) ->
+    NameEventPairs = lists:map(
+        fun({Vertex, Event}) ->
+            {_, Name} = gmm_utils:split_vertex_id(Vertex),
+            {Name, Event}
+        end, Batch),
     MessagesList = lists:map(
         fun({Name, Event}) ->
             #{
                 <<"vn">> => Name,
                 <<"e">> => Event
             }
-        end, Batch),
+        end, NameEventPairs),
     BulkObject = #{<<"messages">> => MessagesList},
-    case zone_client:post_events(Zone, BulkObject) of
-        ok -> {Remaining, initial_delay()};
-        {error, _} ->
-            CurrDelay = ets:lookup_element(outboxes, Zone, 3),
-            NextDelay = min( trunc(CurrDelay * backoff_factor()), maximum_delay() ),
-            {Batch ++ Remaining, NextDelay}
-    end.
+    zone_client:post_events(Zone, BulkObject).
 
 -spec collect_answers(Acc :: boolean(), MsgToRead :: integer()) -> boolean().
 collect_answers(Acc, 0) -> Acc;
@@ -124,16 +130,23 @@ collect_answers(Acc, MsgToRead) ->
 
 %% Servant process
 
-outbox_routine(Zone) ->
+outbox_routine(Zone, Delay) ->
     receive
         {is_empty, Pid} ->
-            Pid ! {is_empty, check_emptiness(Zone)};
+            Pid ! {is_empty, check_emptiness(Zone)},
+            outbox_routine(Zone, Delay);
         send ->
-            {Batch, Remaining} = poll_batch(ets:lookup_element(outboxes, Zone, 4)),
-            {FinalQueue, Delay} = try_sending(Zone, Batch, Remaining),
-            ets:update_element(outboxes, Zone, [{3, Delay}, {4, FinalQueue}]),
-            timer:send_after(Delay, send);
+            {Batch, Remaining} = poll_batch(Zone),
+            NextDelay =
+                case try_sending(Zone, Batch) of
+                    ok ->
+                        ets:update_element(outboxes, Zone, {3, Remaining}),
+                        initial_delay();
+                    no_events -> initial_delay();
+                    {error, _} -> min( trunc(Delay * backoff_factor()), maximum_delay() )
+                end,
+            outbox_routine(Zone, NextDelay);
         {event, {Vertex, Event}} ->
-            queue_event(Zone, Vertex, Event)
-    end,
-    outbox_routine(Zone).
+            queue_event(Zone, Vertex, Event),
+            outbox_routine(Zone, Delay)
+    end.

@@ -65,12 +65,16 @@ from_json(Req, State) ->
             {members, indexed} ->
                 execute(fun members_indexed/1, [maps:get('of', State)], <<"members">>)
         end,
-    RequestResult =
+
+    %% @todo !!! - continue correcting this sh*t
+    {Flag, NewReq} =
         case ExecutionResult of
-            {ok, Map} -> {true, gmm_utils:encode(Map)};
-            {error, _} -> false
+            {ok, Map} ->
+                Req1 = cowboy_req:set_resp_body(gmm_utils:encode(Map), Req),
+                {true, Req1};
+            {error, _} -> {false, Req}
         end,
-    {RequestResult, Req, State}.
+    {Flag, NewReq, State}.
 
 
 %%%---------------------------

@@ -71,7 +71,9 @@ from_json(Req, State) ->
         end,
     case Result of
         ok -> {true, Req, State};
-        {ok, Value} -> {{true, gmm_utils:encode(Value)}, Req, State};
+        {ok, Value} ->
+            Req1 = cowboy_req:set_resp_body(gmm_utils:encode(Value), Req),
+            {true, Req1, State};
         _ -> {false, Req, State}
     end.
 

@@ -88,7 +88,9 @@ from_json(Req, State) ->
                 {error, "Resource not found"}
         end,
     case Result of
-        {ok, Value} -> {{true, gmm_utils:encode(Value)}, Req, State};
+        {ok, Value} ->
+            Req1 = cowboy_req:set_resp_body(gmm_utils:encode(Value), Req),
+            {true, Req1, State};
         {error, _} -> {false, Req, State}
     end.
 
