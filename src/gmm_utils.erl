@@ -32,7 +32,10 @@
     batch_size/0,
     convert_microseconds_to_iso_8601/1,
     permissions_and/2,
-    permissions_or/2
+    permissions_or/2,
+
+    parse_rest_params/4,
+    parse_rest_body/3
 ]).
 
 -include("records.hrl").
@@ -200,3 +203,33 @@ permissions_and(A,B) ->
 -spec permissions_or(A :: permissions(), B :: permissions()) -> permissions().
 permissions_or(A,B) ->
     combine_permissions(A,B, fun (X,Y) -> X or Y end).
+
+
+-spec parse_rest_params( Req :: cowboy_req:req(), State :: rest_handler_state(), ParamsSpec :: cowboy:fields(),
+    ParsingSpec :: list({atom(), fun((binary()) -> ok | {ok, any()})} ) ) -> rest_handler_state().
+parse_rest_params(Req, State, ParamsSpec, ParsingSpec) ->
+    try
+        ReadParams = cowboy_req:match_qs(ParamsSpec, Req),
+        ParsedParams =
+            lists:foldl(
+                fun({Key, Fun}, Acc) ->
+                    case Fun(maps:get(Key, Acc)) of
+                        ok -> Acc;
+                        {ok, Value} -> maps:update(Key, Value, Acc)
+                    end
+                end,
+                ReadParams, ParsingSpec
+            ),
+        maps:merge(State, ParsedParams)
+    catch _:_ -> bad_request end.
+
+-spec parse_rest_body( Req :: cowboy_req:req(), State :: rest_handler_state(),
+    Parser :: fun((binary()) -> {ok, any()}) ) -> {cowboy_req:req(), rest_handler_state()}.
+parse_rest_body(Req, bad_request, _) ->
+    {Req, bad_request};
+parse_rest_body(Req0, State, Parser) ->
+    try
+        {ok, Data, Req1} = cowboy_req:read_body(Req0),
+        {ok, Body} = Parser( Data ),
+        {Req1, maps:merge(State, #{body => Body})}
+    catch _:_ -> {Req0, bad_request} end.

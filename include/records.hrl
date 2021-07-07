@@ -13,3 +13,5 @@
 -define(ZONE_ID, os:getenv("ZONE_ID", "zone0")).
 
 -type permissions() :: <<_:5*8>>.
+
+-type rest_handler_state() :: bad_request | map().

@@ -10,41 +10,52 @@
 
 %% API
 -export([
-    request/3,
-    request/4,
-
-    get_request/2,
-    delete_request/1,
-    post_request/2,
-    post_request/3
+    post/2,
+    post/3,
+    get/1,
+    put/1
 ]).
-
 
 %%%---------------------------
 %% Implementations
 %%%---------------------------
 
-%% generic requests
+%% Specific requests
 
--spec request(Method :: atom(), Url :: binary(), Body :: binary(), GetResponse :: boolean()) ->
+post(Url, GetResponse) ->
+    request(post, Url, GetResponse).
+
+post(Url, Body, GetResponse) ->
+    request(post, Url, Body, GetResponse).
+
+get(Url) ->
+    request(get, Url, true).
+
+put(Url) ->
+    request(put, Url, false).
+
+
+%% Generic requests
+
+-spec request(Method :: atom(), Url :: binary(), RawBody :: undefined | any(), GetResponse :: boolean()) ->
     ok | {ok, any()} | {error, any()}.
-request(Method, Url, Body, GetResponse) ->
+request(Method, Url, RawBody, GetResponse) ->
     application:ensure_all_started(hackney),
+    Body =
+        case RawBody of
+            undefined -> <<>>;
+            _ -> gmm_utils:encode(RawBody)
+        end,
     ReqHeaders = [{<<"Content-Type">>, <<"application/json">>}],
     case hackney:request(Method, Url, ReqHeaders, Body) of
-        {ok, SCode, Headers, ConnRef} when SCode < 400 ->
-            case {Method, GetResponse} of
-                {get, true} ->
+        {ok, SCode, _, ConnRef} when (SCode div 100) == 2 ->
+            case GetResponse of
+                true ->
                     case hackney:body(ConnRef) of
                         {ok, Bin} -> {ok, gmm_utils:decode(Bin)};
                         {error, R1} -> {error, R1}
                     end;
-                {post, true} ->
-                    case lists:keyfind(<<"location">>, 1, Headers) of
-                        false -> {error, "Answer not found"};
-                        {_, Bin} -> {ok, gmm_utils:decode(Bin)}
-                    end;
-                {_, false} -> ok
+                false -> ok
             end;
         {ok, SCode, _, _} -> {error, SCode};
         {error, R2} -> {error, R2}
@@ -53,23 +64,4 @@ request(Method, Url, Body, GetResponse) ->
 -spec request(Method :: atom(), Url :: binary(), GetResponse :: boolean()) ->
     ok | {ok, any()} | {error, any()}.
 request(Method, Url, GetResponse) ->
-    request(Method, Url, <<>>, GetResponse).
-
-%% specific requests
-
--spec get_request(Url :: binary(), GetResponse :: boolean()) -> ok | {ok, any()} | {error, any()}.
-get_request(Url, GetResponse) ->
-    request(get, Url, GetResponse).
-
--spec delete_request(Url :: binary()) -> ok | {error, any()}.
-delete_request(Url) ->
-    request(delete, Url, false).
-
--spec post_request(Url :: binary(), GetResponse :: boolean()) -> ok | {ok, any()} | {error, any()}.
-post_request(Url, GetResponse) ->
-    request(post, Url, GetResponse).
-
--spec post_request(Url :: binary(), Body :: binary(), GetResponse :: boolean()) ->
-    ok | {ok, any()} | {error, any()}.
-post_request(Url, Body, GetResponse) ->
-    request(post, Url, Body, GetResponse).
+    request(Method, Url, undefined, GetResponse).

@@ -12,6 +12,7 @@
 -export([
     init/2,
     allowed_methods/2,
+    allow_missing_post/2,
     content_types_accepted/2,
     resource_exists/2
 ]).
@@ -26,71 +27,62 @@
 %% cowboy_rest callbacks
 %%%---------------------------
 
-init(Req, State) ->
-    ParsedParams =
-        case maps:get(operation, State) of
-            Op when Op =:= is_adjacent; Op =:= permissions ->
-                Map = cowboy_req:match_qs([{from, nonempty}, {to, nonempty}], Req),
-                ok = gmm_utils:validate_vertex_id(maps:get(from, Map)),
-                ok = gmm_utils:validate_vertex_id(maps:get(to, Map)),
-                Map;
-            Op when Op =:= list_adjacent; Op =:= list_adjacent_reversed ->
-                Map = cowboy_req:match_qs([{'of', nonempty}], Req),
-                ok = gmm_utils:validate_vertex_id(maps:get('of', Map)),
-                Map
-        end,
-    NewState = maps:merge(State, ParsedParams),
+init(Req, State = #{operation := Op}) when Op == is_adjacent; Op == permissions ->
+    NewState = gmm_utils:parse_rest_params(Req, State, [{from, nonempty}, {to, nonempty}],
+        [{from, fun gmm_utils:validate_vertex_id/1}, {to, fun gmm_utils:validate_vertex_id/1}]),
+    {cowboy_rest, Req, NewState};
+init(Req, State = #{operation := Op}) when Op == list_adjacent; Op == list_adjacent_reversed ->
+    NewState = gmm_utils:parse_rest_params(Req, State, [{'of', nonempty}],
+        [{'of', fun gmm_utils:validate_vertex_id/1}]),
     {cowboy_rest, Req, NewState}.
 
 allowed_methods(Req, State) ->
     {[<<"POST">>], Req, State}.
 
+allow_missing_post(Req, State) ->
+    {false, Req, State}.
+
 content_types_accepted(Req, State) ->
     {[{<<"application/json">>, from_json}], Req, State}.
 
-resource_exists(Req, State) ->
+resource_exists(Req, bad_request) ->
+    {true, Req, bad_request};
+resource_exists(Req, State = #{'of' := Of}) ->
     ZoneId = gmm_utils:zone_id(),
+    case gmm_utils:owner_of(Of) of
+        ZoneId ->
+            {ok, Exists} = graph:vertex_exists(Of),
+            {Exists, Req, State};
+        _ -> {true, Req, State}
+    end;
+resource_exists(Req, State = #{from := From, to := To}) ->
+    ZoneId = gmm_utils:zone_id(),
+    Checker = fun(X) -> {ok, Exists} = graph:vertex_exists(X),
+        (gmm_utils:owner_of(X) =/= ZoneId) or Exists end,
+    VerticesExist = lists:all(Checker, [From, To]),
+    EdgeCheckNeeded = (maps:get(operation, State) == permissions) and on_this_zone(From, To),
     Flag =
-        case State of
-            #{'of' := Of} ->
-                case gmm_utils:owner_of(Of) of
-                    ZoneId -> {ok, Exists} = graph:vertex_exists(Of), Exists;
-                    _ -> true
-                end;
-            #{from := From, to := To} ->
-                ZoneId = gmm_utils:zone_id(),
-                Checker = fun(X) -> {ok, Exists} = graph:vertex_exists(X),
-                    (gmm_utils:owner_of(X) =/= ZoneId) or Exists end,
-                VerticesExist = lists:all(Checker, [From, To]),
-                EdgeCheckNeeded = (maps:get(operation, State) == permissions) and on_this_zone(From, To),
-                case EdgeCheckNeeded of
-                    true ->
-                        {ok, EdgeExists} = graph:edge_exists(From, To),
-                        VerticesExist and EdgeExists;
-                    false -> VerticesExist
-                end
+        case EdgeCheckNeeded of
+            true ->
+                {ok, EdgeExists} = graph:edge_exists(From, To),
+                VerticesExist and EdgeExists;
+            false -> VerticesExist
         end,
-    NewState = maps:put(resources_exist, Flag, State),
-    {false, Req, NewState}.
+    {Flag, Req, State}.
 
 %% POST handler
+from_json(Req, bad_request) ->
+    {false, Req, bad_request};
 from_json(Req, State) ->
-    Result =
-        case maps:get(resources_exist, State) of
-            true ->
-                case maps:get(operation, State) of
-                    is_adjacent -> is_adjacent(maps:get(from, State), maps:get(to, State));
-                    permissions -> permissions(maps:get(from, State), maps:get(to, State));
-                    list_adjacent -> list_adjacent(maps:get('of', State));
-                    list_adjacent_reversed -> list_adjacent_reversed(maps:get('of', State))
-                end;
-            false ->
-                {error, "Resource not found"}
+    {ok, Value} =
+        case maps:get(operation, State) of
+            is_adjacent -> is_adjacent(maps:get(from, State), maps:get(to, State));
+            permissions -> permissions(maps:get(from, State), maps:get(to, State));
+            list_adjacent -> list_adjacent(maps:get('of', State));
+            list_adjacent_reversed -> list_adjacent_reversed(maps:get('of', State))
         end,
-    case Result of
-        {ok, Value} -> {{true, gmm_utils:encode(Value)}, Req, State};
-        {error, _} -> {false, Req, State}
-    end.
+    Req1 = cowboy_req:set_resp_body(gmm_utils:encode(Value), Req),
+    {true, Req1, State}.
 
 
 %%%---------------------------
