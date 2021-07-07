@@ -110,7 +110,7 @@ set_indexation(_Bool) ->
 %% @todo - event processor
 -spec is_index_up_to_date() -> {ok, boolean()} | {error, any()}.
 is_index_up_to_date() ->
-    inbox:is_empty() and outbox:all_empty() and true.
+    {ok, inbox:is_empty() and outbox:all_empty() and true}.
 
 %% @todo
 -spec set_dependent_zones(list(binary())) -> {ok, map()} | {error, any()}.
