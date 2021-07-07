@@ -31,12 +31,12 @@
 
 %% VERTICES
 
--spec add_vertex(Zone :: binary(), Type :: binary(), Name :: binary()) -> {ok, binary()} | {error, any()}.
+-spec add_vertex(Zone :: binary(), Type :: binary(), Name :: binary()) -> ok | {error, any()}.
 add_vertex(Zone, Type, Name) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"graph/vertices">>,
         [{<<"type">>, Type}, {<<"name">>, Name}]),
-    http_executor:post(Url, true).
+    http_executor:post(Url, false).
 
 -spec get_all_vertices(Zone :: binary()) -> {ok, map()} | {error, any()}.
 get_all_vertices(Zone) ->

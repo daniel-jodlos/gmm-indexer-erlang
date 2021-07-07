@@ -11,8 +11,10 @@
 -export([
     init/2,
     allowed_methods/2,
+    allow_missing_post/2,
     content_types_accepted/2,
     content_types_provided/2,
+    is_conflict/2,
     resource_exists/2
 ]).
 
@@ -47,12 +49,21 @@ init(Req, _) ->
 allowed_methods(Req, State) ->
     {[<<"GET">>, <<"POST">>], Req, State}.
 
+allow_missing_post(Req, State = #{operation := delete}) ->
+    {false, Req, State};
+allow_missing_post(Req, State) ->
+    {true, Req, State}.
+
 content_types_accepted(Req, State) ->
     {[{<<"application/json">>, from_json}], Req, State}.
 
 content_types_provided(Req, State) ->
     {[{<<"application/json">>, to_json}], Req, State}.
 
+is_conflict(Req, State = #{operation := Op}) when Op == add; Op == bulk ->
+    {true, Req, State};
+is_conflict(Req, State) ->
+    {false, Req, State}.
 
 resource_exists(Req, bad_request) ->
     {false, Req, bad_request};
@@ -77,9 +88,8 @@ resource_exists(Req, State = #{operation := bulk, body := Body}) ->
 from_json(Req, bad_request) ->
     {false, Req, bad_request};
 from_json(Req, State = #{operation := add, type := Type, name := Name}) ->
-    {ok, Id} = graph:create_vertex(Type, Name),
-    Req1 = cowboy_req:set_resp_body(gmm_utils:encode(Id), Req),
-    {true, Req1, State};
+    {ok, _} = graph:create_vertex(Type, Name),
+    {true, Req, State};
 from_json(Req, State = #{operation := delete, id := Id}) ->
     ok = graph:remove_vertex(Id),
     {true, Req, State};

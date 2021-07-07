@@ -53,16 +53,18 @@ resource_exists(Req, bad_request) ->
 resource_exists(Req, State) ->
     {true, Req, State}.
 
-%% todo
 %% POST handler
 from_json(Req, bad_request) ->
     {false, Req, bad_request};
 from_json(Req, State = #{operation := single_event, id := Vertex, body := Event}) ->
-    io:format("~p, ~p\n", [Vertex, Event]),
-    {false, Req, State};
+    ok = inbox:post(Vertex, Event),
+    {true, Req, State};
 from_json(Req, State = #{operation := bulk, body := List}) ->
-    io:format("~p\n", [List]),
-    {false, Req, List}.
+    lists:foreach(
+        fun(#{<<"vn">> := Name, <<"e">> := Event}) ->
+            ok = inbox:post(gmm_utils:create_vertex_id(Name), Event)
+        end, List),
+    {true, Req, State}.
 
 %% @todo
 %% GET handler

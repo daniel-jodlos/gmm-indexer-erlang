@@ -70,6 +70,7 @@ from_json(Req, State = #{operation := bulk, body := _}) ->
     {error, _} = execute_bulk_request(),
     {true, Req, State}.
 
+
 %%%---------------------------
 %% internal functions
 %%%---------------------------
@@ -97,7 +98,8 @@ parse_bulk_request(Bin) ->
             case gmm_utils:parse_boolean(SuccessiveBin) of
                 {ok, Successive} ->
                     case lists:all(fun({ok, _}) -> true; (_) -> false end, ParsedEdges) of
-                        true -> {_, ParsedList} = lists:unzip(ParsedEdges),
+                        true ->
+                            {_, ParsedList} = lists:unzip(ParsedEdges),
                             {ok, #{
                                 src_zone => SourceZone, dst_zone => DestinationZone,
                                 successive => Successive, edges => ParsedList

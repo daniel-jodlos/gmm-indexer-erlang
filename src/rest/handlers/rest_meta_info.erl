@@ -107,10 +107,10 @@ set_indexation(_Bool) ->
 
 %%% Check if index is correct, which requires 3 conditions:
 %%%  1) inbox is empty, 2) outbox is empty, 3) there are no currently processed events
-%% @todo
+%% @todo - event processor
 -spec is_index_up_to_date() -> {ok, boolean()} | {error, any()}.
 is_index_up_to_date() ->
-    {ok, false}.
+    inbox:is_empty() and outbox:all_empty() and true.
 
 %% @todo
 -spec set_dependent_zones(list(binary())) -> {ok, map()} | {error, any()}.
