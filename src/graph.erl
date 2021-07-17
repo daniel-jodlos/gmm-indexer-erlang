@@ -28,13 +28,20 @@
 %% API for edges
 -export([
     create_edge/3,
+    create_effective_edge/3,
     update_edge/3,
+    update_effective_edge/3,
     remove_edge/2,
+    remove_effective_edge/2,
     edge_exists/2,
+    effective_edge_exists/2,
     get_edge/2,
+    get_effective_edge/2,
     list_neighbours/1,
     list_parents/1,
-    list_children/1
+    list_children/1,
+    effective_list_parents/1,
+    effective_list_children/1
 ]).
 
 %% additional functions
@@ -204,10 +211,14 @@ list_vertices(Type) ->
 %%%---------------------------
 
 children_id(From) -> <<From/binary, "/children">>.
-
 parents_id(To) -> <<To/binary, "/parents">>.
-
 edge_id(From, To) -> <<"edge/", From/binary, "/", To/binary>>.
+
+effective_children_id(From) -> <<From/binary, "/effective_children">>.
+effective_parents_id(To) -> <<To/binary, "/effective_parents">>.
+effective_edge_id(From, To) ->
+  Edge = edge_id(From, To),
+  <<"effective", Edge/binary>>.
 
 -spec validate([any() | {error, any()}]) -> ok | {error, any()}.
 validate(Results) ->
@@ -230,21 +241,54 @@ create_edge(From, To, Permissions) ->
         {ZoneId, ZoneId} -> validate([
             persistence:set_add(children_id(To), From),
             persistence:set_add(parents_id(From), To),
-            persistence:set(edge_id(From, To), Permissions)
+            persistence:set_add(effective_children_id(To), From),
+            persistence:set_add(effective_parents_id(From), To),
+            persistence:set(edge_id(From, To), Permissions),
+            persistence:set(effective_edge_id(From, To), Permissions)
         ]);
         {ZoneId, _} -> validate([
             persistence:set_add(parents_id(From), To),
-            persistence:set(edge_id(From, To), Permissions)
+            persistence:set_add(effective_parents_id(From), To),
+            persistence:set(edge_id(From, To), Permissions),
+            persistence:set(effective_edge_id(From, To), Permissions)
         ]);
         {_, ZoneId} -> validate([
             persistence:set_add(children_id(To), From),
-            persistence:set(edge_id(From, To), Permissions)
+            persistence:set_add(effective_children_id(To), From),
+            persistence:set(edge_id(From, To), Permissions),
+            persistence:set(effective_edge_id(From, To), Permissions)
+        ]);
+        {_, _} -> {error, vertices_not_found}
+    end.
+
+-spec create_effective_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
+create_effective_edge(From, To, Permissions) ->
+    ZoneId = gmm_utils:zone_id(),
+    FromZone = gmm_utils:owner_of(From),
+    ToZone = gmm_utils:owner_of(To),
+    case {FromZone, ToZone} of
+        {ZoneId, ZoneId} -> validate([
+            persistence:set_add(effective_children_id(To), From),
+            persistence:set_add(effective_parents_id(From), To),
+            persistence:set(effective_edge_id(From, To), Permissions)
+        ]);
+        {ZoneId, _} -> validate([
+            persistence:set_add(effective_parents_id(From), To),
+            persistence:set(effective_edge_id(From, To), Permissions)
+        ]);
+        {_, ZoneId} -> validate([
+            persistence:set_add(effective_children_id(To), From),
+            persistence:set(effective_edge_id(From, To), Permissions)
         ]);
         {_, _} -> {error, vertices_not_found}
     end.
 
 -spec update_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
-update_edge(From, To, Permissions) -> validate([persistence:set(edge_id(From, To), Permissions)]).
+update_edge(From, To, Permissions) -> validate([persistence:set(edge_id(From, To), Permissions), persistence:set(effective_edge_id(From, To), Permissions)]).
+
+-spec update_effective_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
+update_effective_edge(From, To, Permissions) -> validate([persistence:set(effective_edge_id(From, To), Permissions)]).
+
 
 -spec remove_edge(From :: binary(), To :: binary()) -> ok | {error, any()}.
 remove_edge(From, To) ->
@@ -254,30 +298,72 @@ remove_edge(From, To) ->
     case {FromZone, ToZone} of
         {ZoneId, ZoneId} -> validate([
             persistence:del(edge_id(From, To)),
+            persistence:del(effective_edge_id(From, To)),
             persistence:set_remove(children_id(To), From),
-            persistence:set_remove(parents_id(From), To)
+            persistence:set_remove(parents_id(From), To),
+            persistence:set_remove(effective_children_id(To), From),
+            persistence:set_remove(effective_parents_id(From), To)
         ]);
         {ZoneId, _} -> validate([
             persistence:del(edge_id(From, To)),
-            persistence:set_remove(parents_id(From), To)
+            persistence:del(effective_edge_id(From, To)),
+            persistence:set_remove(parents_id(From), To),
+            persistence:set_remove(effective_parents_id(From), To)
         ]);
         {_, ZoneId} -> validate([
             persistence:del(edge_id(From, To)),
-            persistence:set_remove(children_id(To), From)
+            persistence:del(effective_edge_id(From, To)),
+            persistence:set_remove(children_id(To), From),
+            persistence:set_remove(effective_children_id(To), From)
+        ]);
+        {_, _} -> {error, vertices_not_found}
+    end.
+
+-spec remove_effective_edge(From :: binary(), To :: binary()) -> ok | {error, any()}.
+remove_effective_edge(From, To) ->
+    ZoneId = gmm_utils:zone_id(),
+    FromZone = gmm_utils:owner_of(From),
+    ToZone = gmm_utils:owner_of(To),
+    case {FromZone, ToZone} of
+        {ZoneId, ZoneId} -> validate([
+            persistence:del(effective_edge_id(From, To)),
+            persistence:set_remove(effective_children_id(To), From),
+            persistence:set_remove(effective_parents_id(From), To)
+        ]);
+        {ZoneId, _} -> validate([
+            persistence:del(effective_edge_id(From, To)),
+            persistence:set_remove(effective_parents_id(From), To)
+        ]);
+        {_, ZoneId} -> validate([
+            persistence:del(effective_edge_id(From, To)),
+            persistence:set_remove(effective_children_id(To), From)
         ]);
         {_, _} -> {error, vertices_not_found}
     end.
 
 -spec edge_exists(From :: binary(), To :: binary()) -> {ok, boolean()} | {error, any()}.
-edge_exists(From, To) -> persistence:exists(edge_id(From, To)).
+edge_exists(From, To) -> do_edge_exists(edge_id(From, To)).
+
+-spec effective_edge_exists(From :: binary(), To :: binary()) -> {ok, boolean()} | {error, any()}.
+effective_edge_exists(From, To) -> do_edge_exists(effective_edge_id(From, To)).
+
+do_edge_exists(Edge) -> persistence:exists(Edge).
 
 -spec get_edge(From :: binary(), To :: binary()) -> {ok, map()} | {error, any()}.
 get_edge(From, To) ->
-    case persistence:get(edge_id(From, To)) of
+    do_get_edge(From, To, edge_id(From, To)).
+
+-spec get_effective_edge(From :: binary(), To :: binary()) -> {ok, map()} | {error, any()}.
+get_effective_edge(From, To) ->
+    do_get_edge(From, To, effective_edge_id(From, To)).
+
+do_get_edge(From, To, Edge) ->
+    case persistence:get(Edge) of
         {error, Error} -> {error, Error};
         {ok, Permissions} ->
             {ok, #{<<"from">> => From, <<"to">> => To, <<"permissions">> => Permissions}}
     end.
+
 
 %% #{<<"parents">> => list(binary()), <<"children">> => list(binary())}
 -spec list_neighbours(Vertex :: binary()) ->
@@ -297,8 +383,13 @@ list_parents(Vertex) -> persistence:set_list_members(parents_id(Vertex)).
 -spec list_children(Vertex :: binary()) -> {ok, list(binary())} | {error, any()}.
 list_children(Vertex) -> persistence:set_list_members(children_id(Vertex)).
 
-
 %% @todo implement this - basically all zones that this zone has contact with
 -spec all_zones() -> {ok, list(binary())} | {error, any()}.
 all_zones() ->
     {ok, []}.
+
+-spec effective_list_parents(Vertex :: binary()) -> {ok, list(binary())} | {error, any()}.
+effective_list_parents(Vertex) -> persistence:set_list_members(effective_parents_id(Vertex)).
+
+-spec effective_list_children(Vertex :: binary()) -> {ok, list(binary())} | {error, any()}.
+effective_list_children(Vertex) -> persistence:set_list_members(effective_children_id(Vertex)).
