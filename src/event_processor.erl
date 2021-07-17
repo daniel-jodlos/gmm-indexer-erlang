@@ -16,14 +16,14 @@ graph_operation(updated) -> fun graph:update_effective_edge/3.
 process({child, Operation, To, Child, Args}) ->
   GraphAction = graph_operation(Operation),
   GraphAction(Child, To, Args),
-  Parents = graph:list_parents(To),
+  {ok, Parents} = graph:list_parents(To),
   Events = lists:map(fun (Parent) -> {child, Operation, Parent, Child, Args} end, Parents),
   {ok, Events};
 
 process({parent, Operation, Target, Parent, Args}) ->
   GraphAction = graph_operation(Operation),
   GraphAction(Target, Parent, Args),
-  Children = graph:list_children(Target),
+  {ok, Children} = graph:list_children(Target),
   Events = lists:map(fun (Child) -> {parent, Operation, Child, Parent, Args} end, Children),
   {ok, Events};
 
