@@ -23,13 +23,13 @@ jobs:
     - name: Run tests
       run: rebar3 do eunit
     - name: Run CT
-      run: cd ./gmm_client && rebar3 ct && cd ..
+      run: chmod 777 ./ct_tests.sh && ./ct_tests.sh
 
   lint:
     if: "!contains(github.event.head_commit.message, '[skip-ci]')"
     runs-on: ubuntu-latest
     container:
-      image: erlang:23
+      image: erlang:24
     steps:
     - uses: actions/checkout@v2
     - name: Compile

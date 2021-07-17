@@ -11,13 +11,16 @@ services:
         command: [ "redis-server", "/redis.conf", "--port", "6379" ]
 
     gmm_server:
-        build: .
+        image: gmmindexererlang:latest
         container_name: gmm_server
         stdin_open: true
         environment:
             - ZONE_ID=zone1
             - GMM_REDIS_HOST=redis
             - GMM_REDIS_PORT=6379
+            - PORT=8080
+        expose:
+            - "8080"
         ports:
             - 8080:8080
         depends_on:
@@ -33,15 +36,18 @@ services:
         command: [ "redis-server", "/redis.conf", "--port", "6380" ]
 
     gmm_server2:
-        build: .
+        image: gmmindexererlang:latest
         container_name: gmm_server2
         stdin_open: true
         environment:
             - ZONE_ID=zone2
             - GMM_REDIS_HOST=redis2
             - GMM_REDIS_PORT=6380
+            - PORT=8081
+        expose:
+            - "8081"
         ports:
-            - 8081:8080
+            - 8081:8081
         depends_on:
             - redis2
 
@@ -55,14 +61,17 @@ services:
         command: [ "redis-server", "/redis.conf", "--port", "6381" ]
 
     gmm_server3:
-        build: .
+        image: gmmindexererlang:latest
         container_name: gmm_server3
         stdin_open: true
         environment:
             - ZONE_ID=zone3
             - GMM_REDIS_HOST=redis3
             - GMM_REDIS_PORT=6381
+            - PORT=8082
+        expose:
+            - "8082"
         ports:
-            - 8082:8080
+            - 8082:8082
         depends_on:
             - redis3

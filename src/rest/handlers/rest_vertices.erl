@@ -11,8 +11,10 @@
 -export([
     init/2,
     allowed_methods/2,
+    allow_missing_post/2,
     content_types_accepted/2,
     content_types_provided/2,
+    is_conflict/2,
     resource_exists/2
 ]).
 
@@ -26,28 +28,31 @@
 %% cowboy_rest callbacks
 %%%---------------------------
 
-init(Req0, State) ->
-    Method = cowboy_req:method(Req0),
-    {ParsedParams, Req} =
-        case {Method, maps:get(operation, State)} of
-            {<<"POST">>, add} ->
-                {cowboy_req:match_qs([{type, nonempty}, {name, nonempty}], Req0), Req0};
-            {<<"GET">>, details} ->
-                {cowboy_req:match_qs([{id, nonempty}], Req0), Req0};
-            {<<"GET">>, listing} ->
-                {#{}, Req0};
-            {<<"POST">>, delete} ->
-                {cowboy_req:match_qs([{id, nonempty}], Req0), Req0};
-            {<<"POST">>, bulk} ->
-                {ok, Data, Req1} = cowboy_req:read_body(Req0),
-                {ok, List} = parse_bulk_list(Data),
-                {#{body => List}, Req1}
-        end,
-    NewState = maps:merge(State, ParsedParams),
-    {cowboy_rest, Req, NewState}.
+init(Req = #{method := <<"POST">>}, State = #{operation := add}) ->
+    NewState = gmm_utils:parse_rest_params(Req, State, [{type, nonempty}, {name, nonempty}], []),
+    {cowboy_rest, Req, NewState};
+init(Req = #{method := <<"GET">>}, State = #{operation := details}) ->
+    NewState = gmm_utils:parse_rest_params(Req, State, [{id, nonempty}], [{id, fun gmm_utils:validate_vertex_id/1}]),
+    {cowboy_rest, Req, NewState};
+init(Req = #{method := <<"GET">>}, State = #{operation := listing}) ->
+    {cowboy_rest, Req, State};
+init(Req = #{method := <<"POST">>}, State = #{operation := delete}) ->
+    NewState = gmm_utils:parse_rest_params(Req, State, [{id, nonempty}], [{id, fun gmm_utils:validate_vertex_id/1}]),
+    {cowboy_rest, Req, NewState};
+init(Req0 = #{method := <<"POST">>}, State = #{operation := bulk}) ->
+    {Req, NewState} = gmm_utils:parse_rest_body(Req0, State, fun parse_bulk_list/1),
+    {cowboy_rest, Req, NewState};
+init(Req, _) ->
+    {cowboy_rest, Req, bad_request}.
+
 
 allowed_methods(Req, State) ->
     {[<<"GET">>, <<"POST">>], Req, State}.
+
+allow_missing_post(Req, State = #{operation := delete}) ->
+    {false, Req, State};
+allow_missing_post(Req, State) ->
+    {true, Req, State}.
 
 content_types_accepted(Req, State) ->
     {[{<<"application/json">>, from_json}], Req, State}.
@@ -55,43 +60,50 @@ content_types_accepted(Req, State) ->
 content_types_provided(Req, State) ->
     {[{<<"application/json">>, to_json}], Req, State}.
 
-resource_exists(Req, State) ->
-    Result =
-        case maps:get(operation, State) of
-            add ->
-                Id = gmm_utils:create_vertex_id(maps:get(name, State)),
-                graph:vertex_exists(Id);
-            Op when Op =:= details; Op =:= delete -> graph:vertex_exists(maps:get(id, State));
-            listing -> {ok, true};
-            bulk -> {ok, true} %% @todo maybe change it to actually check stuff, but I don't think so
-        end,
-    {ok, Bool} = Result,
+is_conflict(Req, State = #{operation := Op}) when Op == add; Op == bulk ->
+    {true, Req, State};
+is_conflict(Req, State) ->
+    {false, Req, State}.
+
+resource_exists(Req, bad_request) ->
+    {false, Req, bad_request};
+resource_exists(Req, State = #{operation := add, name := Name}) ->
+    {ok, Bool} = graph:vertex_exists( gmm_utils:create_vertex_id(Name) ),
+    {Bool, Req, State};
+resource_exists(Req, State = #{operation := Op, id := Id}) when Op == details; Op == delete ->
+    {ok, Bool} = graph:vertex_exists(Id),
+    {Bool, Req, State};
+resource_exists(Req, State = #{operation := listing}) ->
+    {true, Req, State};
+resource_exists(Req, State = #{operation := bulk, body := Body}) ->
+    Bool = lists:any(
+        fun({_, Name}) ->
+            {ok, Bool} = graph:vertex_exists( gmm_utils:create_vertex_id(Name) ),
+            Bool
+        end, Body),
     {Bool, Req, State}.
 
+
 %% POST handler
-from_json(Req, State) ->
-    ExecutionResult =
-        case maps:get(operation, State) of
-            add -> graph:create_vertex(maps:get(type, State), maps:get(name, State));
-            delete -> graph:remove_vertex(maps:get(id, State));
-            bulk -> lists:foreach(fun({Type, Name}) -> graph:create_vertex(Type, Name) end, maps:get(body, State))
-        end,
-    RequestResult =
-        case ExecutionResult of
-            ok -> true;
-            {ok, Val} -> {true, gmm_utils:encode(Val)};
-            {error, _} -> false
-        end,
-    {RequestResult, Req, State}.
+from_json(Req, bad_request) ->
+    {false, Req, bad_request};
+from_json(Req, State = #{operation := add, type := Type, name := Name}) ->
+    {ok, _} = graph:create_vertex(Type, Name),
+    {true, Req, State};
+from_json(Req, State = #{operation := delete, id := Id}) ->
+    ok = graph:remove_vertex(Id),
+    {true, Req, State};
+from_json(Req, State = #{operation := bulk, body := List}) ->
+    lists:foreach(fun({Type, Name}) -> {ok, _} = graph:create_vertex(Type, Name) end, List),
+    {true, Req, State}.
 
 %% GET handler
-to_json(Req, State) ->
-    {ok, Result} =
-        case maps:get(operation, State) of
-            details -> graph:get_vertex(maps:get(id, State));
-            listing -> graph:list_vertices()
-        end,
-    {gmm_utils:encode(Result), Req, State}.
+to_json(Req, State = #{operation := details, id := Id}) ->
+    {ok, Details} = graph:get_vertex(Id),
+    {gmm_utils:encode(Details), Req, State};
+to_json(Req, State = #{operation := listing}) ->
+    {ok, Vertices} = graph:list_vertices(),
+    {gmm_utils:encode(Vertices), Req, State}.
 
 
 %%%---------------------------

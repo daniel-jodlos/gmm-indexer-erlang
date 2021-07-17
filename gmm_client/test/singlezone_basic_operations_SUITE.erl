@@ -1,4 +1,4 @@
--module(basic_operations_SUITE).
+-module(singlezone_basic_operations_SUITE).
 -include_lib("common_test/include/ct.hrl").
 -include_lib("stdlib/include/assert.hrl").
 

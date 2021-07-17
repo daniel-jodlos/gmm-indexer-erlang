@@ -24,13 +24,8 @@
 %% cowboy_rest callbacks
 %%%---------------------------
 
-%% Dialyzer keeps warning that {ok, JsonMap} cannot match {error, any()}
-%% but it's intentional - if JSON is wrong, I want it to throw error
--dialyzer({nowarn_function, init/2}).
 init(Req0, State) ->
-    {ok, Data, Req} = cowboy_req:read_body(Req0),
-    {ok, JsonMap} = parse_decoded_body(gmm_utils:decode(Data)),
-    NewState = maps:merge(State, #{body => JsonMap}),
+    {Req, NewState} = gmm_utils:parse_rest_body(Req0, State, fun parse_load_body/1),
     {cowboy_rest, Req, NewState}.
 
 allowed_methods(Req, State) ->
@@ -43,6 +38,8 @@ resource_exists(Req, State) ->
     {true, Req, State}.
 
 %% POST handler
+from_json(Req, bad_request) ->
+    {false, Req, bad_request};
 from_json(Req, State) ->
     io:format("~p\n\n", [maps:get(body, State)]),
     {true, Req, State}.
@@ -52,18 +49,20 @@ from_json(Req, State) ->
 %% internal functions
 %%%---------------------------
 
--spec parse_decoded_body(any()) -> {ok, map()} | {error, any()}.
-parse_decoded_body(#{<<"ops">> := List}) when is_list(List) ->
-    Validator =
-        fun(#{<<"t">> := Type, <<"f">> := From, <<"to">> := To, <<"p">> := Permissions, <<"tr">> := Trace})
-            when Type =:= <<"a">>; Type =:= <<"r">>; Type =:= <<"p">> ->
-            {ok, #{op_type => Type, from => From, to => To, permissions => Permissions, trace => Trace}};
-            (_) -> {error, "Invalid JSON"}
-        end,
-    ValidatedList = lists:map(Validator, List),
-    case lists:all(fun({ok, _}) -> true; (_) -> false end, ValidatedList) of
-        true -> {ok, ValidatedList};
-        false -> {error, "Parsing JSON error"}
-    end;
-parse_decoded_body(_) ->
-    {error, "Invalid JSON"}.
+-spec parse_load_body(binary()) -> {ok, map()} | {error, any()}.
+parse_load_body(Bin) ->
+    case gmm_utils:decode(Bin) of
+        #{<<"ops">> := List} when is_list(List) ->
+            Validator =
+                fun(#{<<"t">> := Type, <<"f">> := From, <<"to">> := To, <<"p">> := Permissions, <<"tr">> := Trace})
+                        when Type =:= <<"a">>; Type =:= <<"r">>; Type =:= <<"p">> ->
+                    {ok, #{op_type => Type, from => From, to => To, permissions => Permissions, trace => Trace}};
+                    (_) -> {error, "Invalid JSON"}
+                end,
+            ValidatedList = lists:map(Validator, List),
+            case lists:all(fun({ok, _}) -> true; (_) -> false end, ValidatedList) of
+                true -> {ok, ValidatedList};
+                false -> {error, "Parsing JSON error"}
+            end;
+        _ -> {error, "Invalid JSON"}
+    end.

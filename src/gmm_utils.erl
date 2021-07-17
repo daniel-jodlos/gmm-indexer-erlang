@@ -28,7 +28,14 @@
     create_edge_id/2,
     split_edge_id/1,
 
-    convert_microseconds_to_iso_8601/1
+    list_other_zones/0,
+    batch_size/0,
+    convert_microseconds_to_iso_8601/1,
+    permissions_and/2,
+    permissions_or/2,
+
+    parse_rest_params/4,
+    parse_rest_body/3
 ]).
 
 -include("records.hrl").
@@ -137,6 +144,13 @@ split_edge_id(Bin) ->
 %% More complex functions
 %%%---------------------------
 
+-spec list_other_zones() -> list(binary()).
+list_other_zones() ->
+    [<<"zone1">>, <<"zone2">>, <<"zone3">>] -- [gmm_utils:zone_id()].
+
+-spec batch_size() -> integer().
+batch_size() -> 5.
+
 %% Assumption: time to parse is smaller than 1 day, or rather: result of this function is time modulo 24 hours
 -spec convert_microseconds_to_iso_8601(integer()) -> binary().
 convert_microseconds_to_iso_8601(TotalMicroseconds) when TotalMicroseconds >= 0 ->
@@ -165,3 +179,57 @@ convert_microseconds_to_iso_8601(TotalMicroseconds) when TotalMicroseconds >= 0 
     %% compose final result
     TimeString = "PT" ++ HoursString ++ MinutesString ++ SecondsString,
     list_to_binary(TimeString).
+
+-spec char_to_boolean(char()) -> boolean().
+char_to_boolean($0) -> false;
+char_to_boolean($1) -> true.
+
+-spec boolean_to_char(boolean()) -> char().
+boolean_to_char(true) -> $1;
+boolean_to_char(false) -> $0.
+
+-spec combine_permissions(A :: permissions(), B :: permissions(),
+    Fun :: fun((permissions(), permissions()) -> permissions())) -> permissions().
+combine_permissions(A, B, Fun) ->
+    Alist = lists:map(fun char_to_boolean/1, binary_to_list(A)),
+    Blist = lists:map(fun char_to_boolean/1, binary_to_list(B)),
+    Clist = lists:map(fun ({X,Y}) -> boolean_to_char(Fun(X,Y)) end, lists:zip(Alist, Blist)),
+    list_to_binary(Clist).
+
+-spec permissions_and(A :: permissions(), B :: permissions()) -> permissions().
+permissions_and(A,B) ->
+    combine_permissions(A,B, fun (X,Y) -> X and Y end).
+
+-spec permissions_or(A :: permissions(), B :: permissions()) -> permissions().
+permissions_or(A,B) ->
+    combine_permissions(A,B, fun (X,Y) -> X or Y end).
+
+
+-spec parse_rest_params( Req :: cowboy_req:req(), State :: rest_handler_state(), ParamsSpec :: cowboy:fields(),
+    ParsingSpec :: list({atom(), fun((binary()) -> ok | {ok, any()})} ) ) -> rest_handler_state().
+parse_rest_params(Req, State, ParamsSpec, ParsingSpec) ->
+    try
+        ReadParams = cowboy_req:match_qs(ParamsSpec, Req),
+        ParsedParams =
+            lists:foldl(
+                fun({Key, Fun}, Acc) ->
+                    case Fun(maps:get(Key, Acc)) of
+                        ok -> Acc;
+                        {ok, Value} -> maps:update(Key, Value, Acc)
+                    end
+                end,
+                ReadParams, ParsingSpec
+            ),
+        maps:merge(State, ParsedParams)
+    catch _:_ -> bad_request end.
+
+-spec parse_rest_body( Req :: cowboy_req:req(), State :: rest_handler_state(),
+    Parser :: fun((binary()) -> {ok, any()}) ) -> {cowboy_req:req(), rest_handler_state()}.
+parse_rest_body(Req, bad_request, _) ->
+    {Req, bad_request};
+parse_rest_body(Req0, State, Parser) ->
+    try
+        {ok, Data, Req1} = cowboy_req:read_body(Req0),
+        {ok, Body} = Parser( Data ),
+        {Req1, maps:merge(State, #{body => Body})}
+    catch _:_ -> {Req0, bad_request} end.
