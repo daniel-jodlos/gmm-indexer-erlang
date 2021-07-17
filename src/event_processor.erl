@@ -6,20 +6,20 @@
 ]).
 
 -type ref() :: {binary(), binary()}. % id, permissions
--type event() :: {child_added, child_removed, parent_added, parent_removed, ref(), ref(), [any()]}. % {type, target, argument}
+-type event() :: {child | parent, added | removed | updated, ref(), ref(), [any()]}. % {type, target, argument}
+
+graph_operation(added) -> fun graph:create_effective_edge/3;
+graph_operation(removed) -> fun ({A, B, _Args}) -> graph:remove_effective_edge(A,B) end;
+graph_operation(updated) -> fun graph:update_effective_edge/3.
 
 -spec process(event()) -> ok | {error, any()}.
-process({child_added, To, Child, [Permissions]}) ->
-  graph:create_effective_edge(Child, To, Permissions);
+process({child, Operation, To, Child, Args}) ->
+  GraphAction = graph_operation(Operation),
+  GraphAction(Child, To, Args);
 
-process({child_removed, From, Child, []}) ->
-  graph:remove_effective_edge(Child, From);
-
-process({parent_added, To, Parent, [Permissions]}) ->
-  graph:create_effective_edge(To, Parent, Permissions);
-
-process({parent_removed, From, Parent, []}) ->
-  graph:remove_effective_edge(From, Parent);
+process({parent, Operation, Target, Parent, Args}) ->
+  GraphAction = graph_operation(Operation),
+  GraphAction(Target, Parent, Args);
 
 process(_Event) ->
   {error, "Unhandled event"}.
