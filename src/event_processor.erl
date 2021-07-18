@@ -6,7 +6,7 @@
 ]).
 
 -type ref() :: {binary(), binary()}. % id, permissions
--type event() :: {child | parent, added | removed | updated, ref(), ref(), [any()]}. % {type, target, argument}
+-type event() :: {child | parent, added | removed | updated, ref(), ref(), any()}. % {type, target, argument}
 
 graph_operation(added) -> fun graph:create_effective_edge/3;
 graph_operation(removed) -> fun ({A, B, _Args}) -> graph:remove_effective_edge(A,B) end;
@@ -18,6 +18,7 @@ process({child, Operation, To, Child, Args}) ->
   GraphAction(Child, To, Args),
   {ok, Parents} = graph:list_parents(To),
   Events = lists:map(fun (Parent) -> {child, Operation, Parent, Child, Args} end, Parents),
+  lists:map(fun post/1, Events),
   {ok, Events};
 
 process({parent, Operation, Target, Parent, Args}) ->
@@ -25,7 +26,13 @@ process({parent, Operation, Target, Parent, Args}) ->
   GraphAction(Target, Parent, Args),
   {ok, Children} = graph:list_children(Target),
   Events = lists:map(fun (Child) -> {parent, Operation, Child, Parent, Args} end, Children),
+  lists:map(fun post/1, Events),
   {ok, Events};
 
 process(_Event) ->
   {error, "Unhandled event"}.
+
+post({_, _, Target, _, _} = Event) ->
+  EventMap = #{<<"event">> => Event}, % No tyle że w sumie nie wiem jaka to ma być mapa, ale dialyzerowi pasuje
+  inbox:post(Target, EventMap),
+  ok.
