@@ -51,8 +51,8 @@ random_ep(Vertices) ->
     Vertex1 = lists:nth(Index1, Vertices),
     Index2 = rand:uniform(length(Vertices)),
     Vertex2 = lists:nth(Index2, Vertices),
-    {ok, #{<<"reaches">> := NaiveResponse}} = client:naive_effective_permissions(Vertex1, Vertex2),
-    {ok, #{<<"reaches">> := IndexedResponse}} = client:indexed_effective_permissions(Vertex1, Vertex2),
+    {ok, #{<<"effectivePermissions">> := NaiveResponse}} = client:naive_effective_permissions(Vertex1, Vertex2),
+    {ok, #{<<"effectivePermissions">> := IndexedResponse}} = client:indexed_effective_permissions(Vertex1, Vertex2),
     ?assertEqual(NaiveResponse, IndexedResponse).
 
 random_operations(_Type, _Vertices, 0) ->
