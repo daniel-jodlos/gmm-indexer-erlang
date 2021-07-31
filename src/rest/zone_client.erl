@@ -56,26 +56,32 @@
 -spec healthcheck(Zone:: binary()) -> ok | {error, any()}.
 healthcheck(Zone) ->
     {ok, Address} = http_utils:get_address(Zone),
-    Url = http_utils:build_url(Address, <<"healthcheck">>, []),
-    http_executor:get(Url).
+    Url = http_utils:build_url(Address, <<"healthcheck">>),
+    case http_executor:get(Url) of
+        {ok, _} -> ok;
+        {error, Reason} -> {error, Reason}
+    end.
 
--spec index_ready(Zones:: binary() | list(binary())) -> {ok, boolean()} | {error, any()}.
+-spec index_ready
+    (Zone :: binary()) -> {ok, boolean()} | {error, any()};
+    (Zones:: list(binary())) -> {ok, boolean()} | {error, any()}.
 index_ready(Zone) when is_binary(Zone) ->
     {ok, Address} = http_utils:get_address(Zone),
-    Url = http_utils:build_url(Address, <<"index_ready">>, []),
-    http_executor:get(Url).
+    Url = http_utils:build_url(Address, <<"index_ready">>),
+    http_executor:get(Url);
 
-
-%index_ready(AllZones) when is_list(AllZones) ->
-%    [Zone | Tail] = AllZones,
-%    case Zone of
-%        "" -> _;
-%        ZoneToBeChecked ->
-%            case index_ready(ZoneToBeChecked) of
-%                ok -> index_ready(Tail);
-%                {error, _} -> error
-%            end
-%        end.
+index_ready(Zones) when is_list(Zones) ->
+    %% todo execute those requests in parallel
+    Results = lists:map(fun index_ready/1, Zones),
+    lists:foldl(
+        fun
+            (_, {error, R}) -> {error, R};
+            ({error, R}, _) -> {error, R};
+            ({ok, Bool}, {ok, Acc}) -> {ok, Bool and Acc}
+        end,
+        {ok, true},
+        Results
+    ).
 
 % MUST
 -spec is_adjacent(Zone:: binary(), From:: binary(), To:: binary()) -> {ok, boolean()} | {error, any()}.
