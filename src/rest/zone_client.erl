@@ -177,19 +177,27 @@ get_dependent_zones(Zone) ->
 
 -spec get_dependent_zones(Zone:: binary(), ToExclude:: list(binary())) -> {ok, map()} | {error, any()}.
 get_dependent_zones(Zone, ToExclude) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"dependent_zones">>),
+    http_executor:post(Url, ToExclude, true).
 
 -spec is_instrumentation_enabled(Zone:: binary()) -> {ok, boolean()} | {error, any()}.
 is_instrumentation_enabled(Zone) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"instrumentation">>),
+    http_executor:get(Url).
 
 -spec set_instrumentation_enabled(Zone:: binary(), Enabled:: boolean()) -> ok | {error, any()}.
 set_instrumentation_enabled(Zone, Enabled) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"instrumentation">>),
+    http_executor:put(Url, Enabled).
 
 -spec set_indexation_enabled(Zone:: binary(), Enabled:: boolean()) -> ok | {error, any()}.
 set_indexation_enabled(Zone, Enabled) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"indexation">>),
+    http_executor:put(Url, Enabled).
 
 -spec simulate_load(Zone:: binary(), LoadRequest:: map()) -> ok | {error, any()}.
 simulate_load(Zone, LoadRequest) ->

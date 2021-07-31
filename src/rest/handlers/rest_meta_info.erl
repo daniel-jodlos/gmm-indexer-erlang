@@ -55,7 +55,6 @@ content_types_accepted(Req, State) ->
 content_types_provided(Req, State) ->
     {[{<<"application/json">>, to_json}], Req, State}.
 
-%% @todo implement case for dependent_zones, if needed
 resource_exists(Req, bad_request) ->
     {false, Req, bad_request};
 resource_exists(Req, State) ->
@@ -71,7 +70,7 @@ from_json(Req, State = #{operation := indexation, enabled := Bool}) ->
     gmm_utils:set_indexation_enabled(Bool),
     {true, Req, State};
 from_json(Req0, State = #{operation := dependent_zones, body := List}) ->
-    {ok, NewList} = set_dependent_zones(List),
+    {ok, NewList} = get_dependent_zones(List),
     Req = cowboy_req:set_resp_body(gmm_utils:encode(#{<<"zones">> => NewList}), Req0),
     {true, Req, State}.
 
@@ -97,10 +96,23 @@ to_json(Req, State = #{operation := instrumentation}) ->
 is_index_up_to_date() ->
     inbox:is_empty() and outbox:all_empty() and true.
 
-%% @todo
--spec set_dependent_zones(list(binary())) -> {ok, map()} | {error, any()}.
-set_dependent_zones(List) ->
-    {ok, #{<<"zones">> => List}}.
+%% @todo test it
+-spec get_dependent_zones(list(binary())) -> {ok, list(binary())} | {error, any()}.
+get_dependent_zones(ExcludeList) ->
+    {ok, AllZones} = graph:all_zones(),
+
+    DirectlyDependent = sets:subtract(sets:from_list(AllZones), sets:from_list(ExcludeList)),
+    NewExcludeList = ExcludeList ++ sets:to_list(DirectlyDependent),
+
+    Dependent = lists:foldl(
+        fun(Zone, AccSet) ->
+            {ok, #{<<"zones">> := List}} = zone_client:get_dependent_zones(Zone, NewExcludeList),
+            sets:union(AccSet, sets:from_list(List))
+        end,
+        DirectlyDependent,
+        sets:to_list(DirectlyDependent)
+    ),
+    {ok, sets:to_list(Dependent)}.
 
 
 -spec parse_dependent_zones(binary()) -> {ok, list(binary())} | {error, any()}.
