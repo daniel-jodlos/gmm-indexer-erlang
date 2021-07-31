@@ -53,7 +53,7 @@
 %% Implementations
 %%%---------------------------
 
--spec healthcheck(Zone:: binary()) -> {ok, boolean()} | {error, any()}.
+-spec healthcheck(Zone:: binary()) -> ok | {error, any()}.
 healthcheck(Zone) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"healthcheck">>, []),
