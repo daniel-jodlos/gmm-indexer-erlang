@@ -55,7 +55,6 @@ content_types_accepted(Req, State) ->
 content_types_provided(Req, State) ->
     {[{<<"application/json">>, to_json}], Req, State}.
 
-%% @todo implement case for dependent_zones, if needed
 resource_exists(Req, bad_request) ->
     {false, Req, bad_request};
 resource_exists(Req, State) ->
@@ -65,24 +64,24 @@ resource_exists(Req, State) ->
 from_json(Req, bad_request) ->
     {false, Req, bad_request};
 from_json(Req, State = #{operation := instrumentation, enabled := Bool}) ->
-    ok = set_instrumentation(Bool),
+    gmm_utils:set_instrumentation_enabled(Bool),
     {true, Req, State};
 from_json(Req, State = #{operation := indexation, enabled := Bool}) ->
-    ok = set_indexation(Bool),
+    gmm_utils:set_indexation_enabled(Bool),
     {true, Req, State};
 from_json(Req0, State = #{operation := dependent_zones, body := List}) ->
-    {ok, NewList} = set_dependent_zones(List),
+    {ok, NewList} = get_dependent_zones(List),
     Req = cowboy_req:set_resp_body(gmm_utils:encode(#{<<"zones">> => NewList}), Req0),
     {true, Req, State}.
 
 %% GET handler
 to_json(Req, State = #{operation := health_check}) ->
-    {gmm_utils:encode(true), Req, State};
+    {gmm_utils:empty_json(), Req, State};
 to_json(Req, State = #{operation := index_ready}) ->
-    {ok, Bool} = is_index_up_to_date(),
+    Bool = is_index_up_to_date(),
     {gmm_utils:encode(Bool), Req, State};
 to_json(Req, State = #{operation := instrumentation}) ->
-    {ok, Bool} = get_instrumentation(),
+    Bool = gmm_utils:get_instrumentation_enabled(),
     {gmm_utils:encode(Bool), Req, State}.
 
 
@@ -90,32 +89,30 @@ to_json(Req, State = #{operation := instrumentation}) ->
 %% internal functions
 %%%---------------------------
 
-%% @todo
--spec set_instrumentation(boolean()) -> ok | {error, any()}.
-set_instrumentation(_Bool) ->
-    ok.
-
-%% @todo
--spec get_instrumentation() -> {ok, boolean()} | {error, any()}.
-get_instrumentation() ->
-    {ok, false}.
-
-%% @todo
--spec set_indexation(boolean()) -> ok | {error, any()}.
-set_indexation(_Bool) ->
-    ok.
-
 %%% Check if index is correct, which requires 3 conditions:
 %%%  1) inbox is empty, 2) outbox is empty, 3) there are no currently processed events
-%% @todo - event processor
--spec is_index_up_to_date() -> {ok, boolean()} | {error, any()}.
+%% @todo - check if event processor isn't doing anything
+-spec is_index_up_to_date() -> boolean().
 is_index_up_to_date() ->
-    {ok, inbox:is_empty() and outbox:all_empty() and true}.
+    inbox:is_empty() and outbox:all_empty() and true.
 
-%% @todo
--spec set_dependent_zones(list(binary())) -> {ok, map()} | {error, any()}.
-set_dependent_zones(List) ->
-    {ok, #{<<"zones">> => List}}.
+%% @todo test it
+-spec get_dependent_zones(list(binary())) -> {ok, list(binary())} | {error, any()}.
+get_dependent_zones(ExcludeList) ->
+    {ok, AllZones} = graph:all_zones(),
+
+    DirectlyDependent = sets:subtract(sets:from_list(AllZones), sets:from_list(ExcludeList)),
+    NewExcludeList = ExcludeList ++ sets:to_list(DirectlyDependent),
+
+    Dependent = lists:foldl(
+        fun(Zone, AccSet) ->
+            {ok, #{<<"zones">> := List}} = zone_client:get_dependent_zones(Zone, NewExcludeList),
+            sets:union(AccSet, sets:from_list(List))
+        end,
+        DirectlyDependent,
+        sets:to_list(DirectlyDependent)
+    ),
+    {ok, sets:to_list(Dependent)}.
 
 
 -spec parse_dependent_zones(binary()) -> {ok, list(binary())} | {error, any()}.
