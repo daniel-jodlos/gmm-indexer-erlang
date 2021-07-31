@@ -31,7 +31,7 @@
     set_permissions/6, %% @todo necessary
     add_vertex/3, %% @todo necessary
     add_vertices/2, %% @todo optional
-    post_event/3, %% @todo ???
+    post_event/2, %% @todo ???
     post_events/2, %% @todo optional
     get_event_stats/1, %% @todo ignore
     get_dependent_zones/1, %% @todo necessary later now optional
@@ -194,7 +194,7 @@ get_event_stats(Zone) ->
 -spec get_dependent_zones(Zone:: binary()) -> {ok, map()} | {error, any()}.
 get_dependent_zones(Zone) ->
     get_dependent_zones(Zone, []).
-    
+
 -spec get_dependent_zones(Zone:: binary(), ToExclude:: list(binary())) -> {ok, map()} | {error, any()}.
 get_dependent_zones(Zone, ToExclude) ->
     {ok, Address} = http_utils:get_address(Zone),
