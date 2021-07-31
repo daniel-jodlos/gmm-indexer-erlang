@@ -53,7 +53,7 @@
 %% Implementations
 %%%---------------------------
 
--spec healthcheck(Zone:: binary()) -> {ok, boolean()} | {error, any()}.
+-spec healthcheck(Zone:: binary()) -> ok | {error, any()}.
 healthcheck(Zone) ->
     {error, not_implemented}.
 
