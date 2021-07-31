@@ -13,7 +13,7 @@
     post/2,
     post/3,
     get/1,
-    put/1
+    put/2
 ]).
 
 %%%---------------------------
@@ -31,8 +31,8 @@ post(Url, Body, GetResponse) ->
 get(Url) ->
     request(get, Url, true).
 
-put(Url) ->
-    request(put, Url, false).
+put(Url, Body) ->
+    request(put, Url, Body, false).
 
 
 %% Generic requests
