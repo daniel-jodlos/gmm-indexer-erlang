@@ -55,14 +55,26 @@
 
 -spec healthcheck(Zone:: binary()) -> {ok, boolean()} | {error, any()}.
 healthcheck(Zone) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"healthcheck">>, []]),
+    http_executor:get(Url).
 
 -spec index_ready(Zones:: binary() | list(binary())) -> {ok, boolean()} | {error, any()}.
 index_ready(Zone) when is_binary(Zone) ->
-    {error, not_implemented};
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"index_ready">>, []]),
+    http_executor:get(Url).
 
 index_ready(AllZones) when is_list(AllZones) ->
-    {error, not_implemented}.
+    [Zone | Tail] = AllZones,
+    case Zone of
+        "" -> _;
+        ZoneToBeChecked ->  
+            case index_ready(ZoneToBeChecked) of
+                ok -> index_ready(Tail);
+                {error, _} -> error
+            end
+        end.
 
 % MUST
 -spec is_adjacent(Zone:: binary(), From:: binary(), To:: binary()) -> {ok, boolean()} | {error, any()}.
@@ -110,7 +122,9 @@ add_edge(Zone, From, To, Permissions, Trace, Successive) ->
 
 -spec add_edges(Zone:: binary(), BulkRequest:: binary()) -> ok | {error, any()}.
 add_edges(Zone, BulkRequest) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"graph/edges/bulk">>,[]),
+    http_executor:post(Url, BulkRequest, false).
 
 % MUST
 -spec remove_edge(Zone:: binary(), From:: binary(), To:: binary(), Trace:: binary()) -> ok | {error, any()}.
@@ -153,47 +167,62 @@ add_vertex(Zone, Name, Type) ->
 
 -spec add_vertices(Zone:: binary(), BulkRequest:: map()) -> ok | {error, any()}.
 add_vertices(Zone, BulkRequest) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"graph/vertices/bulk">>,[]),
+    http_executor:post(Url, BulkRequest, false).
 
 -spec post_event(VertexId:: binary(), Event:: map()) -> ok | {error, any()}.
 post_event(VertexId, Event) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"events">>,
+      [{<<"id">>, VertexId}]),
+    http_executor:post(Url, Event, false).
 
 -spec post_events(Zone:: binary(), BulkMessages:: map()) -> ok | {error, any()}.
 post_events(Zone, BulkMessages) ->
-    %% changed so compiler doesn't throw an error "Pattern 'ok' cannot be reached"
-    case Zone of
-        <<"zone3">> -> ok;
-        _ -> {error, not_implemented}
-    end.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"events/bulk">>,[]),
+    http_executor:post(Url, BulkRequest, false).
 
 -spec get_event_stats(Zone:: binary()) -> {ok, map()} | {error, any()}.
 get_event_stats(Zone) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"events/stats">>, []]),
+    http_executor:get(Url).
 
 -spec get_dependent_zones(Zone:: binary()) -> {ok, map()} | {error, any()}.
 get_dependent_zones(Zone) ->
     get_dependent_zones(Zone, []).
-
+    
 -spec get_dependent_zones(Zone:: binary(), ToExclude:: list(binary())) -> {ok, map()} | {error, any()}.
 get_dependent_zones(Zone, ToExclude) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"dependent_zones">>,[]),
+    http_executor:post(Url, ToExclude, true).
 
 -spec is_instrumentation_enabled(Zone:: binary()) -> {ok, boolean()} | {error, any()}.
 is_instrumentation_enabled(Zone) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"instrumentation">>, []]),
+    http_executor:get(Url).
 
 -spec set_instrumentation_enabled(Zone:: binary(), Enabled:: boolean()) -> ok | {error, any()}.
 set_instrumentation_enabled(Zone, Enabled) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"instrumentation">>,[{<<"enabled">>, Enabled}]),
+    http_executor:put(Url).
 
 -spec set_indexation_enabled(Zone:: binary(), Enabled:: boolean()) -> ok | {error, any()}.
 set_indexation_enabled(Zone, Enabled) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"indexation">>,[{<<"enabled">>, Enabled}]),
+    http_executor:put(Url).
 
 -spec simulate_load(Zone:: binary(), LoadRequest:: map()) -> ok | {error, any()}.
 simulate_load(Zone, LoadRequest) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"simulate_load">>,[]),
+    http_executor:post(Url, false).
 
 %% function that blocks process until zone (all zones) returns 'true' from 'IP/index_ready' endpoint
 %%  - delay between consecutive requests may be constant, or Exponential Backoff can be used, whatever

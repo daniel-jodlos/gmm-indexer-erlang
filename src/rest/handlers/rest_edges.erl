@@ -63,11 +63,10 @@ from_json(Req, State = #{operation := Op, from := From, to := To, permissions :=
         successive := Successive}) when Op == add; Op == update; Op == delete ->
     ok = execute_operation(Op, From, To, Permissions, Trace, Successive),
     {true, Req, State};
-%%from_json(Req, State = #{operation := bulk, body := #{
-%%        src_zone := _SrcZone, dst_zone := _DstZone, successive = _Successive, edges := _Edges}}) ->
-from_json(Req, State = #{operation := bulk, body := _}) ->
+from_json(Req, State = #{operation := bulk, body := #{
+        src_zone := SrcZone, dst_zone := DstZone, successive = Successive, edges := Edges}}) ->
     %% @todo execute bulk request parsed in init/2
-    {error, _} = execute_bulk_request(),
+    ok = execute_bulk_request(fun(From, To, Permissions, Trace, Successive) -> execute_operation(add, From, To, Permissions, Trace, Successive), Succesive, Edges),
     {true, Req, State}.
 
 
@@ -92,21 +91,17 @@ parse_edge_string(_) ->
 -spec parse_bulk_request(binary()) -> {ok, map()} | {error, any()}.
 parse_bulk_request(Bin) ->
     case gmm_utils:decode(Bin) of
-        #{<<"sourceZone">> := SourceZone, <<"destinationZone">> := DestinationZone, <<"successive">> := SuccessiveBin,
-                <<"edges">> := List} when is_binary(SourceZone), is_binary(DestinationZone), is_list(List) ->
+        #{<<"sourceZone">> := SourceZone, <<"destinationZone">> := DestinationZone, <<"successive">> := Successive,
+                <<"edges">> := List} when is_binary(SourceZone), is_binary(DestinationZone), is_list(List), is_boolean(Successive) ->
             ParsedEdges = lists:map(fun parse_edge_string/1, List),
-            case gmm_utils:parse_boolean(SuccessiveBin) of
-                {ok, Successive} ->
-                    case lists:all(fun({ok, _}) -> true; (_) -> false end, ParsedEdges) of
-                        true ->
-                            {_, ParsedList} = lists:unzip(ParsedEdges),
-                            {ok, #{
-                                src_zone => SourceZone, dst_zone => DestinationZone,
-                                successive => Successive, edges => ParsedList
-                            }};
-                        false -> {error, "Invalid JSON"}
-                    end;
-                {error, Reason} -> {error, Reason}
+            case lists:all(fun({ok, _}) -> true; (_) -> false end, ParsedEdges) of
+                true ->
+                    {_, ParsedList} = lists:unzip(ParsedEdges),
+                    {ok, #{
+                        src_zone => SourceZone, dst_zone => DestinationZone,
+                        successive => Successive, edges => ParsedList
+                    }};
+                false -> {error, "Invalid JSON"}
             end;
         _ -> {error, "Invalid JSON"}
     end.
@@ -186,7 +181,53 @@ modify_state(delete, From, To, _, _, _) ->
 %%%---------------------------
 %% bulk operation executor
 %%%---------------------------
+-spec execute_bulk_request(fun((From, To, Permissions, Trace, Successive) -> Y), Succesive, Edges) -> ok | {error, any()}.
+execute_bulk_request(AddEdge, Succesive, Edges) ->
+    Parent = self(),
+    Ref = erlang:make_ref(),
 
--spec execute_bulk_request() -> ok | {error, any()}.
-execute_bulk_request() ->
-    {error, "Not implemented"}.
+    Pids = lists:map(fun(Edge) ->
+        spawn(fun() ->
+            Result = try
+                Params = string:split(Edge, "/", all),
+                [From | To | Permissions | Trace | _] = Params,
+                AddEdge(list_to_binary(From), list_to_binary(To), list_to_binary(Permissions), list_to_binary(Trace), list_to_binary(Successive))
+            catch Type:Reason:Stacktrace ->
+                {'$pmap_error', self(), Type, Reason, Stacktrace}
+            end,
+            Parent ! {Ref, self(), Result}
+        end)
+    end, Edges),
+
+    % GATHERING RESULTS
+    Gather = fun
+        % PidsOrResults is initially the list of pids, gradually replaced by corresponding results
+        F(PendingPids = [_ | _], PidsOrResults) ->
+            receive
+                {Ref, Pid, Result} ->
+                    NewPidsOrResults = lists_utils:replace(Pid, Result, PidsOrResults),
+                    F(lists:delete(Pid, PendingPids), NewPidsOrResults)
+            after 5000 ->
+                case lists:any(fun erlang:is_process_alive/1, PendingPids) of
+                    true ->
+                        F(PendingPids, PidsOrResults);
+                    false ->
+                        error({parallel_call_failed, {processes_dead, Pids}})
+                end
+            end;
+        % wait for all pids to report back and then look for errors
+        F([], AllResults) ->
+            Errors = lists:filtermap(fun
+                ({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
+                    {true, {Pid, Type, Reason, Stacktrace}};
+                (_) ->
+                    false
+            end, AllResults),
+            case Errors of
+                [] ->
+                    ok;
+                _ ->
+                    {error, Errors}
+            end
+    end,
+    Gather(Pids, Pids).
