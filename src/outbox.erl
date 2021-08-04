@@ -141,6 +141,7 @@ outbox_routine(Zone, Delay) ->
                     no_events -> initial_delay();
                     {error, _} -> min( trunc(Delay * backoff_factor()), maximum_delay() )
                 end,
+            timer:send_after(NextDelay, send),
             outbox_routine(Zone, NextDelay);
         {event, {Vertex, Event}} ->
             queue_event(Zone, Vertex, Event),
