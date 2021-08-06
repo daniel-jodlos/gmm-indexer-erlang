@@ -49,7 +49,7 @@ end_per_group(_Group, _Config) ->
 
 vertices_adding_test(_Config) ->
     % given
-    Zone = <<"zone1">>,
+    Zone = <<"zone0">>,
 
     % when
     client:add_vertex(Zone, <<"user">>, <<"User1">>),
@@ -69,10 +69,10 @@ vertices_adding_test(_Config) ->
     {ok, RealVertices} = client:get_all_vertices(Zone),
 
     ExpectedVertices = #{
-        <<"users">> => [<<"zone1/User1">>, <<"zone1/User2">>, <<"zone1/User3">>, <<"zone1/User4">>],
-        <<"groups">> => [<<"zone1/Group1">>, <<"zone1/Group2">>],
-        <<"spaces">> => [<<"zone1/Space1">>],
-        <<"providers">> => [<<"zone1/Provider1">>, <<"zone1/Provider2">>, <<"zone1/Provider3">>]
+        <<"users">> => [<<"zone0/User1">>, <<"zone0/User2">>, <<"zone0/User3">>, <<"zone0/User4">>],
+        <<"groups">> => [<<"zone0/Group1">>, <<"zone0/Group2">>],
+        <<"spaces">> => [<<"zone0/Space1">>],
+        <<"providers">> => [<<"zone0/Provider1">>, <<"zone0/Provider2">>, <<"zone0/Provider3">>]
     },
 
     % then
@@ -86,18 +86,18 @@ vertices_adding_test(_Config) ->
 
 vertices_deleting_test(_Config) ->
     % when
-    client:delete_vertex(<<"zone1/User2">>),
-    client:delete_vertex(<<"zone1/User3">>),
-    client:delete_vertex(<<"zone1/Group1">>),
-    client:delete_vertex(<<"zone1/Provider3">>),
+    client:delete_vertex(<<"zone0/User2">>),
+    client:delete_vertex(<<"zone0/User3">>),
+    client:delete_vertex(<<"zone0/Group1">>),
+    client:delete_vertex(<<"zone0/Provider3">>),
 
-    {ok, RealVertices} = client:get_all_vertices(<<"zone1">>),
+    {ok, RealVertices} = client:get_all_vertices(<<"zone0">>),
 
     ExpectedVertices = #{
-        <<"users">> => [<<"zone1/User1">>, <<"zone1/User4">>],
-        <<"groups">> => [<<"zone1/Group2">>],
-        <<"spaces">> => [<<"zone1/Space1">>],
-        <<"providers">> => [<<"zone1/Provider1">>, <<"zone1/Provider2">>]
+        <<"users">> => [<<"zone0/User1">>, <<"zone0/User4">>],
+        <<"groups">> => [<<"zone0/Group2">>],
+        <<"spaces">> => [<<"zone0/Space1">>],
+        <<"providers">> => [<<"zone0/Provider1">>, <<"zone0/Provider2">>]
     },
 
     % then
@@ -111,31 +111,31 @@ vertices_deleting_test(_Config) ->
 
 edges_adding_test(_Config) ->
     % when
-    ok = client:add_edge(<<"zone1/User1">>, <<"zone1/Space1">>, <<"01110">>, <<"trace1">>),
-    ok = client:add_edge(<<"zone1/User1">>, <<"zone1/Group2">>, <<"10101">>, <<"trace2">>),
-    ok = client:add_edge(<<"zone1/Group2">>, <<"zone1/Provider1">>, <<"10001">>, <<"trace3">>),
+    ok = client:add_edge(<<"zone0/User1">>, <<"zone0/Space1">>, <<"01110">>, <<"trace1">>),
+    ok = client:add_edge(<<"zone0/User1">>, <<"zone0/Group2">>, <<"10101">>, <<"trace2">>),
+    ok = client:add_edge(<<"zone0/Group2">>, <<"zone0/Provider1">>, <<"10001">>, <<"trace3">>),
 
-    {ok, User1Parents} = client:list_parents(<<"zone1/User1">>),
-    {ok, User1Children} = client:list_children(<<"zone1/User1">>),
+    {ok, User1Parents} = client:list_parents(<<"zone0/User1">>),
+    {ok, User1Children} = client:list_children(<<"zone0/User1">>),
 
-    {ok, Space1Parents} = client:list_parents(<<"zone1/Space1">>),
-    {ok, Space1Children} = client:list_children(<<"zone1/Space1">>),
+    {ok, Space1Parents} = client:list_parents(<<"zone0/Space1">>),
+    {ok, Space1Children} = client:list_children(<<"zone0/Space1">>),
 
-    {ok, Group2Parents} = client:list_parents(<<"zone1/Group2">>),
-    {ok, Group2Children} = client:list_children(<<"zone1/Group2">>),
+    {ok, Group2Parents} = client:list_parents(<<"zone0/Group2">>),
+    {ok, Group2Children} = client:list_children(<<"zone0/Group2">>),
 
-    {ok, Provider1Parents} = client:list_parents(<<"zone1/Provider1">>),
-    {ok, Provider1Children} = client:list_children(<<"zone1/Provider1">>),
+    {ok, Provider1Parents} = client:list_parents(<<"zone0/Provider1">>),
+    {ok, Provider1Children} = client:list_children(<<"zone0/Provider1">>),
 
     % then
-    ?assertEqual({ok, true}, client:edge_exists(<<"zone1/User1">>, <<"zone1/Space1">>)),
-    ?assertEqual({ok, <<"01110">>}, client:get_permissions(<<"zone1/User1">>, <<"zone1/Space1">>)),
+    ?assertEqual({ok, true}, client:edge_exists(<<"zone0/User1">>, <<"zone0/Space1">>)),
+    ?assertEqual({ok, <<"01110">>}, client:get_permissions(<<"zone0/User1">>, <<"zone0/Space1">>)),
 
-    ?assertEqual({ok, true}, client:edge_exists(<<"zone1/User1">>, <<"zone1/Group2">>)),
-    ?assertEqual({ok, <<"10101">>}, client:get_permissions(<<"zone1/User1">>, <<"zone1/Group2">>)),
+    ?assertEqual({ok, true}, client:edge_exists(<<"zone0/User1">>, <<"zone0/Group2">>)),
+    ?assertEqual({ok, <<"10101">>}, client:get_permissions(<<"zone0/User1">>, <<"zone0/Group2">>)),
 
-    ?assertEqual({ok, true}, client:edge_exists(<<"zone1/Group2">>, <<"zone1/Provider1">>)),
-    ?assertEqual({ok, <<"10001">>}, client:get_permissions(<<"zone1/Group2">>, <<"zone1/Provider1">>)),
+    ?assertEqual({ok, true}, client:edge_exists(<<"zone0/Group2">>, <<"zone0/Provider1">>)),
+    ?assertEqual({ok, <<"10001">>}, client:get_permissions(<<"zone0/Group2">>, <<"zone0/Provider1">>)),
 
     ?assertEqual(2, length(User1Parents)),
     ?assertEqual(0, length(User1Children)),
@@ -149,45 +149,45 @@ edges_adding_test(_Config) ->
     ?assertEqual(0, length(Provider1Parents)),
     ?assertEqual(1, length(Provider1Children)),
 
-    ?assert(lists:member(<<"zone1/Group2">>, User1Parents)),
-    ?assert(lists:member(<<"zone1/Space1">>, User1Parents)),
-    ?assert(lists:member(<<"zone1/Provider1">>, Group2Parents)),
+    ?assert(lists:member(<<"zone0/Group2">>, User1Parents)),
+    ?assert(lists:member(<<"zone0/Space1">>, User1Parents)),
+    ?assert(lists:member(<<"zone0/Provider1">>, Group2Parents)),
 
-    ?assert(lists:member(<<"zone1/User1">>, Space1Children)),
-    ?assert(lists:member(<<"zone1/User1">>, Group2Children)),
-    ?assert(lists:member(<<"zone1/Group2">>, Provider1Children)).
+    ?assert(lists:member(<<"zone0/User1">>, Space1Children)),
+    ?assert(lists:member(<<"zone0/User1">>, Group2Children)),
+    ?assert(lists:member(<<"zone0/Group2">>, Provider1Children)).
 
 edges_updating_test(_Config) ->
     % when
-    client:set_permissions(<<"zone1/User1">>, <<"zone1/Group2">>, <<"00010">>, <<"trace2">>),
-    client:set_permissions(<<"zone1/Group2">>, <<"zone1/Provider1">>, <<"11111">>, <<"trace3">>),
+    client:set_permissions(<<"zone0/User1">>, <<"zone0/Group2">>, <<"00010">>, <<"trace2">>),
+    client:set_permissions(<<"zone0/Group2">>, <<"zone0/Provider1">>, <<"11111">>, <<"trace3">>),
 
     % then
-    ?assertEqual({ok, <<"01110">>}, client:get_permissions(<<"zone1/User1">>, <<"zone1/Space1">>)),
-    ?assertEqual({ok, <<"00010">>}, client:get_permissions(<<"zone1/User1">>, <<"zone1/Group2">>)),
-    ?assertEqual({ok, <<"11111">>}, client:get_permissions(<<"zone1/Group2">>, <<"zone1/Provider1">>)).
+    ?assertEqual({ok, <<"01110">>}, client:get_permissions(<<"zone0/User1">>, <<"zone0/Space1">>)),
+    ?assertEqual({ok, <<"00010">>}, client:get_permissions(<<"zone0/User1">>, <<"zone0/Group2">>)),
+    ?assertEqual({ok, <<"11111">>}, client:get_permissions(<<"zone0/Group2">>, <<"zone0/Provider1">>)).
 
 edges_deleting_test(_Config) ->
     % when
-    client:delete_edge(<<"zone1/User1">>, <<"zone1/Space1">>, <<"trace1">>),
-    client:delete_edge(<<"zone1/Group2">>, <<"zone1/Provider1">>, <<"trace3">>),
+    client:delete_edge(<<"zone0/User1">>, <<"zone0/Space1">>, <<"trace1">>),
+    client:delete_edge(<<"zone0/Group2">>, <<"zone0/Provider1">>, <<"trace3">>),
 
-    {ok, User1Parents} = client:list_parents(<<"zone1/User1">>),
-    {ok, User1Children} = client:list_children(<<"zone1/User1">>),
+    {ok, User1Parents} = client:list_parents(<<"zone0/User1">>),
+    {ok, User1Children} = client:list_children(<<"zone0/User1">>),
 
-    {ok, Space1Parents} = client:list_parents(<<"zone1/Space1">>),
-    {ok, Space1Children} = client:list_children(<<"zone1/Space1">>),
+    {ok, Space1Parents} = client:list_parents(<<"zone0/Space1">>),
+    {ok, Space1Children} = client:list_children(<<"zone0/Space1">>),
 
-    {ok, Group2Parents} = client:list_parents(<<"zone1/Group2">>),
-    {ok, Group2Children} = client:list_children(<<"zone1/Group2">>),
+    {ok, Group2Parents} = client:list_parents(<<"zone0/Group2">>),
+    {ok, Group2Children} = client:list_children(<<"zone0/Group2">>),
 
-    {ok, Provider1Parents} = client:list_parents(<<"zone1/Provider1">>),
-    {ok, Provider1Children} = client:list_children(<<"zone1/Provider1">>),
+    {ok, Provider1Parents} = client:list_parents(<<"zone0/Provider1">>),
+    {ok, Provider1Children} = client:list_children(<<"zone0/Provider1">>),
 
     % then
-    ?assertEqual({ok, false}, client:edge_exists(<<"zone1/User1">>, <<"zone1/Space1">>)),
-    ?assertEqual({ok, true}, client:edge_exists(<<"zone1/User1">>, <<"zone1/Group2">>)),
-    ?assertEqual({ok, false}, client:edge_exists(<<"zone1/Group2">>, <<"zone1/Provider1">>)),
+    ?assertEqual({ok, false}, client:edge_exists(<<"zone0/User1">>, <<"zone0/Space1">>)),
+    ?assertEqual({ok, true}, client:edge_exists(<<"zone0/User1">>, <<"zone0/Group2">>)),
+    ?assertEqual({ok, false}, client:edge_exists(<<"zone0/Group2">>, <<"zone0/Provider1">>)),
 
     ?assertEqual(1, length(User1Parents)),
     ?assertEqual(0, length(User1Children)),
@@ -201,10 +201,10 @@ edges_deleting_test(_Config) ->
     ?assertEqual(0, length(Provider1Parents)),
     ?assertEqual(0, length(Provider1Children)),
 
-    ?assert(lists:member(<<"zone1/Group2">>, User1Parents)),
-    ?assertNot(lists:member(<<"zone1/Space1">>, User1Parents)),
-    ?assertNot(lists:member(<<"zone1/Provider1">>, Group2Parents)),
+    ?assert(lists:member(<<"zone0/Group2">>, User1Parents)),
+    ?assertNot(lists:member(<<"zone0/Space1">>, User1Parents)),
+    ?assertNot(lists:member(<<"zone0/Provider1">>, Group2Parents)),
 
-    ?assertNot(lists:member(<<"zone1/User1">>, Space1Children)),
-    ?assert(lists:member(<<"zone1/User1">>, Group2Children)),
-    ?assertNot(lists:member(<<"zone1/Group2">>, Provider1Children)).
+    ?assertNot(lists:member(<<"zone0/User1">>, Space1Children)),
+    ?assert(lists:member(<<"zone0/User1">>, Group2Children)),
+    ?assertNot(lists:member(<<"zone0/Group2">>, Provider1Children)).

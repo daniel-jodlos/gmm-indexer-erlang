@@ -152,7 +152,7 @@ split_edge_id(Bin) ->
 
 -spec list_other_zones() -> list(binary()).
 list_other_zones() ->
-    [<<"zone1">>, <<"zone2">>, <<"zone3">>] -- [gmm_utils:zone_id()].
+    [<<"zone0">>, <<"zone1">>, <<"zone2">>] -- [gmm_utils:zone_id()].
 
 -spec batch_size() -> integer().
 batch_size() -> 5.

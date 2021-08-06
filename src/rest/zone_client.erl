@@ -182,7 +182,7 @@ post_event(VertexId, Event) ->
 post_events(Zone, BulkMessages) ->
     %% changed so compiler doesn't throw an error "Pattern 'ok' cannot be reached"
     case Zone of
-        <<"zone3">> -> ok;
+        <<"zone2">> -> ok;
         _ -> {error, not_implemented}
     end.
 
