@@ -73,8 +73,10 @@ decode(Val) -> jiffy:decode(Val, [return_maps]).
 
 -spec parse_boolean(binary()) -> {ok, boolean()} | {error, any()}.
 parse_boolean(<<"true">>) -> {ok, true};
+parse_boolean(<<"1">>) -> {ok, true};
 parse_boolean(<<"false">>) -> {ok, false};
-parse_boolean(X) -> {error, {not_a_binary_bool, X}}.
+parse_boolean(<<"0">>) -> {ok, false};
+parse_boolean(_) -> {error, "Not a bool in binary format"}.
 
 -spec validate_vertex_id(Bin :: binary()) -> ok | {error, any()}.
 validate_vertex_id(Bin) when is_binary(Bin) ->
