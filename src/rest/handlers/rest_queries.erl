@@ -257,15 +257,18 @@ members_naive_locally(Of, JumpCount) ->
 
 %% @todo
 -spec reaches_indexed(binary(), binary()) -> {ok, boolean()} | {error, any()}.
-reaches_indexed(_From, _To) ->
-    {ok, false}.
+reaches_indexed(From, To) ->
+    graph:effective_edge_exists(From, To).
 
 %% @todo
 -spec effective_permissions_indexed(binary(), binary()) -> {ok, permissions()} | {error, any()}.
-effective_permissions_indexed(_From, _To) ->
-    {ok, <<"00000">>}.
+effective_permissions_indexed(From, To) ->
+    case graph:get_effective_edge(From, To) of
+        {ok, #{<<"permissions">> := Permissions}} -> {ok, Permissions};
+        {error, Reason} -> {error, Reason}
+    end.
 
 %% @todo
 -spec members_indexed(binary()) -> {ok, list(binary())} | {error, any()}.
-members_indexed(_Of) ->
-    {ok, []}.
+members_indexed(Of) ->
+    graph:effective_list_children(Of).
