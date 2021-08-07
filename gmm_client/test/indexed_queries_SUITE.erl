@@ -38,9 +38,9 @@ init_per_group(_Group, _Config) ->
 end_per_group(_Group, _Config) ->
     ok.
 
-operations_test(_Config) ->
+operations_test(Config) ->
     % when
-    [Vertices, _Edges] = test_utils:load_graph("graph.json"),
+    [Vertices, _Edges] = test_utils:load_graph(filename:join([?config(data_dir, Config), "graph.json"])),
 
     % then
     test_utils:random_operations(member, Vertices, 10),

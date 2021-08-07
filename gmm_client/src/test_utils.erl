@@ -12,21 +12,23 @@
 
 add_vertex(VertexData) ->
     [Zone, Name] = string:split(maps:get(<<"id">>, VertexData), ":"),
-    client:add_vertex(Zone, maps:get(<<"type">>, VertexData), Name),
+    ok = client:add_vertex(Zone, maps:get(<<"type">>, VertexData), Name),
     <<Zone/binary, "/", Name/binary>>.
 
 add_edge(EdgeData) ->
-    From = string:replace(maps:get(<<"src">>, EdgeData), ":", "/"),
-    To = string:replace(maps:get(<<"dst">>, EdgeData), ":", "/"),
-    client:add_edge(From, To, maps:get(<<"perms">>, EdgeData), undefined),
+    [ZoneFrom, NameFrom] = string:split(maps:get(<<"src">>, EdgeData), ":"),
+    [ZoneTo, NameTo] = string:split(maps:get(<<"dst">>, EdgeData), ":"),
+    From = <<ZoneFrom/binary, "/", NameFrom/binary>>,
+    To = <<ZoneTo/binary, "/", NameTo/binary>>,
+    ok = client:add_edge(From, To, maps:get(<<"perms">>, EdgeData), undefined),
     [From, To].
 
 load_graph(Filename) ->
     {ok, Data} = file:read_file(Filename),
     GraphMap = jiffy:decode(Data, [return_maps]),
     Vertices = maps:get(<<"vertices">>, GraphMap),
-    Edges = maps:get(<<"edges">>, GraphMap),
     VerticesList = lists:map(fun (V) -> add_vertex(V) end, Vertices),
+    Edges = maps:get(<<"edges">>, GraphMap),
     EdgesList = lists:map(fun (E) -> add_edge(E) end, Edges),
     [VerticesList, EdgesList].
 

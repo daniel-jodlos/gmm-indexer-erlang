@@ -1,0 +1,350 @@
+{
+  "vertices" : [ {
+    "id" : "zone2:quis_ducimus",
+    "type" : "group"
+  }, {
+    "id" : "zone2:Feil Street",
+    "type" : "space"
+  }, {
+    "id" : "zone1:cher.jast",
+    "type" : "user"
+  }, {
+    "id" : "zone1:quas_ad",
+    "type" : "group"
+  }, {
+    "id" : "zone0:melvina.wiegand",
+    "type" : "user"
+  }, {
+    "id" : "zone2:oscar.sanford",
+    "type" : "user"
+  }, {
+    "id" : "zone2:young.yundt",
+    "type" : "user"
+  }, {
+    "id" : "zone1:sapiente_est",
+    "type" : "group"
+  }, {
+    "id" : "zone0:zackary.will",
+    "type" : "user"
+  }, {
+    "id" : "zone2:Port Louisburgh",
+    "type" : "provider"
+  }, {
+    "id" : "zone0:armando.gibson",
+    "type" : "user"
+  }, {
+    "id" : "zone2:emilio.hudson",
+    "type" : "user"
+  }, {
+    "id" : "zone1:Jacobsonland",
+    "type" : "provider"
+  }, {
+    "id" : "zone1:sed_quia",
+    "type" : "group"
+  }, {
+    "id" : "zone2:ut_ut",
+    "type" : "group"
+  }, {
+    "id" : "zone1:quo_deleniti",
+    "type" : "group"
+  }, {
+    "id" : "zone0:waylon.champlin",
+    "type" : "user"
+  }, {
+    "id" : "zone1:magnam_ab",
+    "type" : "group"
+  }, {
+    "id" : "zone2:voluptas_nihil",
+    "type" : "group"
+  }, {
+    "id" : "zone0:kendrick.pouros",
+    "type" : "user"
+  }, {
+    "id" : "zone0:Oswaldoville",
+    "type" : "provider"
+  }, {
+    "id" : "zone2:carissa.baumbach",
+    "type" : "user"
+  }, {
+    "id" : "zone1:Kulas Park",
+    "type" : "space"
+  }, {
+    "id" : "zone1:owen.mcdermott",
+    "type" : "user"
+  }, {
+    "id" : "zone0:cum_nesciunt",
+    "type" : "group"
+  }, {
+    "id" : "zone0:est_possimus",
+    "type" : "group"
+  }, {
+    "id" : "zone1:dewey.rodriguez",
+    "type" : "user"
+  }, {
+    "id" : "zone0:ut_eius",
+    "type" : "group"
+  }, {
+    "id" : "zone1:woodrow.becker",
+    "type" : "user"
+  }, {
+    "id" : "zone0:Larson Wall",
+    "type" : "space"
+  }, {
+    "id" : "zone0:vel_corrupti",
+    "type" : "group"
+  }, {
+    "id" : "zone0:fay.cruickshank",
+    "type" : "user"
+  }, {
+    "id" : "zone2:dolorem_distinctio",
+    "type" : "group"
+  }, {
+    "id" : "zone0:danielle.barton",
+    "type" : "user"
+  }, {
+    "id" : "zone1:kristopher.oconnell",
+    "type" : "user"
+  }, {
+    "id" : "zone1:New Palmer",
+    "type" : "provider"
+  }, {
+    "id" : "zone2:ernesto.witting",
+    "type" : "user"
+  }, {
+    "id" : "zone0:Muller Burg",
+    "type" : "space"
+  }, {
+    "id" : "zone1:Yevette Forge",
+    "type" : "space"
+  }, {
+    "id" : "zone1:mose.halvorson",
+    "type" : "user"
+  }, {
+    "id" : "zone0:wilbert.kshlerin",
+    "type" : "user"
+  }, {
+    "id" : "zone0:Terenceton",
+    "type" : "provider"
+  }, {
+    "id" : "zone0:rachelle.blick",
+    "type" : "user"
+  }, {
+    "id" : "zone2:aaron.botsford",
+    "type" : "user"
+  }, {
+    "id" : "zone1:henriette.schumm",
+    "type" : "user"
+  }, {
+    "id" : "zone1:berniece.armstrong",
+    "type" : "user"
+  }, {
+    "id" : "zone1:shayne.wolff",
+    "type" : "user"
+  }, {
+    "id" : "zone1:carrol.huel",
+    "type" : "user"
+  }, {
+    "id" : "zone1:taryn.barton",
+    "type" : "user"
+  }, {
+    "id" : "zone2:virgilio.bins",
+    "type" : "user"
+  } ],
+  "edges" : [ {
+    "src" : "zone0:kendrick.pouros",
+    "dst" : "zone1:magnam_ab",
+    "perms" : "10011"
+  }, {
+    "src" : "zone0:kendrick.pouros",
+    "dst" : "zone2:voluptas_nihil",
+    "perms" : "01000"
+  }, {
+    "src" : "zone1:kristopher.oconnell",
+    "dst" : "zone1:sapiente_est",
+    "perms" : "10010"
+  }, {
+    "src" : "zone2:young.yundt",
+    "dst" : "zone0:cum_nesciunt",
+    "perms" : "00010"
+  }, {
+    "src" : "zone2:oscar.sanford",
+    "dst" : "zone2:Feil Street",
+    "perms" : "01110"
+  }, {
+    "src" : "zone1:sapiente_est",
+    "dst" : "zone1:Kulas Park",
+    "perms" : "11011"
+  }, {
+    "src" : "zone0:danielle.barton",
+    "dst" : "zone2:dolorem_distinctio",
+    "perms" : "11110"
+  }, {
+    "src" : "zone0:zackary.will",
+    "dst" : "zone2:dolorem_distinctio",
+    "perms" : "11011"
+  }, {
+    "src" : "zone2:Feil Street",
+    "dst" : "zone1:New Palmer",
+    "perms" : "11000"
+  }, {
+    "src" : "zone0:Muller Burg",
+    "dst" : "zone0:Terenceton",
+    "perms" : "01010"
+  }, {
+    "src" : "zone2:oscar.sanford",
+    "dst" : "zone1:quas_ad",
+    "perms" : "00000"
+  }, {
+    "src" : "zone2:aaron.botsford",
+    "dst" : "zone2:Feil Street",
+    "perms" : "00110"
+  }, {
+    "src" : "zone2:dolorem_distinctio",
+    "dst" : "zone1:Yevette Forge",
+    "perms" : "00101"
+  }, {
+    "src" : "zone2:ernesto.witting",
+    "dst" : "zone0:Larson Wall",
+    "perms" : "01111"
+  }, {
+    "src" : "zone1:quas_ad",
+    "dst" : "zone1:magnam_ab",
+    "perms" : "10101"
+  }, {
+    "src" : "zone1:quo_deleniti",
+    "dst" : "zone2:dolorem_distinctio",
+    "perms" : "01000"
+  }, {
+    "src" : "zone0:melvina.wiegand",
+    "dst" : "zone1:quo_deleniti",
+    "perms" : "00111"
+  }, {
+    "src" : "zone1:mose.halvorson",
+    "dst" : "zone1:magnam_ab",
+    "perms" : "10100"
+  }, {
+    "src" : "zone0:vel_corrupti",
+    "dst" : "zone2:dolorem_distinctio",
+    "perms" : "01010"
+  }, {
+    "src" : "zone0:est_possimus",
+    "dst" : "zone0:Larson Wall",
+    "perms" : "11101"
+  }, {
+    "src" : "zone1:Kulas Park",
+    "dst" : "zone2:Port Louisburgh",
+    "perms" : "11101"
+  }, {
+    "src" : "zone1:magnam_ab",
+    "dst" : "zone1:Kulas Park",
+    "perms" : "01011"
+  }, {
+    "src" : "zone2:quis_ducimus",
+    "dst" : "zone0:Larson Wall",
+    "perms" : "10111"
+  }, {
+    "src" : "zone2:voluptas_nihil",
+    "dst" : "zone1:magnam_ab",
+    "perms" : "01001"
+  }, {
+    "src" : "zone1:carrol.huel",
+    "dst" : "zone1:quo_deleniti",
+    "perms" : "10001"
+  }, {
+    "src" : "zone1:henriette.schumm",
+    "dst" : "zone2:dolorem_distinctio",
+    "perms" : "10110"
+  }, {
+    "src" : "zone2:virgilio.bins",
+    "dst" : "zone0:Muller Burg",
+    "perms" : "10011"
+  }, {
+    "src" : "zone1:shayne.wolff",
+    "dst" : "zone2:ut_ut",
+    "perms" : "01011"
+  }, {
+    "src" : "zone1:cher.jast",
+    "dst" : "zone1:Kulas Park",
+    "perms" : "00110"
+  }, {
+    "src" : "zone1:dewey.rodriguez",
+    "dst" : "zone1:quas_ad",
+    "perms" : "11110"
+  }, {
+    "src" : "zone1:Yevette Forge",
+    "dst" : "zone1:New Palmer",
+    "perms" : "01001"
+  }, {
+    "src" : "zone2:ut_ut",
+    "dst" : "zone1:sapiente_est",
+    "perms" : "01111"
+  }, {
+    "src" : "zone2:carissa.baumbach",
+    "dst" : "zone2:quis_ducimus",
+    "perms" : "10001"
+  }, {
+    "src" : "zone0:armando.gibson",
+    "dst" : "zone2:voluptas_nihil",
+    "perms" : "01101"
+  }, {
+    "src" : "zone0:rachelle.blick",
+    "dst" : "zone2:Feil Street",
+    "perms" : "10100"
+  }, {
+    "src" : "zone1:owen.mcdermott",
+    "dst" : "zone0:Larson Wall",
+    "perms" : "00011"
+  }, {
+    "src" : "zone2:emilio.hudson",
+    "dst" : "zone2:ut_ut",
+    "perms" : "10110"
+  }, {
+    "src" : "zone0:waylon.champlin",
+    "dst" : "zone0:Larson Wall",
+    "perms" : "00001"
+  }, {
+    "src" : "zone1:sed_quia",
+    "dst" : "zone1:sapiente_est",
+    "perms" : "11001"
+  }, {
+    "src" : "zone1:berniece.armstrong",
+    "dst" : "zone0:est_possimus",
+    "perms" : "10001"
+  }, {
+    "src" : "zone0:ut_eius",
+    "dst" : "zone2:quis_ducimus",
+    "perms" : "00010"
+  }, {
+    "src" : "zone0:wilbert.kshlerin",
+    "dst" : "zone0:vel_corrupti",
+    "perms" : "01000"
+  }, {
+    "src" : "zone0:fay.cruickshank",
+    "dst" : "zone1:sed_quia",
+    "perms" : "10111"
+  }, {
+    "src" : "zone0:cum_nesciunt",
+    "dst" : "zone0:est_possimus",
+    "perms" : "01101"
+  }, {
+    "src" : "zone1:taryn.barton",
+    "dst" : "zone1:Yevette Forge",
+    "perms" : "11001"
+  }, {
+    "src" : "zone1:woodrow.becker",
+    "dst" : "zone1:sapiente_est",
+    "perms" : "10000"
+  }, {
+    "src" : "zone0:Larson Wall",
+    "dst" : "zone0:Terenceton",
+    "perms" : "00010"
+  }, {
+    "src" : "zone0:melvina.wiegand",
+    "dst" : "zone0:Muller Burg",
+    "perms" : "11100"
+  }, {
+    "src" : "zone0:danielle.barton",
+    "dst" : "zone0:Muller Burg",
+    "perms" : "11101"
+  } ]
+}
