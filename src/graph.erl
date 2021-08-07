@@ -366,12 +366,11 @@ remove_effective_edge(From, To) ->
     end.
 
 -spec edge_exists(From :: binary(), To :: binary()) -> {ok, boolean()} | {error, any()}.
-edge_exists(From, To) -> do_edge_exists(edge_id(From, To)).
+edge_exists(From, To) -> persistence:exists(edge_id(From, To)).
 
 -spec effective_edge_exists(From :: binary(), To :: binary()) -> {ok, boolean()} | {error, any()}.
-effective_edge_exists(From, To) -> do_edge_exists(effective_edge_id(From, To)).
+effective_edge_exists(From, To) -> persistence:exists(effective_edge_id(From, To)).
 
-do_edge_exists(Edge) -> persistence:exists(Edge).
 
 -spec effective_edge_exists(From :: binary(), To :: binary()) -> {ok, boolean()} | {error, any()}.
 effective_edge_exists(From, To) -> persistence:exists(effective_edge_id(From, To)).
