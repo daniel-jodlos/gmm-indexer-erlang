@@ -237,26 +237,21 @@ create_edge(From, To, Permissions) ->
     ZoneId = gmm_utils:zone_id(),
     FromZone = gmm_utils:owner_of(From),
     ToZone = gmm_utils:owner_of(To),
+    post(To, {child, added, To, From, Permissions}),
+    post(From, {parent, added, From, To, Permissions}),
     case {FromZone, ToZone} of
         {ZoneId, ZoneId} -> validate([
             persistence:set_add(children_id(To), From),
             persistence:set_add(parents_id(From), To),
-            persistence:set_add(effective_children_id(To), From),
-            persistence:set_add(effective_parents_id(From), To),
-            persistence:set(edge_id(From, To), Permissions),
-            persistence:set(effective_edge_id(From, To), Permissions)
+            persistence:set(edge_id(From, To), Permissions)
         ]);
         {ZoneId, _} -> validate([
             persistence:set_add(parents_id(From), To),
-            persistence:set_add(effective_parents_id(From), To),
-            persistence:set(edge_id(From, To), Permissions),
-            persistence:set(effective_edge_id(From, To), Permissions)
+            persistence:set(edge_id(From, To), Permissions)
         ]);
         {_, ZoneId} -> validate([
             persistence:set_add(children_id(To), From),
-            persistence:set_add(effective_children_id(To), From),
-            persistence:set(edge_id(From, To), Permissions),
-            persistence:set(effective_edge_id(From, To), Permissions)
+            persistence:set(edge_id(From, To), Permissions)
         ]);
         {_, _} -> {error, vertices_not_found}
     end.
@@ -392,3 +387,8 @@ effective_list_parents(Vertex) -> persistence:set_list_members(effective_parents
 
 -spec effective_list_children(Vertex :: binary()) -> {ok, list(binary())} | {error, any()}.
 effective_list_children(Vertex) -> persistence:set_list_members(effective_children_id(Vertex)).
+
+post(Vertex, Event) ->
+    spawn(fun () ->
+        inbox:post(Vertex, #{<<"Event">> => Event})
+    end).
