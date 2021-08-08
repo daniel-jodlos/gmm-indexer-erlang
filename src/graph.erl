@@ -301,7 +301,10 @@ create_effective_edge(From, To, Permissions) ->
     end.
 
 -spec update_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
-update_edge(From, To, Permissions) -> validate([persistence:set(edge_id(From, To), Permissions), persistence:set(effective_edge_id(From, To), Permissions)]).
+update_edge(From, To, Permissions) ->
+    post(To, {child, updated, To, From, Permissions}),
+    post(From, {parent, updated, From, To, Permissions}),
+    validate([persistence:set(edge_id(From, To), Permissions)]).
 
 -spec update_effective_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
 update_effective_edge(From, To, Permissions) -> validate([persistence:set(effective_edge_id(From, To), Permissions)]).
@@ -312,26 +315,21 @@ remove_edge(From, To) ->
     ZoneId = gmm_utils:zone_id(),
     FromZone = gmm_utils:owner_of(From),
     ToZone = gmm_utils:owner_of(To),
+    post(To, {child, removed, To, From, nil}),
+    post(From, {parent, removed, From, To, nil}),
     case {FromZone, ToZone} of
         {ZoneId, ZoneId} -> validate([
             persistence:del(edge_id(From, To)),
-            persistence:del(effective_edge_id(From, To)),
             persistence:set_remove(children_id(To), From),
-            persistence:set_remove(parents_id(From), To),
-            persistence:set_remove(effective_children_id(To), From),
-            persistence:set_remove(effective_parents_id(From), To)
+            persistence:set_remove(parents_id(From), To)
         ]);
         {ZoneId, _} -> validate([
             persistence:del(edge_id(From, To)),
-            persistence:del(effective_edge_id(From, To)),
-            persistence:set_remove(parents_id(From), To),
-            persistence:set_remove(effective_parents_id(From), To)
+            persistence:set_remove(parents_id(From), To)
         ]);
         {_, ZoneId} -> validate([
             persistence:del(edge_id(From, To)),
-            persistence:del(effective_edge_id(From, To)),
-            persistence:set_remove(children_id(To), From),
-            persistence:set_remove(effective_children_id(To), From)
+            persistence:set_remove(children_id(To), From)
         ]);
         {_, _} -> {error, vertices_not_found}
     end.
