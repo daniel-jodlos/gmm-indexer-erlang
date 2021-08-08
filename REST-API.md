@@ -691,7 +691,7 @@ WARNING: in current state our server doesn't send times longer than 24 hours.
     <tr>
         <th>Params</th>
         <td><ul>
-            <li>id; *this is id of the event, not a vertex</li>
+            <li>id; *this is id of the vertex event is posted 'on'</li>
         </ul></td>
     </tr>
     <tr>
