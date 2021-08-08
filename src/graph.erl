@@ -243,22 +243,15 @@ create_edge(From, To, Permissions) ->
         {ZoneId, ZoneId} -> validate([
             persistence:set_add(children_id(To), From),
             persistence:set_add(parents_id(From), To),
-            persistence:set_add(effective_children_id(To), From),
-            persistence:set_add(effective_parents_id(From), To),
-            persistence:set(edge_id(From, To), Permissions),
-            persistence:set(effective_edge_id(From, To), Permissions)
+            persistence:set(edge_id(From, To), Permissions)
         ]);
         {ZoneId, _} -> validate([
             persistence:set_add(parents_id(From), To),
-            persistence:set_add(effective_parents_id(From), To),
-            persistence:set(edge_id(From, To), Permissions),
-            persistence:set(effective_edge_id(From, To), Permissions)
+            persistence:set(edge_id(From, To), Permissions)
         ]);
         {_, ZoneId} -> validate([
             persistence:set_add(children_id(To), From),
-            persistence:set_add(effective_children_id(To), From),
-            persistence:set(edge_id(From, To), Permissions),
-            persistence:set(effective_edge_id(From, To), Permissions)
+            persistence:set(edge_id(From, To), Permissions)
         ]);
         {_, _} -> {error, vertices_not_found}
     end.
