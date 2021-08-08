@@ -237,8 +237,8 @@ create_edge(From, To, Permissions) ->
     ZoneId = gmm_utils:zone_id(),
     FromZone = gmm_utils:owner_of(From),
     ToZone = gmm_utils:owner_of(To),
-    post(To, {child, added, To, From, Permissions}),
-    post(From, {parent, added, From, To, Permissions}),
+    post(To, {child, updated, To, From, Permissions}),
+    post(From, {parent, updated, From, To, Permissions}),
     case {FromZone, ToZone} of
         {ZoneId, ZoneId} -> validate([
             persistence:set_add(children_id(To), From),
@@ -390,5 +390,5 @@ effective_list_children(Vertex) -> persistence:set_list_members(effective_childr
 
 post(Vertex, Event) ->
     spawn(fun () ->
-        inbox:post(Vertex, #{<<"Event">> => Event})
+        inbox:post(Vertex, #{<<"event">> => Event})
     end).
