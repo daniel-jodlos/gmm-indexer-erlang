@@ -127,7 +127,7 @@ validate_event(#{<<"type">> := Type, <<"trace">> := Trace, <<"sender">> := Sende
     ],
     case lists:all(fun(X) -> X end, Conditions) of
         true -> ok;
-        false -> {error, "One of effective vertex's ID is invalid"}
+        false -> {error, "One of event's parameters is invalid"}
     end;
 validate_event(_) ->
     {error, "Event's JSON in a wrong format"}.

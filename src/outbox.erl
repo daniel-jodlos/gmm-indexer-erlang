@@ -9,6 +9,7 @@
 %% API
 -export([
     specs_for_supervisor/0,
+    start_link/1,
     init_outbox/1,
     post/2,
     is_empty/1,
@@ -25,15 +26,21 @@ specs_for_supervisor() ->
     lists:map(
         fun(Zone) -> #{
             id => << "outbox_", Zone/binary >>,
-            start => {outbox, init_outbox, [Zone]}
+            start => {outbox, start_link, [Zone]}
         } end, gmm_utils:list_other_zones()
     ).
 
-init_outbox(Zone) ->
+start_link(Zone) ->
     case ets:member(outboxes, Zone) of
-        true -> ets:update_element(outboxes, Zone, {2, self()});
-        false -> ets:insert(outboxes, {Zone, self(), []})
+        true ->
+            ets:update_element(outboxes, Zone, {2, null});
+        false ->
+            ets:insert(outboxes, {Zone, null, []})
     end,
+    {ok, spawn_link(outbox, init_outbox, [Zone])}.
+
+init_outbox(Zone) ->
+    ets:update_element(outboxes, Zone, {2, self()}),
     timer:send_after(initial_delay(), send),
     outbox_routine(Zone, initial_delay()).
 
