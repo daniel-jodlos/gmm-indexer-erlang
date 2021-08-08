@@ -18,7 +18,8 @@
 
 -include("records.hrl").
 
-start_link() -> supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+start_link() ->
+    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 %% sup_flags() = #{strategy => strategy(),         % optional
 %%                 intensity => non_neg_integer(), % optional
@@ -36,8 +37,8 @@ init([]) ->
     ets:insert(supervisor, {pid, self()}),
 
     %% create ets tables
-    ets:new(outboxes, [named_table]),
-    ets:new(inboxes, [named_table]),
+    ets:new(outboxes, [named_table, public]),
+    ets:new(inboxes, [named_table, public]),
 
     %% spawn child processes
     SupFlags = #{
@@ -58,6 +59,6 @@ create_inbox_servant(Vertex) ->
     Supervisor = ets:lookup_element(supervisor, pid, 2),
     ChildSpec = #{
         id => << "inbox_", Vertex/binary >>,
-        start => {inbox, init_inbox, [Vertex]}
+        start => {inbox, start_link, [Vertex]}
     },
     supervisor:start_child(Supervisor, ChildSpec).
