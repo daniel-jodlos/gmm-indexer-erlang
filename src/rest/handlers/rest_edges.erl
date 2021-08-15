@@ -63,9 +63,9 @@ from_json(Req, State = #{operation := Op, from := From, to := To, permissions :=
         successive := Successive}) when Op == add; Op == update; Op == delete ->
     ok = execute_operation(Op, From, To, Permissions, Trace, Successive),
     {true, Req, State};
-from_json(Req, State = #{operation := bulk, body := #{src_zone := SrcZone, dst_zone := DstZone, successive := Successive, edges := Edges}}) ->
+from_json(Req, State = #{operation := bulk, body := #{src_zone := _SrcZone, dst_zone := _DstZone, successive := Successive, edges := Edges}}) ->
     %% @todo execute bulk request parsed in init/2
-    ok = execute_bulk_request(SrcZone, DstZone, Successive, Edges),
+    ok = execute_bulk_request(Successive, Edges),
     {true, Req, State}.
 
 
@@ -78,6 +78,8 @@ parse_edge_string(Bin) when is_binary(Bin) ->
     try
         case gmm_utils:split_bin(Bin) of
             [From, To, Permissions, Trace] when byte_size(From) > 0, byte_size(To) > 0, byte_size(Permissions) > 0 ->
+                ok = gmm_utils:validate_vertex_id(From),
+                ok = gmm_utils:validate_vertex_id(To),
                 {ok, #{from => From, to => To, permissions => Permissions, trace => Trace}};
             _ -> {error, "Incorrect edge string"}
         end
@@ -178,30 +180,23 @@ modify_state(delete, From, To, _, _, _) ->
 %%%---------------------------
 %% bulk operation executor
 %%%---------------------------
--spec replace(T, T, [T]) -> [T].
-replace(Element, Replacement, [Element | T]) ->
-    [Replacement | T];
-replace(Element, Replacement, [H | T]) ->
-    [H | replace(Element, Replacement, T)];
-replace(_Element, _Replacement, []) ->
-    [].
-
--spec execute_bulk_request(SrcZone :: binary(), DstZone :: binary(), Successive :: boolean(), Edges :: list(map())) -> ok | {error, any()}.
-execute_bulk_request(SrcZone, DstZone, Successive, Edges) ->
+-spec execute_bulk_request(Successive :: string(), Edges :: string()) -> ok | {error, any()}.
+execute_bulk_request(Successive, Edges) ->
     Parent = self(),
     Ref = erlang:make_ref(),
 
-    Pids = lists:map(fun(#{from := FromName, to := ToName, permissions := Permissions, trace := Trace}) ->
+    Pids = lists:map(fun(Edge, Successive) ->
         spawn(fun() ->
             Result = try
-                execute_locally(add, gmm_utils:create_vertex_id(SrcZone,  FromName), gmm_utils:create_vertex_id(DstZone, ToName), Permissions, Trace, Successive)
+                Params = string:split(Edge, "/", all),
+                [From, To, Permissions, Trace | _] = Params,
+                execute_operation(add, list_to_binary(From), list_to_binary(To), Permissions, list_to_binary(Trace), list_to_binary(Successive))
             catch Type:Reason:Stacktrace ->
                 {'$pmap_error', self(), Type, Reason, Stacktrace}
             end,
             Parent ! {Ref, self(), Result}
         end)
-    end, Edges),
-
+    end, Edges, Successive),
 
     % GATHERING RESULTS
     Gather = fun
@@ -209,7 +204,7 @@ execute_bulk_request(SrcZone, DstZone, Successive, Edges) ->
         F(PendingPids = [_ | _], PidsOrResults) ->
             receive
                 {Ref, Pid, Result} ->
-                    NewPidsOrResults = replace(Pid, Result, PidsOrResults),
+                    NewPidsOrResults = lists_utils:replace(Pid, Result, PidsOrResults),
                     F(lists:delete(Pid, PendingPids), NewPidsOrResults)
             after 5000 ->
                 case lists:any(fun erlang:is_process_alive/1, PendingPids) of
@@ -235,6 +230,3 @@ execute_bulk_request(SrcZone, DstZone, Successive, Edges) ->
             end
     end,
     Gather(Pids, Pids).
-
-
-% condistions met AND modifiy state
