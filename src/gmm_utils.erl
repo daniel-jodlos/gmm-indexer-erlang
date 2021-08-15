@@ -30,12 +30,20 @@
 
     list_other_zones/0,
     batch_size/0,
+
+    get_instrumentation_enabled/0,
+    set_instrumentation_enabled/1,
+    get_indexation_enabled/0,
+    set_indexation_enabled/1,
+
     convert_microseconds_to_iso_8601/1,
     permissions_and/2,
     permissions_or/2,
 
     parse_rest_params/4,
-    parse_rest_body/3
+    parse_rest_body/3,
+
+    log_error/3
 ]).
 
 -include("records.hrl").
@@ -151,6 +159,30 @@ list_other_zones() ->
 -spec batch_size() -> integer().
 batch_size() -> 5.
 
+
+-spec get_instrumentation_enabled() -> boolean().
+get_instrumentation_enabled() ->
+    case os:getenv("INSTRUMENTATION_ENABLED") of
+        "true" -> true;
+        _ -> false
+    end.
+
+-spec set_instrumentation_enabled(boolean()) -> true.
+set_instrumentation_enabled(NewVal) when is_boolean(NewVal) ->
+    os:putenv("INSTRUMENTATION_ENABLED", atom_to_list(NewVal)).
+
+-spec get_indexation_enabled() -> boolean().
+get_indexation_enabled() ->
+    case os:getenv("INDEXATION_ENABLED") of
+        "true" -> true;
+        _ -> false
+    end.
+
+-spec set_indexation_enabled(boolean()) -> true.
+set_indexation_enabled(NewVal) when is_boolean(NewVal) ->
+    os:putenv("INDEXATION_ENABLED", atom_to_list(NewVal)).
+
+
 %% Assumption: time to parse is smaller than 1 day, or rather: result of this function is time modulo 24 hours
 -spec convert_microseconds_to_iso_8601(integer()) -> binary().
 convert_microseconds_to_iso_8601(TotalMicroseconds) when TotalMicroseconds >= 0 ->
@@ -221,7 +253,9 @@ parse_rest_params(Req, State, ParamsSpec, ParsingSpec) ->
                 ReadParams, ParsingSpec
             ),
         maps:merge(State, ParsedParams)
-    catch _:_ -> bad_request end.
+    catch Class:Pattern:Stacktrace ->
+        log_error(Class, Pattern, Stacktrace),
+        bad_request end.
 
 -spec parse_rest_body( Req :: cowboy_req:req(), State :: rest_handler_state(),
     Parser :: fun((binary()) -> {ok, any()}) ) -> {cowboy_req:req(), rest_handler_state()}.
@@ -232,4 +266,9 @@ parse_rest_body(Req0, State, Parser) ->
         {ok, Data, Req1} = cowboy_req:read_body(Req0),
         {ok, Body} = Parser( Data ),
         {Req1, maps:merge(State, #{body => Body})}
-    catch _:_ -> {Req0, bad_request} end.
+    catch Class:Pattern:Stacktrace ->
+        log_error(Class, Pattern, Stacktrace),
+        {Req0, bad_request} end.
+
+log_error(Class, Pattern, Stacktrace) ->
+    io:format("Class: ~p;\nPattern: ~p;\nStacktrace: ~p\n\n", [Class, Pattern, Stacktrace]).

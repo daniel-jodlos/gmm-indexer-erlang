@@ -9,6 +9,7 @@
 
 %% API
 -export([
+    start_link/1,
     init_inbox/1,
     post/2,
     is_empty/0,
@@ -20,11 +21,15 @@
 %% Exported functions
 %%%---------------------------
 
-init_inbox(Vertex) ->
+start_link(Vertex) ->
     case ets:member(inboxes, Vertex) of
-        true -> ets:update_element(inboxes, Vertex, {2, self()});
-        false -> ets:insert(inboxes, {Vertex, self(), true, []})
+        true -> ets:update_element(inboxes, Vertex, {2, null});
+        false -> ets:insert(inboxes, {Vertex, null, true, []})
     end,
+    {ok, spawn_link(inbox, init_inbox, [Vertex])}.
+
+init_inbox(Vertex) ->
+    ets:update_element(inboxes, Vertex, {2, self()}),
     servant(Vertex).
 
 -spec post(Vertex :: binary(), Event :: map()) -> ok.
@@ -101,7 +106,7 @@ queue_event(Vertex, Event) ->
 poll_event(Vertex) ->
     case ets:lookup_element(inboxes, Vertex, 4) of
         [] -> none;
-        [Event, Rest] ->
+        [Event | Rest] ->
             ets:update_element(inboxes, Vertex, {4, Rest}),
             Event
     end.
