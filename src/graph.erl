@@ -37,6 +37,11 @@
     list_children/1
 ]).
 
+%% additional functions
+-export([
+    all_zones/0
+]).
+
 -include("records.hrl").
 
 %%%---------------------------
@@ -291,3 +296,9 @@ list_parents(Vertex) -> persistence:set_list_members(parents_id(Vertex)).
 
 -spec list_children(Vertex :: binary()) -> {ok, list(binary())} | {error, any()}.
 list_children(Vertex) -> persistence:set_list_members(children_id(Vertex)).
+
+
+%% @todo implement this - basically all zones that this zone has contact with
+-spec all_zones() -> {ok, list(binary())} | {error, any()}.
+all_zones() ->
+    {ok, []}.
