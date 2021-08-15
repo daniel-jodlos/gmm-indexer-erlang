@@ -43,6 +43,6 @@ operations_test(Config) ->
     [Vertices, _Edges] = test_utils:load_graph(filename:join([?config(data_dir, Config), "graph.json"])),
 
     % then
-    test_utils:random_operations(member, Vertices, 10),
+    test_utils:random_operations(members, Vertices, 10),
     test_utils:random_operations(reaches, Vertices, 10),
     test_utils:random_operations(ep, Vertices, 10).
