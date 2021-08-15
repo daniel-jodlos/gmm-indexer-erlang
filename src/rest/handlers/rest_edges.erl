@@ -63,10 +63,9 @@ from_json(Req, State = #{operation := Op, from := From, to := To, permissions :=
         successive := Successive}) when Op == add; Op == update; Op == delete ->
     ok = execute_operation(Op, From, To, Permissions, Trace, Successive),
     {true, Req, State};
-from_json(Req, State = #{operation := bulk, body := #{
-        src_zone := SrcZone, dst_zone := DstZone, successive = Successive, edges := Edges}}) ->
+from_json(Req, State = #{operation := bulk, body := #{src_zone := _SrcZone, dst_zone := _DstZone, successive := Successive, edges := Edges}}) ->
     %% @todo execute bulk request parsed in init/2
-    ok = execute_bulk_request(fun(From, To, Permissions, Trace, Successive) -> execute_operation(add, From, To, Permissions, Trace, Successive), Succesive, Edges),
+    ok = execute_bulk_request(Successive, Edges),
     {true, Req, State}.
 
 
@@ -181,23 +180,23 @@ modify_state(delete, From, To, _, _, _) ->
 %%%---------------------------
 %% bulk operation executor
 %%%---------------------------
--spec execute_bulk_request(fun((From, To, Permissions, Trace, Successive) -> Y), Succesive, Edges) -> ok | {error, any()}.
-execute_bulk_request(AddEdge, Succesive, Edges) ->
+-spec execute_bulk_request(Successive :: string(), Edges :: string()) -> ok | {error, any()}.
+execute_bulk_request(Successive, Edges) ->
     Parent = self(),
     Ref = erlang:make_ref(),
 
-    Pids = lists:map(fun(Edge) ->
+    Pids = lists:map(fun(Edge, Successive) ->
         spawn(fun() ->
             Result = try
                 Params = string:split(Edge, "/", all),
-                [From | To | Permissions | Trace | _] = Params,
-                AddEdge(list_to_binary(From), list_to_binary(To), list_to_binary(Permissions), list_to_binary(Trace), list_to_binary(Successive))
+                [From, To, Permissions, Trace | _] = Params,
+                execute_operation(add, list_to_binary(From), list_to_binary(To), list_to_binary(Permissions), list_to_binary(Trace), list_to_binary(Successive))
             catch Type:Reason:Stacktrace ->
                 {'$pmap_error', self(), Type, Reason, Stacktrace}
             end,
             Parent ! {Ref, self(), Result}
         end)
-    end, Edges),
+    end, Edges, Successive),
 
     % GATHERING RESULTS
     Gather = fun
