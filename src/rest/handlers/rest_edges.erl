@@ -190,7 +190,7 @@ execute_bulk_request(Successive, Edges) ->
             Result = try
                 Params = string:split(Edge, "/", all),
                 [From, To, Permissions, Trace | _] = Params,
-                execute_operation(add, list_to_binary(From), list_to_binary(To), list_to_binary(Permissions), list_to_binary(Trace), list_to_binary(Successive))
+                execute_operation(add, list_to_binary(From), list_to_binary(To), Permissions, list_to_binary(Trace), list_to_binary(Successive))
             catch Type:Reason:Stacktrace ->
                 {'$pmap_error', self(), Type, Reason, Stacktrace}
             end,
