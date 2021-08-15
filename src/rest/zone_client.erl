@@ -31,7 +31,7 @@
     set_permissions/6, %% @todo necessary
     add_vertex/3, %% @todo necessary
     add_vertices/2, %% @todo optional
-    post_event/3, %% @todo ???
+    post_event/2, %% @todo ???
     post_events/2, %% @todo optional
     get_event_stats/1, %% @todo ignore
     get_dependent_zones/1, %% @todo necessary later now optional
@@ -178,8 +178,8 @@ add_vertices(Zone, BulkRequest) ->
     Url = http_utils:build_url(Address, <<"graph/vertices/bulk">>,[]),
     http_executor:post(Url, BulkRequest, false).
 
--spec post_event(Zone:: binary(), VertexId:: binary(), Event:: map()) -> ok | {error, any()}.
-post_event(Zone, VertexId, Event) ->
+-spec post_event(VertexId:: binary(), Event:: map()) -> ok | {error, any()}.
+post_event(VertexId, Event) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"events">>,
       [{<<"id">>, VertexId}]),
@@ -189,12 +189,12 @@ post_event(Zone, VertexId, Event) ->
 post_events(Zone, BulkMessages) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"events/bulk">>,[]),
-    http_executor:post(Url, BulkMessages, false).
+    http_executor:post(Url, BulkRequest, false).
 
 -spec get_event_stats(Zone:: binary()) -> {ok, map()} | {error, any()}.
 get_event_stats(Zone) ->
     {ok, Address} = http_utils:get_address(Zone),
-    Url = http_utils:build_url(Address, <<"events/stats">>, []),
+    Url = http_utils:build_url(Address, <<"events/stats">>, []]),
     http_executor:get(Url).
 
 -spec get_dependent_zones(Zone:: binary()) -> {ok, map()} | {error, any()}.
