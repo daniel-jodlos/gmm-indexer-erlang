@@ -185,18 +185,18 @@ execute_bulk_request(Successive, Edges) ->
     Parent = self(),
     Ref = erlang:make_ref(),
 
-    Pids = lists:map(fun(Edge, Successive) ->
+    Pids = lists:map(fun(Edge) ->
         spawn(fun() ->
             Result = try
                 Params = string:split(Edge, "/", all),
                 [From, To, Permissions, Trace | _] = Params,
-                execute_operation(add, list_to_binary(From), list_to_binary(To), Permissions, list_to_binary(Trace), list_to_binary(Successive))
+                execute_operation(add, list_to_binary(From), list_to_binary(To), Permissions, list_to_binary(Trace), false)
             catch Type:Reason:Stacktrace ->
                 {'$pmap_error', self(), Type, Reason, Stacktrace}
             end,
             Parent ! {Ref, self(), Result}
         end)
-    end, Edges, Successive),
+    end, Edges),
 
     % GATHERING RESULTS
     Gather = fun
