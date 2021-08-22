@@ -210,14 +210,14 @@ is_instrumentation_enabled(Zone) ->
 -spec set_instrumentation_enabled(Zone:: binary(), Enabled:: boolean()) -> ok | {error, any()}.
 set_instrumentation_enabled(Zone, Enabled) ->
     {ok, Address} = http_utils:get_address(Zone),
-    Url = http_utils:build_url(Address, <<"instrumentation">>,[{<<"enabled">>, Enabled}]),
-    http_executor:put(Url).
+    Url = http_utils:build_url(Address, <<"instrumentation">>),
+    http_executor:put(Url, Enabled).
 
 -spec set_indexation_enabled(Zone:: binary(), Enabled:: boolean()) -> ok | {error, any()}.
 set_indexation_enabled(Zone, Enabled) ->
     {ok, Address} = http_utils:get_address(Zone),
-    Url = http_utils:build_url(Address, <<"indexation">>,[{<<"enabled">>, Enabled}]),
-    http_executor:put(Url).
+    Url = http_utils:build_url(Address, <<"indexation">>),
+    http_executor:put(Url, Enabled).
 
 -spec simulate_load(Zone:: binary(), LoadRequest:: map()) -> ok | {error, any()}.
 simulate_load(Zone, LoadRequest) ->
