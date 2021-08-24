@@ -47,7 +47,7 @@ request(Method, Url, RawBody, GetResponse) ->
             _ -> gmm_utils:encode(RawBody)
         end,
     ReqHeaders = [{<<"Content-Type">>, <<"application/json">>}],
-    case hackney:request(Method, Url, ReqHeaders, Body) of
+    case hackney:request(Method, Url, ReqHeaders, Body, [{pool, false}]) of
         {ok, SCode, _, ConnRef} when (SCode div 100) == 2 ->
             case GetResponse of
                 true ->
