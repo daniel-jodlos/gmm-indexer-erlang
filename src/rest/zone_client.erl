@@ -181,8 +181,7 @@ add_vertices(Zone, BulkRequest) ->
 -spec post_event(Zone:: binary(), VertexId:: binary(), Event:: map()) -> ok | {error, any()}.
 post_event(Zone, VertexId, Event) ->
     {ok, Address} = http_utils:get_address(Zone),
-    Url = http_utils:build_url(Address, <<"events">>,
-      [{<<"id">>, VertexId}]),
+    Url = http_utils:build_url(Address, <<"events">>, [{<<"id">>, VertexId}]),
     http_executor:post(Url, Event, false).
 
 -spec post_events(Zone:: binary(), BulkMessages:: map()) -> ok | {error, any()}.
