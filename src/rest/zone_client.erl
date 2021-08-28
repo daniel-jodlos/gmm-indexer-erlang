@@ -204,13 +204,13 @@ get_dependent_zones(Zone) ->
 -spec get_dependent_zones(Zone:: binary(), ToExclude:: list(binary())) -> {ok, map()} | {error, any()}.
 get_dependent_zones(Zone, ToExclude) ->
     {ok, Address} = http_utils:get_address(Zone),
-    Url = http_utils:build_url(Address, <<"dependent_zones">>,[]),
+    Url = http_utils:build_url(Address, <<"dependent_zones">>),
     http_executor:post(Url, ToExclude, true).
 
 -spec is_instrumentation_enabled(Zone:: binary()) -> {ok, boolean()} | {error, any()}.
 is_instrumentation_enabled(Zone) ->
     {ok, Address} = http_utils:get_address(Zone),
-    Url = http_utils:build_url(Address, <<"instrumentation">>, []),
+    Url = http_utils:build_url(Address, <<"instrumentation">>),
     http_executor:get(Url).
 
 -spec set_instrumentation_enabled(Zone:: binary(), Enabled:: boolean()) -> ok | {error, any()}.
