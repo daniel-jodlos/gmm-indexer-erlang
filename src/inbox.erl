@@ -63,8 +63,12 @@ local_post(Vertex, Event) ->
     case ets:member(inboxes, Vertex) of
         true ->
             Pid = ets:lookup_element(inboxes, Vertex, 2),
-            Pid ! {event, Event},
-            ok;
+            Pid ! {event, Event, self()},
+            receive
+                ok -> ok;
+                _ -> {error, unknown_answer}
+            after 2000 -> {error, timeout}
+            end;
         false ->
             gmm_sup:create_inbox_servant(Vertex),
             local_post(Vertex, Event)
@@ -125,7 +129,7 @@ servant(Vertex) ->
                     %% @todo event_processor:process(Event)
                     io:format("Vertex: ~p; Event: ~p\n", [Vertex, Event])
             end;
-        {event, Event} ->
+        {event, Event, Pid} ->
             case is_vertex_free(Vertex) of
                 true ->
                     mark_vertex_busy(Vertex),
@@ -133,6 +137,7 @@ servant(Vertex) ->
                     io:format("Vertex: ~p; Event: ~p\n", [Vertex, Event]);
                 false ->
                     queue_event(Vertex, Event)
-            end
+            end,
+            Pid ! ok
     end,
     servant(Vertex).
