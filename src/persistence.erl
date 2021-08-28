@@ -42,54 +42,44 @@ stop(ServerName) -> gen_server:call(ServerName, stop).
 
 start_link(ServerName) -> gen_server:start_link({local, ServerName}, ?MODULE, [], []).
 
+% create_redis_client(N)->
+%   Client = eredis:start_link(
+%    [
+%      {host, os:getenv("GMM_REDIS_HOST", "localhost")},
+%      {port, list_to_integer(os:getenv("GMM_REDIS_PORT", "6379"))}
+%    ]),
+%  case Client of
+%    {ok, ClientRef} ->
+%      os:putenv(?REDIS_CLIENT ++ integer_to_list(N), pid_to_list(ClientRef)), Client;
+%    _ -> Client
+%  end.
+
+% create_n_redis_clients(Acc, N) ->
+%  case N of
+%    0 -> Acc;
+%    _ -> create_n_redis_clients([create_redis_client(N) | Acc], N - 1)
+%  end.
+
 init(_Args) ->
-  eredis:start_link(
+  Client = eredis:start_link(
     [
       {host, os:getenv("GMM_REDIS_HOST", "localhost")},
       {port, list_to_integer(os:getenv("GMM_REDIS_PORT", "6379"))}
-    ]
-  ).
+    ]),
+  case Client of
+    {ok, ClientRef} ->
+      os:putenv(?REDIS_CLIENT, pid_to_list(ClientRef)), Client;
+    _ -> Client
+  end.
 
 handle_call(stop, _From, RedisClient) -> {stop, normal, stopped, RedisClient};
 
-handle_call({get, Key}, _From, RedisClient) ->
-  Reply = eredis:q(RedisClient, ["GET", Key]),
-  {reply, Reply, RedisClient};
-
-handle_call({set, Key, Value}, _From, RedisClient) ->
-  Reply = eredis:q(RedisClient, ["SET", Key, Value]),
-  {reply, Reply, RedisClient};
-
-handle_call({del, Key}, _From, RedisClient) ->
-  Reply = eredis:q(RedisClient, ["DEL", Key]),
-  {reply, Reply, RedisClient};
-
-handle_call({keys, Pattern}, _From, RedisClient) ->
-  Reply = eredis:q(RedisClient, ["KEYS", Pattern]),
-  {reply, Reply, RedisClient};
-
-handle_call({set_add, Key, Value}, _From, RedisClient) ->
-  Reply = eredis:q(RedisClient, ["SADD", Key, Value]),
-  {reply, Reply, RedisClient};
-
-handle_call({set_remove, Key, Value}, _From, RedisClient) ->
-  Reply = eredis:q(RedisClient, ["SREM", Key, Value]),
-  {reply, Reply, RedisClient};
-
-handle_call({set_is_member, Key, Value}, _From, RedisClient) ->
-  Reply = eredis:q(RedisClient, ["SISMEMBER", Key, Value]),
-  {reply, Reply, RedisClient};
-
-handle_call({set_list_members, Key}, _From, RedisClient) ->
-  Reply = eredis:q(RedisClient, ["SMEMBERS", Key]),
-  {reply, Reply, RedisClient};
 
 handle_call({exists, Key}, _From, RedisClient) ->
   Reply = eredis:q(RedisClient, ["EXISTS", Key]),
   {reply, Reply, RedisClient};
 
 handle_call(_Request, _From, RedisClient) -> {reply, unknown, RedisClient}.
-
 
 handle_cast(_Msg, State) -> {noreply, State}.
 
@@ -101,13 +91,22 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 %% redis api
 
-get(Key) -> gen_server:call(?REDIS_SERVER, {get, Key}).
 
-set(Key, Value) -> gen_server:call(?REDIS_SERVER, {set, Key, Value}).
+get(Key) ->
+  RedisClient = os:getenv(?REDIS_CLIENT),
+  eredis:q(list_to_pid(RedisClient), ["GET", Key]).
 
-del(Key) -> gen_server:call(?REDIS_SERVER, {del, Key}).
+set(Key, Value) ->
+  RedisClient = os:getenv(?REDIS_CLIENT),
+  eredis:q(list_to_pid(RedisClient), ["SET", Key, Value]).
 
-keys(Pattern) -> gen_server:call(?REDIS_SERVER, {keys, Pattern}).
+del(Key) ->
+  RedisClient = os:getenv(?REDIS_CLIENT),
+  eredis:q(list_to_pid(RedisClient), ["DEL", Key]).
+
+keys(Pattern) ->
+  RedisClient = os:getenv(?REDIS_CLIENT),
+  eredis:q(list_to_pid(RedisClient), ["KEYS", Pattern]).
 
 exists(Key) ->
   case gen_server:call(?REDIS_SERVER, {exists, Key}) of
@@ -117,10 +116,20 @@ exists(Key) ->
   end.
 
 
-set_add(Key, Value) -> gen_server:call(?REDIS_SERVER, {set_add, Key, Value}).
+set_add(Key, Value) ->
+  RedisClient = os:getenv(?REDIS_CLIENT),
+  eredis:q(list_to_pid(RedisClient), ["SADD", Key, Value]).
 
-set_remove(Key, Value) -> gen_server:call(?REDIS_SERVER, {set_remove, Key, Value}).
+set_remove(Key, Value) ->
+  RedisClient = os:getenv(?REDIS_CLIENT),
+  eredis:q(list_to_pid(RedisClient), ["SREM", Key, Value]).
 
-set_is_member(Key, Value) -> gen_server:call(?REDIS_SERVER, {set_is_member, Key, Value}).
 
-set_list_members(Key) -> gen_server:call(?REDIS_SERVER, {set_list_members, Key}).
+set_is_member(Key, Value) ->
+  RedisClient = os:getenv(?REDIS_CLIENT),
+  eredis:q(list_to_pid(RedisClient), ["SISMEMBER", Key, Value]).
+
+
+set_list_members(Key) ->
+  RedisClient = os:getenv(?REDIS_CLIENT),
+  eredis:q(list_to_pid(RedisClient), ["SMEMBERS", Key]).
