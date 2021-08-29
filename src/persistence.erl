@@ -74,11 +74,6 @@ init(_Args) ->
 
 handle_call(stop, _From, RedisClient) -> {stop, normal, stopped, RedisClient};
 
-
-handle_call({exists, Key}, _From, RedisClient) ->
-  Reply = eredis:q(RedisClient, ["EXISTS", Key]),
-  {reply, Reply, RedisClient};
-
 handle_call(_Request, _From, RedisClient) -> {reply, unknown, RedisClient}.
 
 handle_cast(_Msg, State) -> {noreply, State}.
@@ -109,7 +104,8 @@ keys(Pattern) ->
   eredis:q(list_to_pid(RedisClient), ["KEYS", Pattern]).
 
 exists(Key) ->
-  case gen_server:call(?REDIS_SERVER, {exists, Key}) of
+  RedisClient = os:getenv(?REDIS_CLIENT),
+  case eredis:q(RedisClient, ["EXISTS", Key]) of
     {ok, <<"0">>} -> {ok, false};
     {ok, <<"1">>} -> {ok, true};
     {error, Reason} -> {error, Reason}
