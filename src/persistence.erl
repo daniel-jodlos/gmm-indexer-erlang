@@ -79,7 +79,7 @@ keys(Pattern) ->
 
 exists(Key) ->
   RedisClient = os:getenv(?REDIS_CLIENT),
-  case eredis:q(RedisClient, ["EXISTS", Key]) of
+  case eredis:q(list_to_pid(RedisClient), ["EXISTS", Key]) of
     {ok, <<"0">>} -> {ok, false};
     {ok, <<"1">>} -> {ok, true};
     {error, Reason} -> {error, Reason}
