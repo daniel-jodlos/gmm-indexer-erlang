@@ -10,7 +10,7 @@
 
 -export(
   [
-    create_redis_client/1
+    create_redis_client/0
   ]
 ).
 -export(
@@ -46,7 +46,7 @@
 %    _ -> create_n_redis_clients([create_redis_client(N) | Acc], N - 1)
 %  end.
 
-create_redis_client(_Args) ->
+create_redis_client() ->
   Client = eredis:start_link(
     [
       {host, os:getenv("GMM_REDIS_HOST", "localhost")},
