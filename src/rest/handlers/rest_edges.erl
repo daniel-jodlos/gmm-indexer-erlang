@@ -79,7 +79,6 @@ parse_edge_string(Bin) when is_binary(Bin) ->
     try
         case gmm_utils:split_bin(Bin) of
             [From, To, Permissions, Trace] when byte_size(From) > 0, byte_size(To) > 0, byte_size(Permissions) > 0 ->
-                Trace = get_trace(TraceParam),
                 {ok, #{from => From, to => To, permissions => Permissions, trace => Trace}};
             _ -> {error, "Incorrect edge string"}
         end
