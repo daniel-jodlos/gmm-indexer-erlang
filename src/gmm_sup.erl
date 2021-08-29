@@ -48,7 +48,7 @@ init([]) ->
     },
     RedisSpec = #{
         id => ?REDIS_SERVER,
-        start => {persistence, start_link, [?REDIS_SERVER]}
+        start => {persistence, create_redis_client, [?REDIS_SERVER]}
     },
     ChildSpecs = [RedisSpec | outbox:specs_for_supervisor()],
     {ok, {SupFlags, ChildSpecs}}.

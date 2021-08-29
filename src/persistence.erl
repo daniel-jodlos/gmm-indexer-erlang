@@ -6,15 +6,11 @@
 
 -module(persistence).
 
--behaviour(gen_server).
-
 -include("records.hrl").
 
 -export(
   [
-    stop/1,
-    start_link/1,
-    init/1,
+    create_redis_client/1,
     handle_call/3,
     handle_info/2,
     handle_cast/2,
@@ -37,11 +33,6 @@
 ).
 
 %% gen_server api
-
-stop(ServerName) -> gen_server:call(ServerName, stop).
-
-start_link(ServerName) -> gen_server:start_link({local, ServerName}, ?MODULE, [], []).
-
 % create_redis_client(N)->
 %   Client = eredis:start_link(
 %    [
@@ -60,7 +51,7 @@ start_link(ServerName) -> gen_server:start_link({local, ServerName}, ?MODULE, []
 %    _ -> create_n_redis_clients([create_redis_client(N) | Acc], N - 1)
 %  end.
 
-init(_Args) ->
+create_redis_client(_Args) ->
   Client = eredis:start_link(
     [
       {host, os:getenv("GMM_REDIS_HOST", "localhost")},
