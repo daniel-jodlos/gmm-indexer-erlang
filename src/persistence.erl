@@ -10,12 +10,7 @@
 
 -export(
   [
-    create_redis_client/1,
-    handle_call/3,
-    handle_info/2,
-    handle_cast/2,
-    terminate/2,
-    code_change/3
+    create_redis_client/1
   ]
 ).
 -export(
@@ -62,18 +57,6 @@ create_redis_client(_Args) ->
       os:putenv(?REDIS_CLIENT, pid_to_list(ClientRef)), Client;
     _ -> Client
   end.
-
-handle_call(stop, _From, RedisClient) -> {stop, normal, stopped, RedisClient};
-
-handle_call(_Request, _From, RedisClient) -> {reply, unknown, RedisClient}.
-
-handle_cast(_Msg, State) -> {noreply, State}.
-
-handle_info(_Info, State) -> {noreply, State}.
-
-terminate(_Reason, _State) -> ok.
-
-code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 %% redis api
 
