@@ -123,7 +123,7 @@ add_edge(Zone, From, To, Permissions, Trace) ->
 add_edge(Zone, From, To, Permissions, Trace, Successive) ->
     {ok, Address} = http_utils:get_address(Zone),
     Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"permissions">>, Permissions}, {<<"successive">>, atom_to_binary(Successive, utf8)}]
-      ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
+      ++ (case Trace of <<"">> -> []; _ -> [{<<"trace">>, Trace}] end),
     Url = http_utils:build_url(Address, <<"graph/edges">>, Params),
     http_executor:post(Url, false).
 
@@ -144,7 +144,7 @@ remove_edge(Zone, From, To, Trace) ->
 remove_edge(Zone, From, To, Trace, Successive) ->
     {ok, Address} = http_utils:get_address(Zone),
     Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"successive">>, atom_to_binary(Successive, utf8)}]
-      ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
+      ++ (case Trace of <<"">> -> []; _ -> [{<<"trace">>, Trace}] end),
     Url = http_utils:build_url(Address, <<"graph/edges/delete">>, Params),
     http_executor:post(Url, false).
 
@@ -160,7 +160,7 @@ set_permissions(Zone, From, To, Permissions, Trace) ->
 set_permissions(Zone, From, To, Permissions, Trace, Successive) ->
     {ok, Address} = http_utils:get_address(Zone),
     Params = [{<<"from">>, From}, {<<"to">>, To}, {<<"permissions">>, Permissions}, {<<"successive">>, atom_to_binary(Successive, utf8)}]
-      ++ (case Trace of undefined -> []; _ -> [{<<"trace">>, Trace}] end),
+      ++ (case Trace of <<"">> -> []; _ -> [{<<"trace">>, Trace}] end),
     Url = http_utils:build_url(Address, <<"graph/edges/permissions">>, Params),
     http_executor:post(Url, false).
 

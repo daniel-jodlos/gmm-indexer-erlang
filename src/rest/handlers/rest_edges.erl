@@ -28,13 +28,13 @@
 
 init(Req, State = #{operation := Op}) when Op == add; Op == update ->
     NewState = gmm_utils:parse_rest_params(Req, State,
-        [{from, nonempty}, {to, nonempty}, {permissions, nonempty}, {trace, [], undefined}, {successive, nonempty}],
+        [{from, nonempty}, {to, nonempty}, {permissions, nonempty}, {trace, [], <<"">>}, {successive, nonempty}],
         [{from, fun gmm_utils:validate_vertex_id/1}, {to, fun gmm_utils:validate_vertex_id/1},
             {successive, fun gmm_utils:parse_boolean/1}]),
     {cowboy_rest, Req, NewState};
 init(Req, State = #{operation := delete}) ->
     NewState = gmm_utils:parse_rest_params(Req, State,
-        [{from, nonempty}, {to, nonempty}, {trace, [], undefined}, {successive, nonempty}],
+        [{from, nonempty}, {to, nonempty}, {trace, [], <<"">>}, {successive, nonempty}],
         [{from, fun gmm_utils:validate_vertex_id/1}, {to, fun gmm_utils:validate_vertex_id/1},
             {successive, fun gmm_utils:parse_boolean/1}]),
     case NewState of
@@ -59,8 +59,9 @@ resource_exists(Req, State) ->
 %% POST handler
 from_json(Req, bad_request) ->
     {false, Req, bad_request};
-from_json(Req, State = #{operation := Op, from := From, to := To, permissions := Permissions, trace := Trace,
+from_json(Req, State = #{operation := Op, from := From, to := To, permissions := Permissions, trace := TraceParam,
         successive := Successive}) when Op == add; Op == update; Op == delete ->
+    Trace = get_trace(TraceParam),
     ok = execute_operation(Op, From, To, Permissions, Trace, Successive),
     {true, Req, State};
 from_json(Req, State = #{operation := bulk, body := #{src_zone := SrcZone, dst_zone := DstZone, successive := Successive, edges := Edges}}) ->
@@ -78,6 +79,7 @@ parse_edge_string(Bin) when is_binary(Bin) ->
     try
         case gmm_utils:split_bin(Bin) of
             [From, To, Permissions, Trace] when byte_size(From) > 0, byte_size(To) > 0, byte_size(Permissions) > 0 ->
+                Trace = get_trace(TraceParam),
                 {ok, #{from => From, to => To, permissions => Permissions, trace => Trace}};
             _ -> {error, "Incorrect edge string"}
         end
@@ -101,6 +103,12 @@ parse_bulk_request(Bin) ->
                 false -> {error, "Invalid JSON"}
             end;
         _ -> {error, "Invalid JSON"}
+    end.
+
+get_trace(Trace) when is_binary(Trace) ->
+    case byte_size(Trace) of
+        0 -> gmm_utils:uuid();
+        _ -> Trace
     end.
 
 

@@ -43,7 +43,8 @@
     parse_rest_params/4,
     parse_rest_body/3,
 
-    log_error/3
+    log_error/3,
+    uuid/0
 ]).
 
 -include("records.hrl").
@@ -272,3 +273,7 @@ parse_rest_body(Req0, State, Parser) ->
 
 log_error(Class, Pattern, Stacktrace) ->
     io:format("Class: ~p;\nPattern: ~p;\nStacktrace: ~p\n\n", [Class, Pattern, Stacktrace]).
+
+
+uuid() ->
+    list_to_binary(uuid:to_string( uuid:uuid4() )).
