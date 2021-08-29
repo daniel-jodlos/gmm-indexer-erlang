@@ -127,7 +127,7 @@ add_edge(Zone, From, To, Permissions, Trace, Successive) ->
     Url = http_utils:build_url(Address, <<"graph/edges">>, Params),
     http_executor:post(Url, false).
 
--spec add_edges(Zone:: binary(), BulkRequest:: binary()) -> ok | {error, any()}.
+-spec add_edges(Zone:: binary(), BulkRequest:: map()) -> ok | {error, any()}.
 add_edges(Zone, BulkRequest) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"graph/edges/bulk">>,[]),
