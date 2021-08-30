@@ -12,6 +12,8 @@
 -define(REDIS_SERVER, redis_server).
 -define(ZONE_ID, os:getenv("ZONE_ID", "zone0")).
 
+-define(REDIS_CLIENT, "REDIS_CLIENT").
+
 -type permissions() :: <<_:5*8>>.
 
 -type rest_handler_state() :: bad_request | map().
