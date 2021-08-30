@@ -31,7 +31,7 @@
     set_permissions/6, %% @todo necessary
     add_vertex/3, %% @todo necessary
     add_vertices/2, %% @todo optional
-    post_event/2, %% @todo ???
+    post_event/3, %% @todo ???
     post_events/2, %% @todo optional
     get_event_stats/1, %% @todo ignore
     get_dependent_zones/1, %% @todo necessary later now optional
@@ -127,9 +127,11 @@ add_edge(Zone, From, To, Permissions, Trace, Successive) ->
     Url = http_utils:build_url(Address, <<"graph/edges">>, Params),
     http_executor:post(Url, false).
 
--spec add_edges(Zone:: binary(), BulkRequest:: binary()) -> ok | {error, any()}.
+-spec add_edges(Zone:: binary(), BulkRequest:: map()) -> ok | {error, any()}.
 add_edges(Zone, BulkRequest) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"graph/edges/bulk">>,[]),
+    http_executor:post(Url, BulkRequest, false).
 
 % MUST
 -spec remove_edge(Zone:: binary(), From:: binary(), To:: binary(), Trace:: binary()) -> ok | {error, any()}.
@@ -172,23 +174,27 @@ add_vertex(Zone, Name, Type) ->
 
 -spec add_vertices(Zone:: binary(), BulkRequest:: map()) -> ok | {error, any()}.
 add_vertices(Zone, BulkRequest) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"graph/vertices/bulk">>,[]),
+    http_executor:post(Url, BulkRequest, false).
 
--spec post_event(VertexId:: binary(), Event:: map()) -> ok | {error, any()}.
-post_event(VertexId, Event) ->
-    {error, not_implemented}.
+-spec post_event(Zone:: binary(), VertexId:: binary(), Event:: map()) -> ok | {error, any()}.
+post_event(Zone, VertexId, Event) ->
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"events">>, [{<<"id">>, VertexId}]),
+    http_executor:post(Url, Event, false).
 
 -spec post_events(Zone:: binary(), BulkMessages:: map()) -> ok | {error, any()}.
 post_events(Zone, BulkMessages) ->
-    %% changed so compiler doesn't throw an error "Pattern 'ok' cannot be reached"
-    case Zone of
-        <<"zone2">> -> ok;
-        _ -> {error, not_implemented}
-    end.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"events/bulk">>,[]),
+    http_executor:post(Url, BulkMessages, false).
 
 -spec get_event_stats(Zone:: binary()) -> {ok, map()} | {error, any()}.
 get_event_stats(Zone) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"events/stats">>, []),
+    http_executor:get(Url).
 
 -spec get_dependent_zones(Zone:: binary()) -> {ok, map()} | {error, any()}.
 get_dependent_zones(Zone) ->
@@ -220,7 +226,9 @@ set_indexation_enabled(Zone, Enabled) ->
 
 -spec simulate_load(Zone:: binary(), LoadRequest:: map()) -> ok | {error, any()}.
 simulate_load(Zone, LoadRequest) ->
-    {error, not_implemented}.
+    {ok, Address} = http_utils:get_address(Zone),
+    Url = http_utils:build_url(Address, <<"simulate_load">>,[]),
+    http_executor:post(Url, false).
 
 %% function that blocks process until zone (all zones) returns 'true' from 'IP/index_ready' endpoint
 %%  - delay between consecutive requests may be constant, or Exponential Backoff can be used, whatever
