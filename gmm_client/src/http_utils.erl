@@ -43,5 +43,4 @@ build_url(Address, Path, [{FirstPar, FirstVal} | Rest]) ->
     Url = lists:foldl(
         fun({Param, Value}, Acc) -> << Acc/binary, "&", Param/binary, "=", Value/binary >> end,
         Base, Rest),
-    io:format("Url: ~s~n", [binary:replace(Url, <<" ">>, <<"_">>, [global])]),
     binary:replace(Url, <<" ">>, <<"_">>, [global]).
