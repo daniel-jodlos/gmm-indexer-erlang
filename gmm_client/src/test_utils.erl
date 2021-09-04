@@ -20,7 +20,7 @@ add_edge(EdgeData) ->
     [ZoneTo, NameTo] = string:split(maps:get(<<"dst">>, EdgeData), ":"),
     From = <<ZoneFrom/binary, "/", NameFrom/binary>>,
     To = <<ZoneTo/binary, "/", NameTo/binary>>,
-    ok = client:add_edge(From, To, maps:get(<<"perms">>, EdgeData), undefined),
+    ok = client:add_edge(From, To, maps:get(<<"perms">>, EdgeData), <<"trace">>),
     [From, To].
 
 load_graph(Filename) ->
