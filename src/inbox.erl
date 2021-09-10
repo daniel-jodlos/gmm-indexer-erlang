@@ -35,22 +35,27 @@ create_ets_tables() ->
     %%   {VertexId, Idx} <- {binary(), integer()}, key;
     %%   Event <- event()
     %% }
-    ets:new(i_events, [named_table, public]),
+    ets:new(i_events, [
+        named_table, public,
+        {write_concurrency, true},
+        {decentralized_counters, true}
+%%        {read_concurrency, true} % @todo benchmark if it's useful to enable this option
+    ]),
 
-    %% i_queue_states; record looks like: {
+    %% i_state_of_queues; record looks like: {
     %%   VertexId <- binary(), key;
     %%   IdxOfLastEvent <- integer(), counter;
     %%   IdxOfFirstEvent <- integer(), counter;
     %%   Free <- boolean(), false if processor handles it's event
     %% }
-    ets:new(i_queue_states, [named_table, public]),
+    ets:new(i_state_of_queues, [named_table, public, {write_concurrency, true}]),
 
     %% i_dispatcher -- mini table, only 2 distinct objects
     %%  1) {pid, Pid} <- stores pid() of dispatcher process
-    %%  2) {free_filled_queues, Set} <- stores set of vertices which events can be processed
+    %%  2) {ready_queues, Set} <- stores set of vertices which events can be processed
     ets:new(i_dispatcher, [named_table, public]),
     ets:insert(i_dispatcher, {pid, undefined}),
-    ets:insert(i_dispatcher, {free_filled_queues, sets:new()}).
+    ets:insert(i_dispatcher, {ready_queues, sets:new()}).
 
 -spec post(Vertex :: binary(), Event :: map()) -> ok.
 post(Vertex, Event) ->
@@ -66,7 +71,7 @@ is_empty() ->
 
 -spec free_vertex(Vertex :: binary()) -> ok.
 free_vertex(Vertex) ->
-    ets:update_element(i_queue_states, Vertex, {4, true}),
+    ets:update_element(i_state_of_queues, Vertex, {4, true}),
     get_dispatcher() ! {mark_for_scheduling, Vertex},
     ok.
 
@@ -76,8 +81,8 @@ free_vertex(Vertex) ->
 %%%---------------------------
 
 dispatcher_routine() ->
-    SetOfVertices = ets:lookup_element(i_dispatcher, free_filled_queues, 2),
-    ets:update_element(i_dispatcher, free_filled_queues, {2, schedule_events(SetOfVertices)}),
+    SetOfVertices = ets:lookup_element(i_dispatcher, ready_queues, 2),
+    ets:update_element(i_dispatcher, ready_queues, {2, schedule_events(SetOfVertices)}),
 
     read_messages(),
     dispatcher_routine().
@@ -88,13 +93,13 @@ dispatcher_routine() ->
 %%%---------------------------
 
 create_queue_if_absent(Vertex) ->
-    ets:insert_new(i_queue_states, {Vertex, 0, 0, true}).
+    ets:insert_new(i_state_of_queues, {Vertex, 0, 0, true}).
 
 local_post(Vertex, Event) ->
     create_queue_if_absent(Vertex),
-    Idx = ets:update_counter(i_queue_states, Vertex, {3, 1}),
+    Idx = ets:update_counter(i_state_of_queues, Vertex, {3, 1}),
     ets:insert(i_events, {{Vertex, Idx}, Event}),
-    case ets:lookup_element(i_queue_states, Vertex, 4) of
+    case ets:lookup_element(i_state_of_queues, Vertex, 4) of
         true -> get_dispatcher() ! {mark_for_scheduling, Vertex}, ok;
         false -> ok
     end.
@@ -103,8 +108,8 @@ get_dispatcher() ->
     ets:lookup_element(i_dispatcher, pid, 2).
 
 mark_queue_as_ready_for_scheduling(Vertex) ->
-    ReadyQueues = ets:lookup_element(i_dispatcher, free_filled_queues, 2),
-    ets:update_element(i_dispatcher, free_filled_queues, {2, sets:add_element(Vertex, ReadyQueues)}).
+    ReadyQueues = ets:lookup_element(i_dispatcher, ready_queues, 2),
+    ets:update_element(i_dispatcher, ready_queues, {2, sets:add_element(Vertex, ReadyQueues)}).
 
 look_for_eligible_queues() ->
     NewSet = ets:foldl(
@@ -113,25 +118,25 @@ look_for_eligible_queues() ->
                 true -> sets:add_element(Vertex, SetAcc);
                 false -> SetAcc
             end
-        end, sets:new(), i_queue_states
+        end, sets:new(), i_state_of_queues
     ),
-    ets:update_element(i_dispatcher, free_filled_queues, {2, NewSet}).
+    ets:update_element(i_dispatcher, ready_queues, {2, NewSet}).
 
 schedule_events(Set) ->
     try
         sets:fold(
             fun(Vertex, SetAcc) ->
-                Idx = ets:update_counter(i_queue_states, Vertex, {2, 1}),
+                Idx = ets:update_counter(i_state_of_queues, Vertex, {2, 1}),
                 Event = ets:lookup_element(i_events, {Vertex, Idx}, 2),
-                ets:update_element(i_queue_states, Vertex, {4, false}),
+                ets:update_element(i_state_of_queues, Vertex, {4, false}),
                 io:format("Scheduling for vertex ~p. Event: \n~p\n", [Vertex, Event]),
                 ets:delete(i_events, {Vertex, Idx}),
                 sets:del_element(Vertex, SetAcc)
 %%                case event_processor:can_schedule() of
 %%                    true ->
-%%                        Idx = ets:update_counter(i_queue_states, Vertex, {2, 1}),
+%%                        Idx = ets:update_counter(i_state_of_queues, Vertex, {2, 1}),
 %%                        Event = ets:lookup_element(i_events, {Vertex, Idx}, 2),
-%%                        ets:update_element(i_queue_states, Vertex, {4, false}),
+%%                        ets:update_element(i_state_of_queues, Vertex, {4, false}),
 %%                        event_processor:schedule(Vertex, Event),
 %%                        ets:delete(i_events, {Vertex, Idx}),
 %%                        sets:del_element(Vertex, SetAcc);
@@ -148,7 +153,7 @@ schedule_events(Set) ->
 read_messages() ->
     receive
         {mark_for_scheduling, Vertex} ->
-            [{Vertex, C1, C2, Free}] = ets:lookup(i_queue_states, Vertex),
+            [{Vertex, C1, C2, Free}] = ets:lookup(i_state_of_queues, Vertex),
             case Free and (C1 < C2) of
                 true -> mark_queue_as_ready_for_scheduling(Vertex);
                 false -> ok
