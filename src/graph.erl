@@ -22,7 +22,8 @@
     vertex_exists/1,
     get_vertex/1,
     list_vertices/0,
-    list_vertices/1
+    list_vertices/1,
+    test/0
 ]).
 
 %% API for edges
@@ -237,8 +238,11 @@ create_edge(From, To, Permissions) ->
     ZoneId = gmm_utils:zone_id(),
     FromZone = gmm_utils:owner_of(From),
     ToZone = gmm_utils:owner_of(To),
-    post(To, {child, updated, To, From, Permissions}),
+    io:format("Creating edge from ~p to ~p with permissions of ~p~n", [From, To, Permissions]),
     post(From, {parent, updated, From, To, Permissions}),
+    post(To, {child, updated, To, From, Permissions}),
+    post_events_about_effective_children(From, To, updated, Permissions),
+    post_events_about_effective_parents(To, From, updated, Permissions),
     case {FromZone, ToZone} of
         {ZoneId, ZoneId} -> validate([
             persistence:set_add(children_id(To), From),
@@ -302,12 +306,18 @@ create_effective_edge(From, To, Permissions) ->
 
 -spec update_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
 update_edge(From, To, Permissions) ->
-    post(To, {child, updated, To, From, Permissions}),
     post(From, {parent, updated, From, To, Permissions}),
+    post(To, {child, updated, To, From, Permissions}),
+    post_events_about_effective_children(From, To, updated, Permissions),
+    post_events_about_effective_parents(To, From, updated, Permissions),
     validate([persistence:set(edge_id(From, To), Permissions)]).
 
 -spec update_effective_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
-update_effective_edge(From, To, Permissions) -> validate([persistence:set(effective_edge_id(From, To), Permissions)]).
+update_effective_edge(From, To, Permissions) -> validate([
+    persistence:set(effective_edge_id(From, To), Permissions),
+    persistence:set_add(effective_children_id(To), From),
+    persistence:set_add(effective_parents_id(From), To)
+]).
 
 
 -spec remove_edge(From :: binary(), To :: binary()) -> ok | {error, any()}.
@@ -317,6 +327,8 @@ remove_edge(From, To) ->
     ToZone = gmm_utils:owner_of(To),
     post(To, {child, removed, To, From, nil}),
     post(From, {parent, removed, From, To, nil}),
+    post_events_about_effective_children(From, To, removed, nil),
+    post_events_about_effective_parents(To, From, removed, nil),
     case {FromZone, ToZone} of
         {ZoneId, ZoneId} -> validate([
             persistence:del(edge_id(From, To)),
@@ -412,7 +424,44 @@ effective_list_parents(Vertex) -> persistence:set_list_members(effective_parents
 -spec effective_list_children(Vertex :: binary()) -> {ok, list(binary())} | {error, any()}.
 effective_list_children(Vertex) -> persistence:set_list_members(effective_children_id(Vertex)).
 
+post(Vertex, Events) when is_list(Events) ->
+    lists:map(fun (Event) -> post(Vertex, Event) end, Events);
+
 post(Vertex, Event) ->
-    spawn(fun () ->
-        inbox:post(Vertex, #{<<"event">> => Event})
-    end).
+    spawn(fun () -> do_post(Vertex, Event) end).
+
+do_post(Vertex, Event) ->
+    inbox:post(Vertex, #{<<"event">> => Event}).
+
+post_events_about_effective_children(Vertex, TargetVertex, Type, Permissions) ->
+    {ok, Children} = effective_list_children(Vertex),
+    io:format("Children of ~p are ~p~n", [Vertex, Children]),
+    Events = lists:map(fun (Child) -> {child, Type, TargetVertex, Child, Permissions} end, Children),
+    post(Vertex, Events).
+
+post_events_about_effective_parents(Vertex, TargetVertex, Type, Permissions) ->
+    {ok, Parents} = effective_list_parents(Vertex),
+    io:format("Parents of ~p are ~p~n", [Vertex, Parents]),
+    Events = lists:map(fun (Parent) -> {parent, Type, TargetVertex, Parent, Permissions} end, Parents),
+    io:format("And the events are ~p~n", [Events]),
+    post(Vertex, Events).
+
+test() ->
+    A = <<"zone0/A">>,
+    B = <<"zone0/B">>,
+    C = <<"zone0/C">>,
+    D = <<"zone0/D">>,
+    E = <<"zone0/E">>,
+    Perms = <<"11111">>,
+    create_edge(A, B, Perms),
+    create_edge(A, D, Perms),
+    timer:sleep(1000),
+    io:format("Next test case~n"),
+    create_edge(D, C, Perms),
+    timer:sleep(1000),
+    io:format("Next test case~n"),
+    create_edge(B, C, Perms),
+    timer:sleep(1000),
+    io:format("Next test case~n"),
+    create_edge(E, A, Perms),
+    ok.

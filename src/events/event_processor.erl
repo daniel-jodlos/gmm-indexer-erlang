@@ -25,7 +25,8 @@ graph_operation(updated) ->
     case graph:get_effective_edge(A, B) of
       {ok, Permissions} -> false;
       _Else ->
-        ok == graph:update_effective_edge(A, B, Permissions)
+        ok = graph:update_effective_edge(A, B, Permissions),
+        true
     end
   end.
 
@@ -35,9 +36,11 @@ async_process(Event) ->
 
 -spec process(map()) -> ok | {error, any()}.
 process(#{<<"event">> := Event}) ->
+    instrumentation:event_started(Event),
     {_NodeType, _Type, Vertex, _Args, _Options} = Event,
     Result = do_process(Event),
     ok = inbox:free_vertex(Vertex),
+    instrumentation:event_finished(Event),
     case Result of
         {ok, true, Events} ->
             lists:map(fun post/1, Events()),
