@@ -239,8 +239,8 @@ create_edge(From, To, Permissions) ->
     FromZone = gmm_utils:owner_of(From),
     ToZone = gmm_utils:owner_of(To),
     io:format("Creating edge from ~p to ~p with permissions of ~p~n", [From, To, Permissions]),
-    post(From, {parent, updated, From, To, Permissions}),
-    post(To, {child, updated, To, From, Permissions}),
+    post({parent, updated, From, To, Permissions}),
+    post({child, updated, To, From, Permissions}),
     post_events_about_effective_children(From, To, updated, Permissions),
     post_events_about_effective_parents(To, From, updated, Permissions),
     case {FromZone, ToZone} of
@@ -256,28 +256,6 @@ create_edge(From, To, Permissions) ->
         {_, ZoneId} -> validate([
             persistence:set_add(children_id(To), From),
             persistence:set(edge_id(From, To), Permissions)
-        ]);
-        {_, _} -> {error, vertices_not_found}
-    end.
-
--spec create_effective_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
-create_effective_edge(From, To, Permissions) ->
-    ZoneId = gmm_utils:zone_id(),
-    FromZone = gmm_utils:owner_of(From),
-    ToZone = gmm_utils:owner_of(To),
-    case {FromZone, ToZone} of
-        {ZoneId, ZoneId} -> validate([
-            persistence:set_add(effective_children_id(To), From),
-            persistence:set_add(effective_parents_id(From), To),
-            persistence:set(effective_edge_id(From, To), Permissions)
-        ]);
-        {ZoneId, _} -> validate([
-            persistence:set_add(effective_parents_id(From), To),
-            persistence:set(effective_edge_id(From, To), Permissions)
-        ]);
-        {_, ZoneId} -> validate([
-            persistence:set_add(effective_children_id(To), From),
-            persistence:set(effective_edge_id(From, To), Permissions)
         ]);
         {_, _} -> {error, vertices_not_found}
     end.
@@ -306,8 +284,8 @@ create_effective_edge(From, To, Permissions) ->
 
 -spec update_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
 update_edge(From, To, Permissions) ->
-    post(From, {parent, updated, From, To, Permissions}),
-    post(To, {child, updated, To, From, Permissions}),
+    post({parent, updated, From, To, Permissions}),
+    post({child, updated, To, From, Permissions}),
     post_events_about_effective_children(From, To, updated, Permissions),
     post_events_about_effective_parents(To, From, updated, Permissions),
     validate([persistence:set(edge_id(From, To), Permissions)]).
@@ -325,8 +303,8 @@ remove_edge(From, To) ->
     ZoneId = gmm_utils:zone_id(),
     FromZone = gmm_utils:owner_of(From),
     ToZone = gmm_utils:owner_of(To),
-    post(To, {child, removed, To, From, nil}),
-    post(From, {parent, removed, From, To, nil}),
+    post({child, removed, To, From, nil}),
+    post({parent, removed, From, To, nil}),
     post_events_about_effective_children(From, To, removed, nil),
     post_events_about_effective_parents(To, From, removed, nil),
     case {FromZone, ToZone} of
@@ -374,11 +352,6 @@ edge_exists(From, To) -> persistence:exists(edge_id(From, To)).
 -spec effective_edge_exists(From :: binary(), To :: binary()) -> {ok, boolean()} | {error, any()}.
 effective_edge_exists(From, To) -> persistence:exists(effective_edge_id(From, To)).
 
-
--spec effective_edge_exists(From :: binary(), To :: binary()) -> {ok, boolean()} | {error, any()}.
-effective_edge_exists(From, To) -> persistence:exists(effective_edge_id(From, To)).
-
-
 -spec get_edge(From :: binary(), To :: binary()) -> {ok, map()} | {error, any()}.
 get_edge(From, To) ->
     do_get_edge(From, To, edge_id(From, To)).
@@ -424,27 +397,26 @@ effective_list_parents(Vertex) -> persistence:set_list_members(effective_parents
 -spec effective_list_children(Vertex :: binary()) -> {ok, list(binary())} | {error, any()}.
 effective_list_children(Vertex) -> persistence:set_list_members(effective_children_id(Vertex)).
 
-post(Vertex, Events) when is_list(Events) ->
-    lists:map(fun (Event) -> post(Vertex, Event) end, Events);
+post(Events) when is_list(Events) ->
+    spawn(fun() ->
+        lists:map(fun (Event) -> do_post(Event) end, Events)
+    end);
 
-post(Vertex, Event) ->
-    spawn(fun () -> do_post(Vertex, Event) end).
+post(Event) ->
+    spawn(fun () -> do_post(Event) end).
 
-do_post(Vertex, Event) ->
-    inbox:post(Vertex, #{<<"event">> => Event}).
+do_post(Event) ->
+    event_processor:post(Event).
 
 post_events_about_effective_children(Vertex, TargetVertex, Type, Permissions) ->
     {ok, Children} = effective_list_children(Vertex),
-    io:format("Children of ~p are ~p~n", [Vertex, Children]),
     Events = lists:map(fun (Child) -> {child, Type, TargetVertex, Child, Permissions} end, Children),
-    post(Vertex, Events).
+    post(Events).
 
 post_events_about_effective_parents(Vertex, TargetVertex, Type, Permissions) ->
     {ok, Parents} = effective_list_parents(Vertex),
-    io:format("Parents of ~p are ~p~n", [Vertex, Parents]),
     Events = lists:map(fun (Parent) -> {parent, Type, TargetVertex, Parent, Permissions} end, Parents),
-    io:format("And the events are ~p~n", [Events]),
-    post(Vertex, Events).
+    post(Events).
 
 test() ->
     A = <<"zone0/A">>,

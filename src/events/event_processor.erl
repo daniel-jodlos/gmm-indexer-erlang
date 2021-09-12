@@ -3,7 +3,8 @@
 
 -export([
   process/1,
-  async_process/1
+  async_process/1,
+  post/1
 ]).
 
 -type ref() :: binary().
