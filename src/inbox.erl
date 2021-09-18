@@ -9,8 +9,9 @@
 
 %% API
 -export([
-    start_link/1,
-    init_inbox/1,
+    start_link/0,
+    create_ets_tables/0,
+    init_dispatcher/0,
     post/2,
     is_empty/0,
     free_vertex/1
@@ -21,16 +22,40 @@
 %% Exported functions
 %%%---------------------------
 
-start_link(Vertex) ->
-    case ets:member(inboxes, Vertex) of
-        true -> ets:update_element(inboxes, Vertex, {2, null});
-        false -> ets:insert(inboxes, {Vertex, null, true, []})
-    end,
-    {ok, spawn_link(inbox, init_inbox, [Vertex])}.
+start_link() ->
+    {ok, spawn_link(inbox, init_dispatcher, [])}.
 
-init_inbox(Vertex) ->
-    ets:update_element(inboxes, Vertex, {2, self()}),
-    servant(Vertex).
+init_dispatcher() ->
+    ets:update_element(i_dispatcher, pid, {2, self()}),
+    look_for_eligible_queues(),
+    dispatcher_routine().
+
+create_ets_tables() ->
+    %% i_events; record looks like: {
+    %%   {VertexId, Idx} <- {binary(), integer()}, key;
+    %%   Event <- event()
+    %% }
+    ets:new(i_events, [
+        named_table, public,
+        {write_concurrency, true},
+        {decentralized_counters, true}
+%%        {read_concurrency, true} % @todo benchmark if it's useful to enable this option
+    ]),
+
+    %% i_state_of_queues; record looks like: {
+    %%   VertexId <- binary(), key;
+    %%   IdxOfLastEvent <- integer(), counter;
+    %%   IdxOfFirstEvent <- integer(), counter;
+    %%   Free <- boolean(), false if processor handles it's event
+    %% }
+    ets:new(i_state_of_queues, [named_table, public, {write_concurrency, true}]),
+
+    %% i_dispatcher -- mini table, only 2 distinct objects
+    %%  1) {pid, Pid} <- stores pid() of dispatcher process
+    %%  2) {ready_queues, Set} <- stores set of vertices which events can be processed
+    ets:new(i_dispatcher, [named_table, public]),
+    ets:insert(i_dispatcher, {pid, undefined}),
+    ets:insert(i_dispatcher, {ready_queues, sets:new()}).
 
 -spec post(Vertex :: binary(), Event :: map()) -> ok.
 post(Vertex, Event) ->
@@ -42,102 +67,97 @@ post(Vertex, Event) ->
 
 -spec is_empty() -> boolean().
 is_empty() ->
-    Count = ets:foldl(
-        fun({_, Pid, _, _}, Acc) ->
-            Pid ! {is_empty, self()}, Acc + 1
-        end, 0, inboxes),
-    collect_answers(true, Count).
+    ets:first(i_events) == '$end_of_table'.
 
--spec free_vertex(Vertex :: binary()) -> free_vertex.
+-spec free_vertex(Vertex :: binary()) -> ok.
 free_vertex(Vertex) ->
-    Pid = ets:lookup_element(inboxes, Vertex, 2),
-    Pid ! free_vertex.
+    ets:update_element(i_state_of_queues, Vertex, {4, true}),
+    get_dispatcher() ! {mark_for_scheduling, Vertex},
+    ok.
+
+
+%%%---------------------------
+%% Dispatcher process
+%%%---------------------------
+
+dispatcher_routine() ->
+    SetOfVertices = ets:lookup_element(i_dispatcher, ready_queues, 2),
+    ets:update_element(i_dispatcher, ready_queues, {2, schedule_events(SetOfVertices)}),
+
+    read_messages(),
+    dispatcher_routine().
 
 
 %%%---------------------------
 %% Internal functions
 %%%---------------------------
 
--spec local_post(Vertex :: binary(), Event :: map()) -> ok.
+create_queue_if_absent(Vertex) ->
+    ets:insert_new(i_state_of_queues, {Vertex, 0, 0, true}).
+
 local_post(Vertex, Event) ->
-    case ets:member(inboxes, Vertex) of
-        true ->
-            Pid = ets:lookup_element(inboxes, Vertex, 2),
-            Pid ! {event, Event, self()},
-            receive
-                ok -> ok;
-                _ -> {error, unknown_answer}
-            after 2000 -> {error, timeout}
-            end;
-        false ->
-            gmm_sup:create_inbox_servant(Vertex),
-            local_post(Vertex, Event)
+    create_queue_if_absent(Vertex),
+    Idx = ets:update_counter(i_state_of_queues, Vertex, {3, 1}),
+    ets:insert(i_events, {{Vertex, Idx}, Event}),
+    case ets:lookup_element(i_state_of_queues, Vertex, 4) of
+        true -> get_dispatcher() ! {mark_for_scheduling, Vertex}, ok;
+        false -> ok
     end.
 
--spec is_empty(Vertex :: binary()) -> boolean().
-is_empty(Vertex) ->
-    case ets:lookup_element(inboxes, Vertex, 4) of
-        [] -> ets:lookup_element(inboxes, Vertex, 3);
-        _ -> false
+get_dispatcher() ->
+    ets:lookup_element(i_dispatcher, pid, 2).
+
+mark_queue_as_ready_for_scheduling(Vertex) ->
+    ReadyQueues = ets:lookup_element(i_dispatcher, ready_queues, 2),
+    ets:update_element(i_dispatcher, ready_queues, {2, sets:add_element(Vertex, ReadyQueues)}).
+
+look_for_eligible_queues() ->
+    NewSet = ets:foldl(
+        fun({Vertex, C1, C2, Free}, SetAcc) ->
+            case Free and C1 < C2 of
+                true -> sets:add_element(Vertex, SetAcc);
+                false -> SetAcc
+            end
+        end, sets:new(), i_state_of_queues
+    ),
+    ets:update_element(i_dispatcher, ready_queues, {2, NewSet}).
+
+schedule_events(Set) ->
+    try
+        sets:fold(
+            fun(Vertex, SetAcc) ->
+                Idx = ets:update_counter(i_state_of_queues, Vertex, {2, 1}),
+                Event = ets:lookup_element(i_events, {Vertex, Idx}, 2),
+                ets:update_element(i_state_of_queues, Vertex, {4, false}),
+                io:format("Scheduling for vertex ~p. Event: \n~p\n", [Vertex, Event]),
+                ets:delete(i_events, {Vertex, Idx}),
+                sets:del_element(Vertex, SetAcc)
+%%                case event_processor:can_schedule() of
+%%                    true ->
+%%                        Idx = ets:update_counter(i_state_of_queues, Vertex, {2, 1}),
+%%                        Event = ets:lookup_element(i_events, {Vertex, Idx}, 2),
+%%                        ets:update_element(i_state_of_queues, Vertex, {4, false}),
+%%                        event_processor:schedule(Vertex, Event),
+%%                        ets:delete(i_events, {Vertex, Idx}),
+%%                        sets:del_element(Vertex, SetAcc);
+%%                    false -> throw({break, SetAcc})
+%%                end
+            end, Set, Set
+        )
+    of
+        NewSet -> NewSet
+    catch
+        throw:{break, NewSet} -> NewSet
     end.
 
--spec collect_answers(Acc :: boolean(), MsgToRead :: integer()) -> boolean().
-collect_answers(Acc, 0) -> Acc;
-collect_answers(Acc, MsgToRead) ->
+read_messages() ->
     receive
-        {is_empty, Bool} -> collect_answers(Acc and Bool, MsgToRead - 1)
-    after 1000 -> false
-    end.
-
--spec is_vertex_free(Vertex :: binary()) -> boolean().
-is_vertex_free(Vertex) ->
-    ets:lookup_element(inboxes, Vertex, 3).
-
--spec mark_vertex_free(Vertex :: binary()) -> boolean().
-mark_vertex_free(Vertex) ->
-    ets:update_element(inboxes, Vertex, {3, true}).
-
--spec mark_vertex_busy(Vertex :: binary()) -> boolean().
-mark_vertex_busy(Vertex) ->
-    ets:update_element(inboxes, Vertex, {3, false}).
-
--spec queue_event(Vertex :: binary(), Event :: map()) -> boolean().
-queue_event(Vertex, Event) ->
-    OldQueue = ets:lookup_element(inboxes, Vertex, 4),
-    ets:update_element(inboxes, Vertex, {4, OldQueue ++ [Event]}).
-
--spec poll_event(Vertex :: binary()) -> none | map().
-poll_event(Vertex) ->
-    case ets:lookup_element(inboxes, Vertex, 4) of
-        [] -> none;
-        [Event | Rest] ->
-            ets:update_element(inboxes, Vertex, {4, Rest}),
-            Event
-    end.
-
-%% Servant process
-
-servant(Vertex) ->
-    receive
-        {is_empty, Pid} ->
-            Pid ! {is_empty, is_empty(Vertex)};
-        free_vertex ->
-            case poll_event(Vertex) of
-                none ->
-                    mark_vertex_free(Vertex);
-                Event ->
-                    %% @todo event_processor:process(Event)
-                    io:format("Vertex: ~p; Event: ~p\n", [Vertex, Event])
-            end;
-        {event, Event, Pid} ->
-            case is_vertex_free(Vertex) of
-                true ->
-                    mark_vertex_busy(Vertex),
-                    %% @todo event_processor:process(Event)
-                    io:format("Vertex: ~p; Event: ~p\n", [Vertex, Event]);
-                false ->
-                    queue_event(Vertex, Event)
+        {mark_for_scheduling, Vertex} ->
+            [{Vertex, C1, C2, Free}] = ets:lookup(i_state_of_queues, Vertex),
+            case Free and (C1 < C2) of
+                true -> mark_queue_as_ready_for_scheduling(Vertex);
+                false -> ok
             end,
-            Pid ! ok
-    end,
-    servant(Vertex).
+            read_messages()
+    after 10 -> ok
+    end.

@@ -10,8 +10,7 @@
 
 -export([
     start_link/0,
-    init/1,
-    create_inbox_servant/1
+    init/1
 ]).
 
 -define(SERVER, ?MODULE).
@@ -38,7 +37,7 @@ init([]) ->
 
     %% create ets tables
     ets:new(outboxes, [named_table, public]),
-    ets:new(inboxes, [named_table, public]),
+    inbox:create_ets_tables(),
 
     %% spawn child processes
     SupFlags = #{
@@ -50,15 +49,9 @@ init([]) ->
         id => ?REDIS_SERVER,
         start => {persistence, create_redis_client, []}
     },
-    ChildSpecs = [RedisSpec | outbox:specs_for_supervisor()],
-    {ok, {SupFlags, ChildSpecs}}.
-
-%% internal functions
-
-create_inbox_servant(Vertex) ->
-    Supervisor = ets:lookup_element(supervisor, pid, 2),
-    ChildSpec = #{
-        id => << "inbox_", Vertex/binary >>,
-        start => {inbox, start_link, [Vertex]}
+    InboxDispatcherSpec = #{
+        id => << "inbox_dispatcher" >>,
+        start => {inbox, start_link, []}
     },
-    supervisor:start_child(Supervisor, ChildSpec).
+    ChildSpecs = [InboxDispatcherSpec | [RedisSpec | outbox:specs_for_supervisor()]],
+    {ok, {SupFlags, ChildSpecs}}.
