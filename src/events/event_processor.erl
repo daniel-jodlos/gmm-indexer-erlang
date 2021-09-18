@@ -2,8 +2,8 @@
 -author("Daniel Jodłoś").
 
 -export([
-  process/1,
-  async_process/1,
+  process/2,
+  async_process/2,
   post/1
 ]).
 
@@ -31,14 +31,15 @@ graph_operation(updated) ->
     end
   end.
 
--spec async_process(map()) -> pid().
-async_process(Event) ->
-    spawn(?MODULE, process, [Event]).
+-spec async_process(binary(), map()) -> pid().
+async_process(Vertex, Event) ->
+    spawn(?MODULE, process, [Vertex, Event]).
 
--spec process(map()) -> ok | {error, any()}.
-process(#{<<"event">> := Event}) ->
+-spec process(binary(), map()) -> ok | {error, any()}.
+process(Vertex, #{<<"event">> := Event}) ->
     instrumentation:event_started(Event),
-    {_NodeType, _Type, Vertex, _Args, _Options} = Event,
+    #{<<"type">> := _Type, <<"trace">> := _Trace, <<"sender">> := _Sender,
+        <<"originalSender">> := _OriginalSender, <<"effectiveVertices">> := _EffectiveVertices} = Event,
     Result = do_process(Event),
     ok = inbox:free_vertex(Vertex),
     instrumentation:event_finished(Event),

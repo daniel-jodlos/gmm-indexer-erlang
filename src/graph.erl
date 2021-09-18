@@ -408,6 +408,8 @@ post(Event) ->
 do_post(Event) ->
     event_processor:post(Event).
 
+%% @TODO change shape of the event to be compliant with "standard" (ask Pawel for details)
+
 post_events_about_effective_children(Vertex, TargetVertex, Type, Permissions) ->
     {ok, Children} = effective_list_children(Vertex),
     Events = lists:map(fun (Child) -> {child, Type, TargetVertex, Child, Permissions} end, Children),
