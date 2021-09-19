@@ -42,7 +42,10 @@
     list_parents/1,
     list_children/1,
     effective_list_parents/1,
-    effective_list_children/1
+    effective_list_children/1,
+    get_intermediate_verticies/2,
+    add_intermediate_vertex/3,
+    remove_intermediate_vertex/3
 ]).
 
 %% additional functions
@@ -221,6 +224,10 @@ effective_edge_id(From, To) ->
   Edge = edge_id(From, To),
   <<"effective", Edge/binary>>.
 
+effective_edge_intermediate_verticies(From, To) ->
+    Edge = effective_edge_id(From, To),
+    <<Edge/binary, "/intermediate_verticies">>.
+
 -spec validate([any() | {error, any()}]) -> ok | {error, any()}.
 validate(Results) ->
     Reducer =
@@ -367,6 +374,19 @@ do_get_edge(From, To, Edge) ->
             {ok, #{<<"from">> => From, <<"to">> => To, <<"permissions">> => Permissions}}
     end.
 
+-spec get_intermediate_verticies(From::binary(), To::binary()) -> list(binary()).
+get_intermediate_verticies(From, To) ->
+    case persistence:get(effective_edge_intermediate_verticies(From, To)) of
+        {error, _Error} -> [];
+        {ok, Vertices} -> Vertices
+    end.
+
+-spec add_intermediate_vertex(From::binary(), To::binary(), Vertex::binary()) -> ok | {error, any()}.
+add_intermediate_vertex(From, To, Vertex) ->
+    validate([persistence:set_add(effective_edge_intermediate_verticies(From, To), Vertex)]).
+
+remove_intermediate_vertex(From, To, Vertex) ->
+    validate([persistence:set_remove(effective_edge_intermediate_verticies(From, To), Vertex)]).
 
 %% #{<<"parents">> => list(binary()), <<"children">> => list(binary())}
 -spec list_neighbours(Vertex :: binary()) ->
