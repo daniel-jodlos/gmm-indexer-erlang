@@ -93,10 +93,12 @@ from_json(Req, State = #{operation := add, type := Type, name := Name}) ->
 from_json(Req, State = #{operation := delete, id := Id}) ->
     ok = graph:remove_vertex(Id),
     {true, Req, State};
+%from_json(Req, State = #{operation := bulk, body := List}) ->
+%    lists:foreach(fun({Type, Name}) -> {ok, _} = graph:create_vertex(Type, Name) end, List),
+%    {true, Req, State}.
 from_json(Req, State = #{operation := bulk, body := List}) ->
-    lists:foreach(fun({Type, Name}) -> {ok, _} = graph:create_vertex(Type, Name) end, List),
+    ok = modify_state_bulk(List),
     {true, Req, State}.
-
 %% GET handler
 to_json(Req, State = #{operation := details, id := Id}) ->
     {ok, Details} = graph:get_vertex(Id),
@@ -105,7 +107,62 @@ to_json(Req, State = #{operation := listing}) ->
     {ok, Vertices} = graph:list_vertices(),
     {gmm_utils:encode(Vertices), Req, State}.
 
+%%% BULK handler
+-spec replace(T, T, [T]) -> [T].
+replace(Element, Replacement, [Element | T]) ->
+    [Replacement | T];
+replace(Element, Replacement, [H | T]) ->
+    [H | replace(Element, Replacement, T)];
+replace(_Element, _Replacement, []) ->
+    [].
+-spec modify_state_bulk(Vertices :: list({binary(), binary()})) -> ok | {error, any()}.
+modify_state_bulk(Vertices)->
+    Parent = self(),
+    Ref = erlang:make_ref(),
 
+    Pids = lists:map(fun({Type, Name}) ->
+        spawn(fun() ->
+            Result = try
+                         graph:create_vertex(Type, Name)
+                     catch Type:Reason:Stacktrace ->
+                {'$pmap_error', self(), Type, Reason, Stacktrace}
+                     end,
+            Parent ! {Ref, self(), Result}
+              end)
+                     end, Vertices),
+
+    % GATHERING RESULTS
+    Gather = fun
+    %PidsOrResults is initially the list of pids, gradually replaced by corresponding results
+                 F(PendingPids = [_ | _], PidsOrResults) ->
+                     receive
+                         {Ref, Pid, Result} ->
+                             NewPidsOrResults = replace(Pid, Result, PidsOrResults),
+                             F(lists:delete(Pid, PendingPids), NewPidsOrResults)
+                     after 5000 ->
+                         case lists:any(fun erlang:is_process_alive/1, PendingPids) of
+                             true ->
+                                 F(PendingPids, PidsOrResults);
+                             false ->
+                                 error({parallel_call_failed, {processes_dead, Pids}})
+                         end
+                     end;
+                 % wait for all pids to report back and then look for errors
+                 F([], AllResults) ->
+                     Errors = lists:filtermap(fun
+                                                  ({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
+                                                      {true, {Pid, Type, Reason, Stacktrace}};
+                                                  (_) ->
+                                                      false
+                                              end, AllResults),
+                     case Errors of
+                         [] ->
+                             ok;
+                         _ ->
+                             {error, Errors}
+                     end
+             end,
+    Gather(Pids, Pids).
 %%%---------------------------
 %% internal functions
 %%%---------------------------
