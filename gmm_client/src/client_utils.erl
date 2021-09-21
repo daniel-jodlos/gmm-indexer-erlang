@@ -51,7 +51,7 @@ bin_to_bool(<<"false">>) -> false.
 -spec validate_vertex_id(Bin :: binary()) -> ok | {error, any()}.
 validate_vertex_id(Bin) when is_binary(Bin) ->
     try
-        case split_bin(Bin) of
+        case split_bin(Bin, <<":">>) of
             [Zone, Name] when byte_size(Zone) > 0, byte_size(Name) > 0 -> ok;
             _ -> {error, "Invalid format"}
         end
@@ -82,11 +82,11 @@ split_bin(Bin) when is_binary(Bin) ->
 
 -spec create_vertex_id(Zone :: binary(), Name :: binary()) -> binary().
 create_vertex_id(Zone, Name) ->
-    <<Zone/binary, "/", Name/binary>>.
+    <<Zone/binary, ":", Name/binary>>.
 
 -spec split_vertex_id(Bin :: binary()) -> {binary(), binary()}.
 split_vertex_id(Bin) ->
-    {_, _} = list_to_tuple(split_bin(Bin)).
+    {_, _} = list_to_tuple(split_bin(Bin, <<":">>)).
 
 -spec owner_of(Vertex :: binary()) -> binary().
 owner_of(Vertex) ->

@@ -331,8 +331,10 @@ execute_bulk_request(SrcZone, DstZone, Successive, Edges) ->
     case VerticesZone of
         ZoneId -> execute_locally_bulk(SrcZone, DstZone, Successive, Edges);
         _ ->
-            EdgesBin = lists:map(fun(#{from := FromName, to := ToName, permissions := Permissions, trace := Trace}) -> % TODO sprawdzic
-                << FromName/binary, "/", ToName/binary, "/", Permissions, "/", Trace/binary >> end, Edges),
+            EdgesBin = lists:map(
+                fun(#{from := FromName, to := ToName, permissions := Permissions, trace := Trace}) ->
+                    << FromName/binary, "/", ToName/binary, "/", Permissions/binary, "/", Trace/binary >>
+                end, Edges),
 
             zone_client:add_edges(VerticesZone, #{<<"sourceZone">> => SrcZone, <<"destinationZone">> => DstZone, <<"successive">> => Successive, <<"edges">> => EdgesBin})
     end.
