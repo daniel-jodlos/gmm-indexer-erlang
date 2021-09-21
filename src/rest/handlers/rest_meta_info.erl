@@ -32,14 +32,12 @@ init(Req = #{method := <<"GET">>}, State = #{operation := index_ready}) ->
     {cowboy_rest, Req, State};
 init(Req = #{method := <<"GET">>}, State = #{operation := instrumentation}) ->
     {cowboy_rest, Req, State};
-init(Req = #{method := <<"PUT">>}, State = #{operation := instrumentation}) ->
-    NewState = gmm_utils:parse_rest_params(Req, State, [{enabled, nonempty}],
-        [{enabled, fun gmm_utils:parse_boolean/1}]),
-    {cowboy_rest, Req, NewState};
-init(Req = #{method := <<"PUT">>}, State = #{operation := indexation}) ->
-    NewState = gmm_utils:parse_rest_params(Req, State, [{enabled, nonempty}],
-        [{enabled, fun gmm_utils:parse_boolean/1}]),
-    {cowboy_rest, Req, NewState};
+init(Req0 = #{method := <<"PUT">>}, State = #{operation := instrumentation}) ->
+    {Req, #{body := Enabled}} = gmm_utils:parse_rest_body(Req0, State, fun gmm_utils:parse_boolean/1),
+    {cowboy_rest, Req, maps:merge(State, #{enabled => Enabled})};
+init(Req0 = #{method := <<"PUT">>}, State = #{operation := indexation}) ->
+    {Req, #{body := Enabled}} = gmm_utils:parse_rest_body(Req0, State, fun gmm_utils:parse_boolean/1),
+    {cowboy_rest, Req, maps:merge(State, #{enabled => Enabled})};
 init(Req0 = #{method := <<"POST">>}, State = #{operation := dependent_zones}) ->
     {Req, NewState} = gmm_utils:parse_rest_body(Req0, State, fun parse_dependent_zones/1),
     {cowboy_rest, Req, NewState};

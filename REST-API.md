@@ -6,7 +6,7 @@
 
 | Parameter | Type | Format | Represents |
 |-----------|------|--------|------------|
-| from, to, of, id | string | zone_id/name | ID of a vertex |
+| from, to, of, id | string | zone_id:name | ID of a vertex |
 | type, name | string |  | Some value |
 | permissions | string | 11010 | Permissions set on given edge |
 | trace | string (optional) |  | Globally unique identifier of set of events about the same operation on the graph |
@@ -451,13 +451,11 @@
     </tr>
     <tr>
         <th>Params</th>
-        <td><ul>
-            <li>enabled</li>
-        </ul></td>
+        <td>none</td>
     </tr>
     <tr>
         <th>Body</th>
-        <td>void</td>
+        <td>enabled: boolean</td>
     </tr>
     <tr>
         <th>Return type</th>
@@ -478,13 +476,11 @@
     </tr>
     <tr>
         <th>Params</th>
-        <td><ul>
-            <li>enabled</li>
-        </ul></td>
+        <td>none</td>
     </tr>
     <tr>
         <th>Body</th>
-        <td>void</td>
+        <td>enabled: boolean</td>
     </tr>
     <tr>
         <th>Return type</th>
@@ -518,6 +514,8 @@
 </table>
 
 ### Dependent Zones - check if needed zones are running and to get stats about them
+
+#### DEPRECATED: its sole purpose is for Kamil's integration tests
 
 <table>
     <tr>
@@ -588,7 +586,7 @@ In that case, string looks like this:
 where x is a floating-point number with 6 decimal places, describing number of seconds
 (the integer part) and microseconds (the fractional part).
 
-WARNING: in current state our server doesn't send times longer than 24 hours.
+#### WARNING: in current state our server doesn't send times longer than 24 hours.
 
 ### Check existence of path (is 'from' effective child of 'to'?)
 
