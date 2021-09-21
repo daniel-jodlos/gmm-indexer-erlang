@@ -90,7 +90,7 @@ validate_edge_id(Bin) when is_binary(Bin) ->
         case split_edge_id(Bin) of
             {From, To} when byte_size(From) > 0, byte_size(To) > 0 ->
                 ok = validate_vertex_id(From),
-                ok = validate_edge_id(To),
+                ok = validate_vertex_id(To),
                 ok;
             _ -> {error, {invalid_edge, {Bin}}}
         end
