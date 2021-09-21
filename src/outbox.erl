@@ -62,7 +62,7 @@ is_empty(Zone) ->
 all_empty() ->
     %% imitate ets:foreach
     Count = ets:foldl(
-        fun({_, Pid, _, _}, Acc) ->
+        fun({_, Pid, _}, Acc) ->
             Pid ! {is_empty, self()}, Acc + 1
         end, 0, outboxes),
     collect_answers(true, Count).
@@ -85,7 +85,7 @@ outbox_pid(Zone) ->
 queue_event(Zone, Vertex, Event) ->
     {Zone, Name} = gmm_utils:split_vertex_id(Vertex),
     OldQueue = ets:lookup_element(outboxes, Zone, 3),
-    ets:update_element(outboxes, Zone, {4, OldQueue ++ [{Name, Event}]}),
+    ets:update_element(outboxes, Zone, {3, OldQueue ++ [{Name, Event}]}),
     ok.
 
 -spec check_emptiness(Zone :: binary()) -> boolean().
@@ -108,18 +108,13 @@ poll_batch(Zone) when is_binary(Zone) ->
 try_sending(_, Batch) when length(Batch) == 0 ->
     no_events;
 try_sending(Zone, Batch) ->
-    NameEventPairs = lists:map(
-        fun({Vertex, Event}) ->
-            {_, Name} = gmm_utils:split_vertex_id(Vertex),
-            {Name, Event}
-        end, Batch),
     MessagesList = lists:map(
         fun({Name, Event}) ->
             #{
                 <<"vn">> => Name,
                 <<"e">> => Event
             }
-        end, NameEventPairs),
+        end, Batch),
     BulkObject = #{<<"messages">> => MessagesList},
     zone_client:post_events(Zone, BulkObject).
 
