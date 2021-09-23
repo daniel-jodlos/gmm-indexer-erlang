@@ -1,79 +1,90 @@
 -module(event_processor).
--author("Daniel Jodłoś").
 
 -export([
-  process/2,
-  async_process/2,
-  post/1
+    process/2,
+    async_process/2
 ]).
 
--type ref() :: binary().
--type event() :: {child | parent, removed | updated, ref(), ref(), any()}. % {node_type, operation_type, target, argument, options}
-
--spec graph_operation(removed | updated) -> fun((ref(), ref(), any()) -> boolean()).
-graph_operation(removed) ->
-  fun (A, B, _Args) -> 
-   case graph:effective_edge_exists(A, B) of
-      {ok, true} ->
-          graph:remove_effective_edge(A, B),
-          true;
-      _Else -> false
-   end
-  end;
-
-graph_operation(updated) -> 
-  fun (A,B, Permissions) ->
-    case graph:get_effective_edge(A, B) of
-      {ok, Permissions} -> false;
-      _Else ->
-        ok = graph:update_effective_edge(A, B, Permissions),
-        true
-    end
-  end.
-
--spec async_process(binary(), map()) -> pid().
 async_process(Vertex, Event) ->
     spawn(?MODULE, process, [Vertex, Event]).
 
--spec process(binary(), map()) -> ok | {error, any()}.
-process(Vertex, #{<<"event">> := Event}) ->
+post(Vertex, Event) ->
+    %% TODO: Do something smarter with the queuing. Instant processing should work for now though.
+    inbox:post(Vertex, Event),
+    ok.
+    
+process(Vertex, Event) ->
     instrumentation:event_started(Event),
-    #{<<"type">> := _Type, <<"trace">> := _Trace, <<"sender">> := _Sender,
-        <<"originalSender">> := _OriginalSender, <<"effectiveVertices">> := _EffectiveVertices} = Event,
-    Result = do_process(Event),
-    ok = inbox:free_vertex(Vertex),
+    #{<<"type">> := Type} = Event,
+    case Type of
+        <<"child/updated">> -> process_child_change(Vertex, Event);
+        <<"child_removed">> -> process_child_removed(Vertex, Event);
+        <<"parent_change">> -> process_parent_change(Vertex, Event);
+        <<"parent_removed">> -> process_parent_removed(Vertex, Event)
+    end,
     instrumentation:event_finished(Event),
-    case Result of
-        {ok, true, Events} ->
-            lists:map(fun post/1, Events()),
-            ok;
-        {ok, false, _Events} -> ok;
-        {error, Reason} -> {error, Reason}
+    ok.
+    
+    
+process_child_change(Vertex, Event) ->
+    #{<<"effectiveVerticies">> := Verticies, <<"sender">> := Sender} = Event,
+    EffectiveChildren = 
+        lists:filter(fun (Child) ->
+            {ok, Updated} = graph:add_intermediate_vertex(Child, Vertex, Vertex, Sender),
+            Recalculated = recalculatePermissions(Child, Vertex),
+            Updated or Recalculated
+        end, Verticies),
+    NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVerticies">> => EffectiveChildren},
+    {ok, Parents} = graph:effective_list_parents(Vertex),
+    propagate(Parents, NewEvent),
+    ok.
+
+process_child_removed(Vertex, Event) ->
+    #{<<"effectiveVerticies">> := Verticies, <<"sender">> := Sender} = Event,
+    EffectiveChildren =
+        lists:filter(fun (Child) ->
+            graph:remove_intermediate_vertex(Child, Vertex, Vertex, Sender),
+            case graph:get_intermediate_verticies(Child, Vertex, Vertex) of
+                [] ->
+                    graph:remove_effective_edge(Child, Vertex),
+                    true;
+                _else -> recalculatePermissions(Child, Vertex)
+            end
+        end, Verticies),
+    NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVerticies">> => EffectiveChildren},
+    {ok, Parents} = graph:effective_list_parents(Vertex),
+    propagate(Parents, NewEvent),
+    ok.
+
+process_parent_change(Vertex, Event) ->
+    ok.
+
+process_parent_removed(Vertex, Event) ->
+    ok.
+    
+recalculatePermissions(Child, Vertex) ->
+    Expected = calculatePermissions(Child, Vertex),
+    case graph:get_effective_edge(Child, Vertex) of
+        {error, _reason} ->
+            graph:create_effective_edge(Child, Vertex, Expected),
+            true;
+        {ok, Expected} -> false;
+        _else ->
+            graph:update_effective_edge(Child, Vertex, Expected),
+            true
     end.
 
--spec do_process(event()) -> {ok, boolean(), fun(() -> [event()])} | {error, any()}.
-do_process({child, Operation, To, Child, Args}) ->
-    GraphAction = graph_operation(Operation),
-    Updated = GraphAction(Child, To, Args),
-    Events = fun () ->
-        {ok, Parents} = graph:list_parents(To),
-        lists:map(fun (Parent) -> {child, Operation, Parent, Child, Args} end, Parents)
-    end,
-    {ok, Updated, Events};
-
-do_process({parent, Operation, Target, Parent, Args}) ->
-    GraphAction = graph_operation(Operation),
-    Updated = GraphAction(Target, Parent, Args),
-    Events = fun () ->
-        {ok, Children} = graph:list_children(Target),
-        lists:map(fun (Child) -> {parent, Operation, Child, Parent, Args} end, Children)
-    end,
-    {ok, Updated, Events};
-
-do_process(_Event) ->
-    {error, "Unhandled event"}.
-
-post({_, _, Target, _, _} = Event) ->
-    EventMap = #{<<"event">> => Event},
-    inbox:post(Target, EventMap),
-    ok.
+calculatePermissions(From, To) ->
+    Intermediate = graph:get_intermediate_verticies(From, To, To),
+    IntermediatePermissions = lists:map(fun (Vertex) ->
+        {ok, Permissions} = graph:get_edge(Vertex, To),
+        Permissions
+    end, Intermediate),
+    lists:foldl(fun (A, B) -> gmm_utils:permissions_or(A, B) end, <<"11111111">>, IntermediatePermissions).
+    
+propagate(Targets, Event) ->
+    #{<<"effectiveVerticies">> := Verticies} = Event,
+    case Verticies of
+        [] -> ok;
+        _else -> lists:foreach(fun (Target) -> inbox:post(Target, Event) end , Targets)
+    end.

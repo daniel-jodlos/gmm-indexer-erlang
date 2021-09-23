@@ -14,5 +14,6 @@ event_started(Event) ->
     ok.
 
 event_finished(Event) ->
+    io:format("Event processing finished @ ~w: ~p~n", [calendar:local_time(), Event]),
     ok.
 
