@@ -47,25 +47,14 @@
   end.
 
 create_redis_client() ->
-  Clients = create_n_redis_clients("", 500),
+  ets:new(client_iterator, [named_table, public]),
+  ets:insert(client_iterator, {counter, 1}),
+  Clients = create_n_redis_clients("", ?CLIENT_NUMBER),
   [Head | _] = Clients,
   Head.
-  %Client = eredis:start_link(
-  %  [
-  %    {host, os:getenv("GMM_REDIS_HOST", "localhost")},
-  %    {port, list_to_integer(os:getenv("GMM_REDIS_PORT", "6379"))}
-  %  ]),
-  %case Client of
-  %  {ok, ClientRef} ->
-  %    os:putenv(?REDIS_CLIENT, pid_to_list(ClientRef)), Client;
-  %  _ -> Client
-  %end.
-
-%% redis api
 
 get_redis_client()->
-  os:getenv(?REDIS_CLIENT ++ integer_to_list(rand:uniform(500))).
-  %os:getenv(?REDIS_CLIENT).
+  os:getenv(?REDIS_CLIENT ++ integer_to_list(ets:update_counter(client_iterator, counter, {2, 1, ?CLIENT_NUMBER, 1}))).
 
 get(Key) ->
   RedisClient = get_redis_client(),
