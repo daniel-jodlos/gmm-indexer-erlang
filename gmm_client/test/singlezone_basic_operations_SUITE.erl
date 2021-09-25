@@ -52,19 +52,19 @@ vertices_adding_test(_Config) ->
     Zone = <<"zone0">>,
 
     % when
-    client:add_vertex(Zone, <<"user">>, <<"User1">>),
-    client:add_vertex(Zone, <<"user">>, <<"User2">>),
-    client:add_vertex(Zone, <<"user">>, <<"User3">>),
-    client:add_vertex(Zone, <<"user">>, <<"User4">>),
+    ok = client:add_vertex(Zone, <<"user">>, <<"User1">>),
+    ok = client:add_vertex(Zone, <<"user">>, <<"User2">>),
+    ok = client:add_vertex(Zone, <<"user">>, <<"User3">>),
+    ok = client:add_vertex(Zone, <<"user">>, <<"User4">>),
 
-    client:add_vertex(Zone, <<"group">>, <<"Group1">>),
-    client:add_vertex(Zone, <<"group">>, <<"Group2">>),
+    ok = client:add_vertex(Zone, <<"group">>, <<"Group1">>),
+    ok = client:add_vertex(Zone, <<"group">>, <<"Group2">>),
 
-    client:add_vertex(Zone, <<"space">>, <<"Space1">>),
+    ok = client:add_vertex(Zone, <<"space">>, <<"Space1">>),
 
-    client:add_vertex(Zone, <<"provider">>, <<"Provider1">>),
-    client:add_vertex(Zone, <<"provider">>, <<"Provider2">>),
-    client:add_vertex(Zone, <<"provider">>, <<"Provider3">>),
+    ok = client:add_vertex(Zone, <<"provider">>, <<"Provider1">>),
+    ok = client:add_vertex(Zone, <<"provider">>, <<"Provider2">>),
+    ok = client:add_vertex(Zone, <<"provider">>, <<"Provider3">>),
 
     {ok, RealVertices} = client:get_all_vertices(Zone),
 
@@ -86,10 +86,10 @@ vertices_adding_test(_Config) ->
 
 vertices_deleting_test(_Config) ->
     % when
-    client:delete_vertex(<<"zone0:User2">>),
-    client:delete_vertex(<<"zone0:User3">>),
-    client:delete_vertex(<<"zone0:Group1">>),
-    client:delete_vertex(<<"zone0:Provider3">>),
+    ok = client:delete_vertex(<<"zone0:User2">>),
+    ok = client:delete_vertex(<<"zone0:User3">>),
+    ok = client:delete_vertex(<<"zone0:Group1">>),
+    ok = client:delete_vertex(<<"zone0:Provider3">>),
 
     {ok, RealVertices} = client:get_all_vertices(<<"zone0">>),
 
@@ -159,8 +159,8 @@ edges_adding_test(_Config) ->
 
 edges_updating_test(_Config) ->
     % when
-    client:set_permissions(<<"zone0:User1">>, <<"zone0:Group2">>, <<"00010">>, <<"trace2">>),
-    client:set_permissions(<<"zone0:Group2">>, <<"zone0:Provider1">>, <<"11111">>, <<"trace3">>),
+    ok = client:set_permissions(<<"zone0:User1">>, <<"zone0:Group2">>, <<"00010">>, <<"trace2">>),
+    ok = client:set_permissions(<<"zone0:Group2">>, <<"zone0:Provider1">>, <<"11111">>, <<"trace3">>),
 
     % then
     ?assertEqual({ok, <<"01110">>}, client:get_permissions(<<"zone0:User1">>, <<"zone0:Space1">>)),
@@ -169,8 +169,8 @@ edges_updating_test(_Config) ->
 
 edges_deleting_test(_Config) ->
     % when
-    client:delete_edge(<<"zone0:User1">>, <<"zone0:Space1">>, <<"trace1">>),
-    client:delete_edge(<<"zone0:Group2">>, <<"zone0:Provider1">>, <<"trace3">>),
+    ok = client:delete_edge(<<"zone0:User1">>, <<"zone0:Space1">>, <<"trace1">>),
+    ok = client:delete_edge(<<"zone0:Group2">>, <<"zone0:Provider1">>, <<"trace3">>),
 
     {ok, User1Parents} = client:list_parents(<<"zone0:User1">>),
     {ok, User1Children} = client:list_children(<<"zone0:User1">>),
