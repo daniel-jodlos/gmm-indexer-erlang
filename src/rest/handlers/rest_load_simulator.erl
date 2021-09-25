@@ -41,7 +41,15 @@ resource_exists(Req, State) ->
 from_json(Req, bad_request) ->
     {false, Req, bad_request};
 from_json(Req, State) ->
-    io:format("~p\n\n", [maps:get(body, State)]),
+    lists:map(fun(#{op_type := Type, from := From, to := To, permissions := Permissions, trace := Trace}) ->
+        spawn(fun() ->
+                Operation = case Type of
+                                <<"add">> -> create;
+                                <<"perm">> -> update
+                            end,
+                rest_edges:execute_operation(Operation, From, To, Permissions, Trace) end)
+              end, maps:get(body, State)),
+
     {true, Req, State}.
 
 
