@@ -47,7 +47,7 @@ from_json(Req, State) ->
                                 <<"add">> -> create;
                                 <<"perm">> -> update
                             end,
-                rest_edges:execute_operation(Operation, From, To, Permissions, Trace) end)
+                rest_edges:execute_operation(Operation, From, To, Permissions, Trace, false) end)
               end, maps:get(body, State)),
 
     {true, Req, State}.
