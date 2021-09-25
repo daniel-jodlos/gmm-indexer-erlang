@@ -26,12 +26,24 @@
 %% cowboy_rest callbacks
 %%%---------------------------
 
-init(Req, State = #{operation := Op}) when Op == reaches; Op == effective_permissions ->
-    NewState = gmm_utils:parse_rest_params(Req, State, [{from, nonempty}, {to, nonempty}],
-        [{from, fun gmm_utils:validate_vertex_id/1}, {to, fun gmm_utils:validate_vertex_id/1}]),
+init(Req, State = #{operation := Op, algorithm := Algo}) when Op == reaches; Op == effective_permissions ->
+    ParamsSpec = [{from, nonempty}, {to, nonempty}] ++ (
+        case Algo of naive -> [{jumpcount, [], <<"1">>}]; indexed -> [] end),
+    ParamsParsers = [{from, fun gmm_utils:validate_vertex_id/1}, {to, fun gmm_utils:validate_vertex_id/1}] ++ (
+        case Algo of
+            naive -> [{jumpcount, fun(Bin) -> {ok, list_to_integer( binary_to_list(Bin) )} end}];
+            indexed -> []
+        end),
+    NewState = gmm_utils:parse_rest_params(Req, State, ParamsSpec, ParamsParsers),
     {cowboy_rest, Req, NewState};
-init(Req, State = #{operation := members}) ->
-    NewState = gmm_utils:parse_rest_params(Req, State, [{'of', nonempty}], [{'of', fun gmm_utils:validate_vertex_id/1}]),
+init(Req, State = #{operation := members, algorithm := Algo}) ->
+    ParamsSpec = [{'of', nonempty}] ++ (case Algo of naive -> [{jumpcount, [], <<"1">>}]; indexed -> [] end),
+    ParamsParsers = [{'of', fun gmm_utils:validate_vertex_id/1}] ++ (
+        case Algo of
+            naive -> [{jumpcount, fun(Bin) -> {ok, list_to_integer( binary_to_list(Bin) )} end}];
+            indexed -> []
+        end),
+    NewState = gmm_utils:parse_rest_params(Req, State, ParamsSpec, ParamsParsers),
     {cowboy_rest, Req, NewState}.
 
 allowed_methods(Req, State) ->
@@ -48,19 +60,23 @@ from_json(Req, State = #{operation := Operation, algorithm := Algorithm}) ->
     {ok, Result} =
         case {Operation, Algorithm} of
             {reaches, naive} ->
-                execute(fun reaches_naive/2, [maps:get(from, State), maps:get(to, State)], <<"reaches">>);
+                #{from := From, to := To, jumpcount := JumpCount} = State,
+                execute(fun reaches_naive/3, [From, To, JumpCount], <<"reaches">>);
             {reaches, indexed} ->
-                execute(fun reaches_indexed/2, [maps:get(from, State), maps:get(to, State)], <<"reaches">>);
+                #{from := From, to := To} = State,
+                execute(fun reaches_indexed/2, [From, To], <<"reaches">>);
             {effective_permissions, naive} ->
-                execute(fun effective_permissions_naive/2,
-                    [maps:get(from, State), maps:get(to, State)], <<"effectivePermissions">>);
+                #{from := From, to := To, jumpcount := JumpCount} = State,
+                execute(fun effective_permissions_naive/3, [From, To, JumpCount], <<"effectivePermissions">>);
             {effective_permissions, indexed} ->
-                execute(fun effective_permissions_indexed/2,
-                    [maps:get(from, State), maps:get(to, State)], <<"effectivePermissions">>);
+                #{from := From, to := To} = State,
+                execute(fun effective_permissions_indexed/2, [From, To], <<"effectivePermissions">>);
             {members, naive} ->
-                execute(fun members_naive/1, [maps:get('of', State)], <<"members">>);
+                #{'of' := Of, jumpcount := JumpCount} = State,
+                execute(fun members_naive/2, [Of, JumpCount], <<"members">>);
             {members, indexed} ->
-                execute(fun members_indexed/1, [maps:get('of', State)], <<"members">>)
+                #{'of' := Of} = State,
+                execute(fun members_indexed/1, [Of], <<"members">>)
         end,
     Req1 = cowboy_req:set_resp_body(gmm_utils:encode(Result), Req),
     {true, Req1, State}.
@@ -81,7 +97,10 @@ execute(Fun, Args, FieldName) ->
                     Fun(Arg);
                 2 ->
                     [Arg1, Arg2] = Args,
-                    Fun(Arg1, Arg2)
+                    Fun(Arg1, Arg2);
+                3 ->
+                    [Arg1, Arg2, Arg3] = Args,
+                    Fun(Arg1, Arg2, Arg3)
             end,
         EndTime = erlang:timestamp(),
         Duration = timer:now_diff(EndTime, StartTime),
@@ -90,8 +109,9 @@ execute(Fun, Args, FieldName) ->
             {ok, Value} ->
                 {ok, #{<<"duration">> => gmm_utils:convert_microseconds_to_iso_8601(Duration), FieldName => Value}}
         end
-    catch _:_ ->
-        {error, "Execution error - probably wrong number of arguments"}
+    catch Class:Pattern:Stacktrace ->
+        gmm_utils:log_error(Class, Pattern, Stacktrace),
+        {error, {Class, Pattern}}
     end.
 
 
@@ -101,32 +121,34 @@ execute(Fun, Args, FieldName) ->
 
 %% Reaches
 
--spec reaches_naive(binary(), binary()) -> {ok, boolean()} | {error, any()}.
-reaches_naive(From, To) ->
+-spec reaches_naive(binary(), binary(), integer() | undefined) -> {ok, boolean()} | {error, any()}.
+reaches_naive(_, _, JumpCount) when JumpCount > 1000 ->
+    {error, found_a_cycle};
+reaches_naive(From, To, JumpCount) ->
     ZoneId = gmm_utils:zone_id(),
     case gmm_utils:owner_of(From) of
         ZoneId ->
             case graph:edge_exists(From, To) of
                 {ok, true} -> {ok, true};
                 {error, Reason} -> {error, Reason};
-                _ -> reaches_naive_check_parents(From, To)
+                _ -> reaches_naive_check_parents(From, To, JumpCount + 1)
             end;
         Other ->
-            case zone_client:reaches(naive, Other, From, To) of
+            case zone_client:reaches(naive, Other, From, To, JumpCount + 1) of
                 {ok, #{<<"reaches">> := Bool}} -> {ok, Bool};
                 {error, Reason} -> {error, Reason}
             end
     end.
 
--spec reaches_naive_check_parents(binary(), binary()) -> {ok, boolean()} | {error, any()}.
-reaches_naive_check_parents(From, To) ->
+-spec reaches_naive_check_parents(binary(), binary(), integer()) -> {ok, boolean()} | {error, any()}.
+reaches_naive_check_parents(From, To, JumpCount) ->
     case graph:list_parents(From) of
         {ok, Parents} ->
             lists:foldr(
                 fun
                     (_, {error, Reason}) -> {error, Reason};
                     (_, {ok, true}) -> {ok, true};
-                    (Parent, _) -> reaches_naive(Parent, To)
+                    (Parent, _) -> reaches_naive(Parent, To, JumpCount + 1)
                 end,
                 {ok, false},
                 Parents
@@ -136,21 +158,23 @@ reaches_naive_check_parents(From, To) ->
 
 %% Effective permissions
 
--spec effective_permissions_naive(binary(), binary()) -> {ok, permissions()} | {error, any()}.
-effective_permissions_naive(From, To) ->
+-spec effective_permissions_naive(binary(), binary(), integer()) -> {ok, permissions()} | {error, any()}.
+effective_permissions_naive(_, _, JumpCount) when JumpCount > 1000 ->
+    {error, found_a_cycle};
+effective_permissions_naive(From, To, JumpCount) ->
     ZoneId = gmm_utils:zone_id(),
     case gmm_utils:owner_of(From) of
-        ZoneId -> effective_permissions_naive_locally(From, To);
+        ZoneId -> effective_permissions_naive_locally(From, To, JumpCount + 1);
         Other ->
-            case zone_client:effective_permissions(naive, Other, From, To) of
+            case zone_client:effective_permissions(naive, Other, From, To, JumpCount + 1) of
                 {ok, #{<<"effectivePermissions">> := Perm}} -> {ok, Perm};
                 {error, Reason} -> {error, Reason}
             end
     end.
 
--spec effective_permissions_naive_locally(From :: binary(), To :: binary()) ->
+-spec effective_permissions_naive_locally(From :: binary(), To :: binary(), JumpCount :: integer()) ->
     {ok, gmm_utils:permissions()} | {error, any()}.
-effective_permissions_naive_locally(From, To) ->
+effective_permissions_naive_locally(From, To, JumpCount) ->
     JoinPermissions = fun(A, B) -> gmm_utils:permissions_or(A,B) end,
     case graph:list_parents(From) of
         {ok, Parents} ->
@@ -163,7 +187,7 @@ effective_permissions_naive_locally(From, To) ->
                             {ok, #{<<"permissions">> := Perm}} -> {ok, JoinPermissions(Perm, Acc)}
                         end;
                     (Parent, {ok, Acc}) ->
-                        case effective_permissions_naive(Parent, To) of
+                        case effective_permissions_naive(Parent, To, JumpCount + 1) of
                             {error, Reason} -> {error, Reason};
                             {ok, Perm} -> {ok, JoinPermissions(Perm, Acc)}
                         end
@@ -176,27 +200,29 @@ effective_permissions_naive_locally(From, To) ->
 
 %% Members
 
--spec members_naive(binary()) -> {ok, list(binary())} | {error, any()}.
-members_naive(Of) ->
+-spec members_naive(binary(), integer()) -> {ok, list(binary())} | {error, any()}.
+members_naive(_, JumpCount) when JumpCount > 1000 ->
+    {error, found_a_cycle};
+members_naive(Of, JumpCount) ->
     ZoneId = gmm_utils:zone_id(),
     case gmm_utils:owner_of(Of) of
-        ZoneId -> members_naive_locally(Of);
+        ZoneId -> members_naive_locally(Of, JumpCount + 1);
         Other ->
-            case zone_client:members(naive, Other, Of) of
+            case zone_client:members(naive, Other, Of, JumpCount + 1) of
                 {ok, #{<<"members">> := Members}} -> {ok, Members};
                 {error, Reason} -> {error, Reason}
             end
     end.
 
--spec members_naive_locally(Of :: binary()) -> {ok, list(binary())} | {error, any()}.
-members_naive_locally(Of) ->
+-spec members_naive_locally(Of :: binary(), JumpCount :: integer()) -> {ok, list(binary())} | {error, any()}.
+members_naive_locally(Of, JumpCount) ->
     case graph:list_children(Of) of
         {ok, Children} ->
             Res = lists:foldr(
                 fun
                     (_, {error, Error}) -> {error, Error};
                     (Child, {ok, Acc}) ->
-                        case members_naive(Child) of
+                        case members_naive(Child, JumpCount + 1) of
                             {ok, Result} -> {ok, sets:union(sets:from_list(Result), Acc)};
                             A -> A
                         end
