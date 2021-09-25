@@ -13,13 +13,11 @@
 add_vertex(VertexData) ->
     [Zone, Name] = string:split(maps:get(<<"id">>, VertexData), ":"),
     ok = client:add_vertex(Zone, maps:get(<<"type">>, VertexData), Name),
-    <<Zone/binary, "/", Name/binary>>.
+    <<Zone/binary, ":", Name/binary>>.
 
 add_edge(EdgeData) ->
-    [ZoneFrom, NameFrom] = string:split(maps:get(<<"src">>, EdgeData), ":"),
-    [ZoneTo, NameTo] = string:split(maps:get(<<"dst">>, EdgeData), ":"),
-    From = <<ZoneFrom/binary, "/", NameFrom/binary>>,
-    To = <<ZoneTo/binary, "/", NameTo/binary>>,
+    From = maps:get(<<"src">>, EdgeData),
+    To = maps:get(<<"dst">>, EdgeData),
     ok = client:add_edge(From, To, maps:get(<<"perms">>, EdgeData), <<"trace">>),
     [From, To].
 
