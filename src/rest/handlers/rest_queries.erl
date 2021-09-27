@@ -12,6 +12,7 @@
     init/2,
     allowed_methods/2,
     content_types_accepted/2,
+    content_types_provided/2,
     resource_exists/2
 ]).
 
@@ -50,7 +51,13 @@ allowed_methods(Req, State) ->
     {[<<"POST">>], Req, State}.
 
 content_types_accepted(Req, State) ->
-    {[{<<"application/json">>, from_json}], Req, State}.
+    {[
+        {<<"application/json">>, from_json},
+        {<<"application/x-www-form-urlencoded">>, from_json}
+    ], Req, State}.
+
+content_types_provided(Req, State) ->
+    {[{<<"application/json">>, undefined}], Req, State}.
 
 resource_exists(Req, State) ->
     {true, Req, State}.
