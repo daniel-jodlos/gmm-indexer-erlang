@@ -102,9 +102,9 @@ operations_test(_Config) ->
     ?assertEqual(true, ReachesResponse3),
     ?assertEqual(true, ReachesResponse4),
 
-    ?assertEqual(<<"01110">>, EPResponse1),
-    ?assertEqual(<<"01101">>, EPResponse2),
-    ?assertEqual(<<"00011">>, EPResponse3).
+    ?assertEqual(<<"10101">>, EPResponse1),
+    ?assertEqual(<<"11110">>, EPResponse2),
+    ?assertEqual(<<"11110">>, EPResponse3).
 
 operations_after_graph_update_test(_Config) ->
     % when
@@ -146,6 +146,6 @@ operations_after_graph_update_test(_Config) ->
     ?assertEqual(true, ReachesResponse3),
     ?assertEqual(true, ReachesResponse4),
 
-    ?assertEqual(<<"01110">>, EPResponse1),
-    ?assertEqual(<<"01101">>, EPResponse2),
-    ?assertEqual(<<"00011">>, EPResponse3).
+    ?assertEqual(<<"10101">>, EPResponse1),
+    ?assertEqual(<<"00000">>, EPResponse2),
+    ?assertEqual(<<"01010">>, EPResponse3).
