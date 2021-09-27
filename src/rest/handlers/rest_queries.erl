@@ -181,7 +181,7 @@ effective_permissions_naive_locally(From, To, JumpCount) ->
             lists:foldr(
                 fun
                     (_, {error, Reason}) -> {error, Reason};
-                    (To, {ok, Acc}) ->
+                    (ToInner, {ok, Acc}) when ToInner == To ->
                         case graph:get_edge(From, To) of
                             {error, Reason} -> {error, Reason};
                             {ok, #{<<"permissions">> := Perm}} -> {ok, JoinPermissions(Perm, Acc)}
