@@ -44,6 +44,7 @@
     parse_rest_body/3,
 
     log_error/3,
+    log_cowboy_req/2,
     uuid/0
 ]).
 
@@ -275,6 +276,13 @@ parse_rest_body(Req0, State, Parser) ->
 
 log_error(Class, Pattern, Stacktrace) ->
     io:format("Class: ~p;\nPattern: ~p;\nStacktrace: ~p\n\n", [Class, Pattern, Stacktrace]).
+
+log_cowboy_req(Req, State) ->
+    io:format("==============================\n\n"),
+    io:format("Req = ~p\n\n", [Req]),
+    io:format("------------------------------\n\n"),
+    io:format("State = ~p\n\n", [State]),
+    io:format("==============================\n\n").
 
 
 uuid() ->
