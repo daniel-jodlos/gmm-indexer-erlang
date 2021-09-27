@@ -45,7 +45,8 @@ from_json(Req, State) ->
         spawn(fun() ->
                 Operation = case Type of
                                 <<"add">> -> create;
-                                <<"perm">> -> update
+                                <<"perm">> -> update;
+                                <<"del">> -> delete
                             end,
                 rest_edges:execute_operation(Operation, From, To, Permissions, Trace, false) end)
               end, maps:get(body, State)),
