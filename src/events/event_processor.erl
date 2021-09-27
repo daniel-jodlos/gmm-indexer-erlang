@@ -7,22 +7,17 @@
 
 async_process(Vertex, Event) ->
     spawn(?MODULE, process, [Vertex, Event]).
-
-post(Vertex, Event) ->
-    %% TODO: Do something smarter with the queuing. Instant processing should work for now though.
-    inbox:post(Vertex, Event),
-    ok.
     
 process(Vertex, Event) ->
-    instrumentation:event_started(Event),
+    instrumentation:event_started(Vertex, Event),
     #{<<"type">> := Type} = Event,
     case Type of
         <<"child/updated">> -> process_child_change(Vertex, Event);
-        <<"child_removed">> -> process_child_removed(Vertex, Event);
-        <<"parent_change">> -> process_parent_change(Vertex, Event);
-        <<"parent_removed">> -> process_parent_removed(Vertex, Event)
+        <<"child/removed">> -> process_child_removed(Vertex, Event);
+        <<"parent/updated">> -> process_parent_change(Vertex, Event);
+        <<"parent/removed">> -> process_parent_removed(Vertex, Event)
     end,
-    instrumentation:event_finished(Event),
+    instrumentation:event_finished(Vertex, Event),
     ok.
     
     
@@ -30,12 +25,14 @@ process_child_change(Vertex, Event) ->
     #{<<"effectiveVerticies">> := Verticies, <<"sender">> := Sender} = Event,
     EffectiveChildren = 
         lists:filter(fun (Child) ->
-            {ok, Updated} = graph:add_intermediate_vertex(Child, Vertex, Vertex, Sender),
-            Recalculated = recalculatePermissions(Child, Vertex),
-            Updated or Recalculated
+            graph:add_intermediate_vertex(Child, Vertex, Vertex, Sender),
+            {ok, Updated} = graph:add_effective_child(Vertex, Child),
+            recalculatePermissions(Child, Vertex),
+            {ok, Result} = gmm_utils:parse_boolean(Updated),
+            Result
         end, Verticies),
     NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVerticies">> => EffectiveChildren},
-    {ok, Parents} = graph:effective_list_parents(Vertex),
+    {ok, Parents} = graph:list_parents(Vertex),
     propagate(Parents, NewEvent),
     ok.
 
@@ -47,19 +44,47 @@ process_child_removed(Vertex, Event) ->
             case graph:get_intermediate_verticies(Child, Vertex, Vertex) of
                 [] ->
                     graph:remove_effective_edge(Child, Vertex),
+                    graph:remove_effective_child(Vertex, Child),
                     true;
-                _else -> recalculatePermissions(Child, Vertex)
+                _else ->
+                    recalculatePermissions(Child, Vertex),
+                    false
             end
         end, Verticies),
     NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVerticies">> => EffectiveChildren},
-    {ok, Parents} = graph:effective_list_parents(Vertex),
+    {ok, Parents} = graph:list_parents(Vertex),
     propagate(Parents, NewEvent),
     ok.
 
 process_parent_change(Vertex, Event) ->
+    #{<<"effectiveVerticies">> := Verticies, <<"sender">> := Sender} = Event,
+    EffectiveParents =
+        lists:filter(fun (Parent) ->
+            graph:add_intermediate_vertex(Vertex, Parent, Vertex, Sender),
+            {ok, Updated} = graph:add_effective_parent(Vertex, Parent),
+            {ok, Result} = gmm_utils:parse_boolean(Updated),
+            Result
+        end, Verticies),
+    NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVerticies">> => EffectiveParents},
+    {ok, Children} = graph:list_children(Vertex),
+    propagate(Children, NewEvent),  
     ok.
 
 process_parent_removed(Vertex, Event) ->
+    #{<<"effectiveVerticies">> := Verticies, <<"sender">> := Sender} = Event,
+    EffectiveParents =
+        lists:filter(fun (Parent) ->
+            graph:remove_intermediate_vertex(Vertex, Parent, Vertex, Sender),
+            case graph:get_intermediate_verticies(Vertex, Parent, Vertex) of
+                [] ->
+                    graph:remove_effective_parent(Vertex, Parent),
+                    true;
+                _other -> false
+            end
+        end, Verticies),
+    NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVerticies">> => EffectiveParents},
+    {ok, Children} = graph:list_children(Vertex),
+    propagate(Children, NewEvent),  
     ok.
     
 recalculatePermissions(Child, Vertex) ->
@@ -76,11 +101,14 @@ recalculatePermissions(Child, Vertex) ->
 
 calculatePermissions(From, To) ->
     Intermediate = graph:get_intermediate_verticies(From, To, To),
+    io:format("Intermediale ~p~n", [Intermediate]),
     IntermediatePermissions = lists:map(fun (Vertex) ->
-        {ok, Permissions} = graph:get_edge(Vertex, To),
-        Permissions
+        case graph:get_edge(Vertex, To) of % w sumie to trochę problem, jak nie wywalamy usuniętych połączeń z intermediali
+            {ok, Permissions} -> Permissions;
+            _other -> <<"00000000">>
+        end
     end, Intermediate),
-    lists:foldl(fun (A, B) -> gmm_utils:permissions_or(A, B) end, <<"11111111">>, IntermediatePermissions).
+    lists:foldl(fun (A, B) -> gmm_utils:permissions_or(A, B) end, <<"00000000">>, IntermediatePermissions).
     
 propagate(Targets, Event) ->
     #{<<"effectiveVerticies">> := Verticies} = Event,
