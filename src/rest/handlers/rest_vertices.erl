@@ -115,6 +115,7 @@ replace(Element, Replacement, [H | T]) ->
     [H | replace(Element, Replacement, T)];
 replace(_Element, _Replacement, []) ->
     [].
+
 -spec modify_state_bulk(Vertices :: list({binary(), binary()})) -> ok | {error, any()}.
 modify_state_bulk(Vertices)->
     Parent = self(),
@@ -122,14 +123,10 @@ modify_state_bulk(Vertices)->
 
     Pids = lists:map(fun({Type, Name}) ->
         spawn(fun() ->
-            Result = try
-                         graph:create_vertex(Type, Name)
-                     catch Type:Reason:Stacktrace ->
-                {'$pmap_error', self(), Type, Reason, Stacktrace}
-                     end,
-            Parent ! {Ref, self(), Result}
-              end)
-                     end, Vertices),
+            Result = try graph:create_vertex(Type, Name)
+                     catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
+
+            Parent ! {Ref, self(), Result} end) end, Vertices),
 
     % GATHERING RESULTS
     Gather = fun
@@ -140,7 +137,7 @@ modify_state_bulk(Vertices)->
                              NewPidsOrResults = replace(Pid, Result, PidsOrResults),
                              F(lists:delete(Pid, PendingPids), NewPidsOrResults)
                      after 5000 ->
-                         case lists:any(fun erlang:is_process_alive/1, PendingPids) of
+                         case lists:all(fun erlang:is_process_alive/1, PendingPids) of
                              true ->
                                  F(PendingPids, PidsOrResults);
                              false ->
@@ -149,12 +146,10 @@ modify_state_bulk(Vertices)->
                      end;
                  % wait for all pids to report back and then look for errors
                  F([], AllResults) ->
-                     Errors = lists:filtermap(fun
-                                                  ({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
-                                                      {true, {Pid, Type, Reason, Stacktrace}};
-                                                  (_) ->
-                                                      false
-                                              end, AllResults),
+                     Errors = lists:filtermap(
+                         fun({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
+                             {true, {Pid, Type, Reason, Stacktrace}};
+                             (_) -> false end, AllResults),
                      case Errors of
                          [] ->
                              ok;
