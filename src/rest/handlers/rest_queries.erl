@@ -130,7 +130,7 @@ execute(Fun, Args, FieldName) ->
 
 -spec reaches_naive(binary(), binary(), integer() | undefined) -> {ok, boolean()} | {error, any()}.
 reaches_naive(_, _, JumpCount) when JumpCount > 1000 ->
-    {error, found_a_cycle};
+    {ok, false};
 reaches_naive(From, To, JumpCount) ->
     ZoneId = gmm_utils:zone_id(),
     case gmm_utils:owner_of(From) of
@@ -143,7 +143,9 @@ reaches_naive(From, To, JumpCount) ->
         Other ->
             case zone_client:reaches(naive, Other, From, To, JumpCount + 1) of
                 {ok, #{<<"reaches">> := Bool}} -> {ok, Bool};
-                {error, Reason} -> {error, Reason}
+                {error, Reason} ->
+                    gmm_utils:log_error(network_error, Reason, undefined),
+                    {ok, false}
             end
     end.
 
@@ -167,7 +169,7 @@ reaches_naive_check_parents(From, To, JumpCount) ->
 
 -spec effective_permissions_naive(binary(), binary(), integer()) -> {ok, permissions()} | {error, any()}.
 effective_permissions_naive(_, _, JumpCount) when JumpCount > 1000 ->
-    {error, found_a_cycle};
+    {ok, <<"00000">>};
 effective_permissions_naive(From, To, JumpCount) ->
     ZoneId = gmm_utils:zone_id(),
     case gmm_utils:owner_of(From) of
@@ -175,7 +177,9 @@ effective_permissions_naive(From, To, JumpCount) ->
         Other ->
             case zone_client:effective_permissions(naive, Other, From, To, JumpCount + 1) of
                 {ok, #{<<"effectivePermissions">> := Perm}} -> {ok, Perm};
-                {error, Reason} -> {error, Reason}
+                {error, Reason} ->
+                    gmm_utils:log_error(network_error, Reason, undefined),
+                    {ok, <<"00000">>}
             end
     end.
 
@@ -188,6 +192,7 @@ effective_permissions_naive_locally(From, To, JumpCount) ->
             lists:foldr(
                 fun
                     (_, {error, Reason}) -> {error, Reason};
+                    (_, {ok, <<"11111">>}) -> {ok, <<"11111">>};
                     (ToInner, {ok, Acc}) when ToInner == To ->
                         case graph:get_edge(From, To) of
                             {error, Reason} -> {error, Reason};
@@ -209,7 +214,7 @@ effective_permissions_naive_locally(From, To, JumpCount) ->
 
 -spec members_naive(binary(), integer()) -> {ok, list(binary())} | {error, any()}.
 members_naive(_, JumpCount) when JumpCount > 1000 ->
-    {error, found_a_cycle};
+    {ok, []};
 members_naive(Of, JumpCount) ->
     ZoneId = gmm_utils:zone_id(),
     case gmm_utils:owner_of(Of) of
@@ -217,7 +222,9 @@ members_naive(Of, JumpCount) ->
         Other ->
             case zone_client:members(naive, Other, Of, JumpCount + 1) of
                 {ok, #{<<"members">> := Members}} -> {ok, Members};
-                {error, Reason} -> {error, Reason}
+                {error, Reason} ->
+                    gmm_utils:log_error(network_error, Reason, undefined),
+                    {ok, []}
             end
     end.
 
