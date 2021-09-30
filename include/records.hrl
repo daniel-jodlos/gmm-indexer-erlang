@@ -17,3 +17,17 @@
 -type permissions() :: <<_:5*8>>.
 
 -type rest_handler_state() :: bad_request | map().
+
+-type notification() :: #{
+    zone            := binary(),
+    time            := binary(),
+    thread          := binary(),
+    notif_type      := binary(),
+    trace           := binary(),
+    event_id        := binary(),
+    event_type      := binary(),
+    vertex          := binary(),
+    sender          := binary(),
+    original_sender := binary(),
+    fork_children   := integer()
+}.
