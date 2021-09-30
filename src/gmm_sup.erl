@@ -31,13 +31,10 @@ start_link() ->
 %%                  modules => modules()}   % optional
 
 init([]) ->
-    %% register itself
-    ets:new(supervisor, [named_table]),
-    ets:insert(supervisor, {pid, self()}),
-
     %% create ets tables
     ets:new(outboxes, [named_table, public]),
     inbox:create_ets_tables(),
+    instrumentation:create_ets(),
 
     %% spawn child processes
     SupFlags = #{
@@ -53,5 +50,9 @@ init([]) ->
         id => << "inbox_dispatcher" >>,
         start => {inbox, start_link, []}
     },
-    ChildSpecs = [InboxDispatcherSpec | [RedisSpec | outbox:specs_for_supervisor()]],
+    CsvWriterSpecs = #{
+        id => <<"csv_writer">>,
+        start => {instrumentation, start_link, []}
+    },
+    ChildSpecs = [CsvWriterSpecs | [InboxDispatcherSpec | [RedisSpec | outbox:specs_for_supervisor()]]],
     {ok, {SupFlags, ChildSpecs}}.
