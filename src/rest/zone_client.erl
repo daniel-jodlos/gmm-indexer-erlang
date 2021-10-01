@@ -170,7 +170,7 @@ add_vertices(Zone, BulkRequest) ->
     Url = http_utils:build_url(Address, <<"graph/vertices/bulk">>,[]),
     http_executor:post(Url, BulkRequest, false).
 
--spec post_event(Zone:: binary(), VertexId:: binary(), Event:: map()) -> ok | {error, any()}.
+-spec post_event(Zone:: binary(), VertexId:: binary(), Event:: event()) -> ok | {error, any()}.
 post_event(Zone, VertexId, Event) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"events">>, [{<<"id">>, VertexId}]),

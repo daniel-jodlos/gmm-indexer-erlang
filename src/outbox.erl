@@ -112,7 +112,7 @@ try_sending(Zone, Batch) ->
         fun({Name, Event}) ->
             #{
                 <<"vn">> => Name,
-                <<"e">> => Event
+                <<"e">> => maps:remove(<<"id">>, Event)
             }
         end, Batch),
     BulkObject = #{<<"messages">> => MessagesList},
