@@ -20,6 +20,16 @@
 
 -type rest_handler_state() :: bad_request | map().
 
+%% @todo check whether <<"id">> field should be there and how is it created
+-type event() :: map(
+    % <<"id">>                  := binary(),
+    % <<"trace">>               := binary(),
+    % <<"type">>                := binary(),
+    % <<"sender">>              := binary(),
+    % <<"originalSender">>      := binary(),
+    % <<"effectiveVertices">>   := list(binary())
+).
+
 -type notification() :: #{
     zone            := binary(),
     time            := binary(),

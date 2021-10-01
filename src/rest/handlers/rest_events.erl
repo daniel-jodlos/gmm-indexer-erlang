@@ -22,6 +22,8 @@
     to_json/2
 ]).
 
+-include("records.hrl").
+
 
 %%%---------------------------
 %% cowboy_rest callbacks
@@ -61,8 +63,8 @@ from_json(Req, State = #{operation := single_event, id := Vertex, body := Event}
     {true, Req, State};
 from_json(Req, State = #{operation := bulk, body := List}) ->
     lists:foreach(
-        fun(#{<<"vn">> := Name, <<"e">> := Event}) ->
-            ok = inbox:post(gmm_utils:create_vertex_id(Name), Event)
+        fun(#{vertex := Vertex, event := Event}) ->
+            ok = inbox:post(Vertex, Event)
         end, List),
     {true, Req, State}.
 
@@ -101,18 +103,26 @@ parse_event(Bin) ->
         {error, Reason} -> {error, Reason}
     end.
 
--spec parse_bulk_events(binary()) -> {ok, map()} | {error, any()}.
+-spec parse_bulk_events(binary()) -> {ok, list(#{vertex := binary(), event := event()})} | {error, any()}.
 parse_bulk_events(Bin) ->
     case gmm_utils:decode(Bin) of
         #{<<"messages">> := List} when is_list(List) ->
             Parser =
-                fun(#{<<"vn">> := VertexName, <<"e">> := Event}) when is_binary(VertexName) -> validate_event(Event);
+                fun
+                    (#{<<"vn">> := VertexName, <<"e">> := Event}) when is_binary(VertexName) ->
+                        case validate_event(Event) of
+                            ok -> #{vertex => gmm_utils:create_vertex_id(VertexName), event => Event};
+                            {error, R} -> {error, R}
+                        end;
                     (_) -> {error, "Invalid JSON"}
                 end,
-            case lists:all(fun(X) -> Parser(X) == ok end, List) of
-                true -> {ok, List};
-                false -> {error, "Some event is invalid"}
-            end;
+            lists:foldl(
+                fun
+                    (_, {error, R}) -> {error, R};
+                    ({error, R}, _) -> {error, R};
+                    ({ok, Elem}, {ok, Acc}) -> {ok, [Elem | Acc]}
+                end,
+                {ok, []}, lists:map(Parser, List));
         _ -> {error, "Invalid JSON"}
     end.
 
