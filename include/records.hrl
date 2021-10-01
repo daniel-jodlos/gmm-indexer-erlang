@@ -14,6 +14,8 @@
 
 -define(REDIS_CLIENT, "REDIS_CLIENT").
 
+-define(CSV_FILE, "instrumentation.csv").
+
 -type permissions() :: <<_:5*8>>.
 
 -type rest_handler_state() :: bad_request | map().
