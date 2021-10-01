@@ -17,6 +17,8 @@
     free_vertex/1
 ]).
 
+-include("records.hrl").
+
 
 %%%---------------------------
 %% Exported functions
@@ -57,7 +59,7 @@ create_ets_tables() ->
     ets:insert(i_dispatcher, {pid, undefined}),
     ets:insert(i_dispatcher, {ready_queues, sets:new()}).
 
--spec post(Vertex :: binary(), Event :: map()) -> ok.
+-spec post(Vertex :: binary(), Event :: event()) -> ok.
 post(Vertex, Event) ->
     ThisZone = gmm_utils:zone_id(),
     case gmm_utils:owner_of(Vertex) of

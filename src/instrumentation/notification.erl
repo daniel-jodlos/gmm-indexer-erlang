@@ -51,7 +51,7 @@ mark_clean(VertexId, Event) ->
 %% Internal functions
 %%%---------------------------
 
--spec base_notification(binary(), binary(), map()) -> notification().
+-spec base_notification(binary(), binary(), event()) -> notification().
 base_notification(NotificationType, VertexId, _Event = #{<<"id">> := EventId,
     <<"trace">> := Trace, <<"type">> := EventType, <<"sender">> := Sender, <<"originalSender">> := OriginalSender}) ->
     #{
