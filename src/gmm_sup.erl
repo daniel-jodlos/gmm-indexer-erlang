@@ -34,7 +34,6 @@ init([]) ->
     %% create ets tables
     ets:new(outboxes, [named_table, public]),
     inbox:create_ets_tables(),
-    instrumentation:create_ets(),
 
     %% spawn child processes
     SupFlags = #{
@@ -50,9 +49,9 @@ init([]) ->
         id => << "inbox_dispatcher" >>,
         start => {inbox, start_link, []}
     },
-    CsvWriterSpecs = #{
-        id => <<"csv_writer">>,
+    InstrumentationSpecs = #{
+        id => <<"instrumentation">>,
         start => {instrumentation, start_link, []}
     },
-    ChildSpecs = [CsvWriterSpecs | [InboxDispatcherSpec | [RedisSpec | outbox:specs_for_supervisor()]]],
+    ChildSpecs = [InstrumentationSpecs, InboxDispatcherSpec, RedisSpec | outbox:specs_for_supervisor()],
     {ok, {SupFlags, ChildSpecs}}.
