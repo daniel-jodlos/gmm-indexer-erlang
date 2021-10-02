@@ -62,13 +62,13 @@ create_ets_tables() ->
 
 -spec post(Vertex :: binary(), Event :: event()) -> ok.
 post(Vertex, Event) ->
-    base_post(Vertex, Event, notification:queue(Vertex, Event)).
+    do_post(Vertex, Event, notification:queue(Vertex, Event)).
 
 %% Timestamp is supposed to be value returned by erlang:system_time(nanosecond)
 -spec post(Vertex :: binary(), Event :: event(), Timestamp :: integer()) -> ok.
 post(Vertex, Event, Timestamp) ->
     BaseNotification = notification:queue(Vertex, Event),
-    base_post(Vertex, Event,
+    do_post(Vertex, Event,
         maps:update(time, gmm_utils:nanosecond_timestamp_to_iso6801(Timestamp), BaseNotification)).
 
 -spec is_empty() -> boolean().
@@ -98,8 +98,8 @@ dispatcher_routine() ->
 %% Internal functions
 %%%---------------------------
 
--spec base_post(Vertex :: binary(), Event :: event(), Notification :: notification()) -> ok.
-base_post(Vertex, Event, Notification) ->
+-spec do_post(Vertex :: binary(), Event :: event(), Notification :: notification()) -> ok.
+do_post(Vertex, Event, Notification) ->
     ThisZone = gmm_utils:zone_id(),
     case gmm_utils:owner_of(Vertex) of
         ThisZone -> local_post(Vertex, Event, Notification);

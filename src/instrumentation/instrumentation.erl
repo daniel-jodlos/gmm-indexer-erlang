@@ -8,7 +8,6 @@
 
 %% API
 -export([
-    create_ets/0,
     start_link/0,
     init_writer/0,
     notify/1
@@ -23,37 +22,31 @@
 %% Exported functions
 %%%---------------------------
 
-create_ets() ->
-    ets:new(instrumentation, [named_table, public]),
-    ets:insert(instrumentation, {csv_writer, null}).
-
 start_link() ->
     {ok, spawn_link(instrumentation, init_writer, [])}.
 
 notify(Notification) ->
-    ets:lookup_element(instrumentation, csv_writer, 2) ! Notification.
+    whereis(instrumentation_process) ! Notification.
 
 
 %%%---------------------------
 %% Writer process routines
 %%%---------------------------
 
-read_blocking(File) ->
+writer_loop(File, [], 0) ->
     receive
-        Notification -> read_nonblocking(File, [Notification], 1)
-    end.
-
-read_nonblocking(File, Batch, ?MAX_BATCH_SIZE) ->
-    write_batch(File, Batch);
-read_nonblocking(File, Batch, Size) ->
-    receive
-        Notification -> read_nonblocking(File, [Notification | Batch], Size + 1)
-    after 0 -> write_batch(File, Batch)
-    end.
-
-write_batch(File, Batch) ->
+        Notification -> writer_loop(File, [Notification], 1)
+    end;
+writer_loop(File, Batch, ?MAX_BATCH_SIZE) ->
     ok = csv_writer:write_lines(File, Batch),
-    read_blocking(File).
+    writer_loop(File, [], 0);
+writer_loop(File, Batch, Size) ->
+    receive
+        Notification -> writer_loop(File, [Notification | Batch], Size + 1)
+    after 0 ->
+        ok = csv_writer:write_lines(File, Batch),
+        writer_loop(File, [], 0)
+    end.
 
 
 %%%---------------------------
@@ -61,6 +54,6 @@ write_batch(File, Batch) ->
 %%%---------------------------
 
 init_writer() ->
-    ets:update_element(instrumentation, csv_writer, {2, self()}),
+    register(instrumentation_process, self()),
     {ok, File} = csv_writer:open_file(?CSV_FILE),
-    read_blocking(File).
+    writer_loop(File, [], 0).
