@@ -31,10 +31,6 @@ start_link() ->
 %%                  modules => modules()}   % optional
 
 init([]) ->
-    %% register itself
-    ets:new(supervisor, [named_table]),
-    ets:insert(supervisor, {pid, self()}),
-
     %% create ets tables
     ets:new(outboxes, [named_table, public]),
     inbox:create_ets_tables(),
@@ -53,5 +49,9 @@ init([]) ->
         id => << "inbox_dispatcher" >>,
         start => {inbox, start_link, []}
     },
-    ChildSpecs = [InboxDispatcherSpec | [RedisSpec | outbox:specs_for_supervisor()]],
+    InstrumentationSpecs = #{
+        id => <<"instrumentation">>,
+        start => {instrumentation, start_link, []}
+    },
+    ChildSpecs = [InstrumentationSpecs, InboxDispatcherSpec, RedisSpec | outbox:specs_for_supervisor()],
     {ok, {SupFlags, ChildSpecs}}.

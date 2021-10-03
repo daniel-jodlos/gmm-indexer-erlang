@@ -13,9 +13,12 @@
     create_ets_tables/0,
     init_dispatcher/0,
     post/2,
+    post/3,
     is_empty/0,
     free_vertex/1
 ]).
+
+-include("records.hrl").
 
 
 %%%---------------------------
@@ -57,13 +60,16 @@ create_ets_tables() ->
     ets:insert(i_dispatcher, {pid, undefined}),
     ets:insert(i_dispatcher, {ready_queues, sets:new()}).
 
--spec post(Vertex :: binary(), Event :: map()) -> ok.
+-spec post(Vertex :: binary(), Event :: event()) -> ok.
 post(Vertex, Event) ->
-    ThisZone = gmm_utils:zone_id(),
-    case gmm_utils:owner_of(Vertex) of
-        ThisZone -> local_post(Vertex, Event);
-        _Other -> outbox:post(Vertex, Event)
-    end.
+    do_post(Vertex, Event, notification:queue(Vertex, Event)).
+
+%% Timestamp is supposed to be value returned by erlang:system_time(nanosecond)
+-spec post(Vertex :: binary(), Event :: event(), Timestamp :: integer()) -> ok.
+post(Vertex, Event, Timestamp) ->
+    BaseNotification = notification:queue(Vertex, Event),
+    do_post(Vertex, Event,
+        maps:update(time, gmm_utils:nanosecond_timestamp_to_iso6801(Timestamp), BaseNotification)).
 
 -spec is_empty() -> boolean().
 is_empty() ->
@@ -92,16 +98,33 @@ dispatcher_routine() ->
 %% Internal functions
 %%%---------------------------
 
+-spec do_post(Vertex :: binary(), Event :: event(), Notification :: notification()) -> ok.
+do_post(Vertex, Event, Notification) ->
+    ThisZone = gmm_utils:zone_id(),
+    case gmm_utils:owner_of(Vertex) of
+        ThisZone -> local_post(Vertex, Event, Notification);
+        _Other -> outbox:post(Vertex, Event)
+    end.
+
 create_queue_if_absent(Vertex) ->
     ets:insert_new(i_state_of_queues, {Vertex, 0, 0, true}).
 
-local_post(Vertex, Event) ->
-    create_queue_if_absent(Vertex),
-    Idx = ets:update_counter(i_state_of_queues, Vertex, {3, 1}),
-    ets:insert(i_events, {{Vertex, Idx}, Event}),
-    case ets:lookup_element(i_state_of_queues, Vertex, 4) of
-        true -> get_dispatcher() ! {mark_for_scheduling, Vertex}, ok;
-        false -> ok
+local_post(Vertex, Event, Notification) ->
+    instrumentation:notify(Notification),
+
+    case gmm_utils:get_indexation_enabled() of
+        true ->
+            create_queue_if_absent(Vertex),
+            Idx = ets:update_counter(i_state_of_queues, Vertex, {3, 1}),
+            ets:insert(i_events, {{Vertex, Idx}, Event}),
+            case ets:lookup_element(i_state_of_queues, Vertex, 4) of
+                true -> get_dispatcher() ! {mark_for_scheduling, Vertex}, ok;
+                false -> ok
+            end;
+        false ->
+            instrumentation:notify( notification:start_processing(Vertex, Event) ),
+            instrumentation:notify( notification:end_processing(Vertex, Event) ),
+            ok
     end.
 
 get_dispatcher() ->
