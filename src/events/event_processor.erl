@@ -18,6 +18,7 @@ process(Vertex, Event) ->
         <<"parent/removed">> -> process_parent_removed(Vertex, Event)
     end,
     instrumentation:event_finished(Vertex, Event),
+    inbox:free_vertex(Vertex),
     ok.
     
     
@@ -101,18 +102,19 @@ recalculatePermissions(Child, Vertex) ->
 
 calculatePermissions(From, To) ->
     Intermediate = graph:get_intermediate_verticies(From, To, To),
-    io:format("Intermediale ~p~n", [Intermediate]),
     IntermediatePermissions = lists:map(fun (Vertex) ->
         case graph:get_edge(Vertex, To) of % w sumie to trochę problem, jak nie wywalamy usuniętych połączeń z intermediali
-            {ok, Permissions} -> Permissions;
-            _other -> <<"00000000">>
-        end
+        {ok, #{<<"permissions">> := Permissions}} -> Permissions;
+        _other -> <<"000000">>
+    end
     end, Intermediate),
-    lists:foldl(fun (A, B) -> gmm_utils:permissions_or(A, B) end, <<"00000000">>, IntermediatePermissions).
+    lists:foldl(fun (A, B) -> gmm_utils:permissions_or(A, B) end, <<"000000">>, IntermediatePermissions).
     
 propagate(Targets, Event) ->
     #{<<"effectiveVerticies">> := Verticies} = Event,
     case Verticies of
         [] -> ok;
-        _else -> lists:foreach(fun (Target) -> inbox:post(Target, Event) end , Targets)
+        _else ->
+            io:format("Propagating event ~p~n", [Event]),
+            lists:foreach(fun (Target) -> inbox:post(Target, Event) end , Targets)
     end.

@@ -367,9 +367,9 @@ do_get_edge(From, To, Edge) ->
 
 -spec get_intermediate_verticies(From::binary(), To::binary(), Direction::binary()) -> list(binary()).
 get_intermediate_verticies(From, To, Direction) ->
-    case persistence:get(effective_edge_intermediate_verticies(From, To, Direction)) of
-        {error, _Error} -> [];
-        {ok, undefined} -> [];
+    Key = effective_edge_intermediate_verticies(From, To, Direction),
+    case persistence:set_list_members(Key) of
+        {error, _Error} -> [Key];
         {ok, Vertices} -> Vertices
     end.
 
@@ -457,7 +457,7 @@ test() ->
     D = <<"zone0:D">>,
     E = <<"zone0:E">>,
     F = <<"zone0:F">>,
-    Perms = <<"11111">>,
+    Perms = <<"111111">>,
     create_edge(A, B, Perms),
     create_edge(A, D, Perms),
     timer:sleep(100),
@@ -472,4 +472,7 @@ test() ->
     timer:sleep(100),
     io:format("Next test case~n"),
     create_edge(C, F, Perms),
+    timer:sleep(100),
+    io:format("Next test case~n"),
+    remove_edge(E, A),
     ok.
