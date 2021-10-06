@@ -427,52 +427,42 @@ remove_effective_child(Vertex, Child) ->
 -spec effective_list_children(Vertex :: binary()) -> {ok, list(binary())} | {error, any()}.
 effective_list_children(Vertex) -> persistence:set_list_members(effective_children_id(Vertex)).
 
-post(Events) when is_list(Events) ->
-    spawn(fun() ->
-        lists:map(fun (Event) -> do_post(Event) end, Events)
-    end);
-
-post(Event) ->
-    spawn(fun () -> do_post(Event) end).
-
-do_post(Event) ->
-    event_processor:post(Event).
-
 %% @TODO change shape of the event to be compliant with "standard" (ask Pawel for details)
 
 post_events_about_effective_children(Vertex, TargetVertex, Type) ->
     {ok, Children} = effective_list_children(Vertex),
-    Event = #{<<"type">> => <<"child/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVerticies">> => [Vertex | Children], <<"trace">> => <<"null">>},
-    event_processor:async_process(TargetVertex, Event).
+    Event = #{<<"id">> => gmm_utils:uuid(), <<"type">> => <<"child/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVerticies">> => [Vertex | Children], <<"trace">> => <<"null">>},
+    inbox:post(TargetVertex, Event).
 
 post_events_about_effective_parents(Vertex, TargetVertex, Type) ->
     {ok, Parents} = effective_list_parents(Vertex),
-    Event = #{<<"type">> => <<"parent/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVerticies">> => [Vertex | Parents], <<"trace">> => <<"null">>},
-    event_processor:async_process(TargetVertex, Event).
+    Event = #{<<"id">> => gmm_utils:uuid(), <<"type">> => <<"parent/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVerticies">> => [Vertex | Parents], <<"trace">> => <<"null">>},
+    inbox:post(TargetVertex, Event).
 
 test() ->
+    gmm_utils:set_indexation_enabled(true),
     A = <<"zone0:A">>,
     B = <<"zone0:B">>,
     C = <<"zone0:C">>,
     D = <<"zone0:D">>,
     E = <<"zone0:E">>,
     F = <<"zone0:F">>,
-    Perms = <<"111111">>,
+    Perms = <<"11111">>,
     create_edge(A, B, Perms),
     create_edge(A, D, Perms),
-    timer:sleep(100),
+    timer:sleep(1000),
     io:format("Next test case~n"),
     create_edge(D, C, Perms),
-    timer:sleep(100),
+    timer:sleep(1000),
     io:format("Next test case~n"),
     create_edge(B, C, Perms),
-    timer:sleep(100),
+    timer:sleep(1000),
     io:format("Next test case~n"),
     create_edge(E, A, Perms),
-    timer:sleep(100),
+    timer:sleep(1000),
     io:format("Next test case~n"),
     create_edge(C, F, Perms),
-    timer:sleep(100),
+    timer:sleep(1000),
     io:format("Next test case~n"),
     remove_edge(E, A),
     ok.

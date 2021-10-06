@@ -9,7 +9,7 @@ async_process(Vertex, Event) ->
     spawn(?MODULE, process, [Vertex, Event]).
     
 process(Vertex, Event) ->
-    instrumentation:event_started(Vertex, Event),
+    base_instrumentation:event_started(Vertex, Event),
     #{<<"type">> := Type} = Event,
     case Type of
         <<"child/updated">> -> process_child_change(Vertex, Event);
@@ -17,7 +17,7 @@ process(Vertex, Event) ->
         <<"parent/updated">> -> process_parent_change(Vertex, Event);
         <<"parent/removed">> -> process_parent_removed(Vertex, Event)
     end,
-    instrumentation:event_finished(Vertex, Event),
+    base_instrumentation:event_finished(Vertex, Event),
     inbox:free_vertex(Vertex),
     ok.
     
@@ -94,7 +94,7 @@ recalculatePermissions(Child, Vertex) ->
         {error, _reason} ->
             graph:create_effective_edge(Child, Vertex, Expected),
             true;
-        {ok, Expected} -> false;
+        {ok, #{<<"permissions">> := Expected}} -> false;
         _else ->
             graph:update_effective_edge(Child, Vertex, Expected),
             true
@@ -105,16 +105,15 @@ calculatePermissions(From, To) ->
     IntermediatePermissions = lists:map(fun (Vertex) ->
         case graph:get_edge(Vertex, To) of % w sumie to trochę problem, jak nie wywalamy usuniętych połączeń z intermediali
         {ok, #{<<"permissions">> := Permissions}} -> Permissions;
-        _other -> <<"000000">>
+        _other -> <<"00000">>
     end
     end, Intermediate),
-    lists:foldl(fun (A, B) -> gmm_utils:permissions_or(A, B) end, <<"000000">>, IntermediatePermissions).
+    lists:foldl(fun (A, B) -> gmm_utils:permissions_or(A, B) end, <<"00000">>, IntermediatePermissions).
     
 propagate(Targets, Event) ->
     #{<<"effectiveVerticies">> := Verticies} = Event,
     case Verticies of
         [] -> ok;
         _else ->
-            io:format("Propagating event ~p~n", [Event]),
             lists:foreach(fun (Target) -> inbox:post(Target, Event) end , Targets)
     end.

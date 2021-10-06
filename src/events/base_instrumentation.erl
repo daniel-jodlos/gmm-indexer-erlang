@@ -1,4 +1,4 @@
--module(instrumentation).
+-module(base_instrumentation).
 -author("Daniel Jodłoś").
 
 -export([

@@ -181,7 +181,7 @@ read_messages() ->
             case Free and (C1 < C2) of
                 true -> mark_queue_as_ready_for_scheduling(Vertex);
                 false -> ok
-            end,
+            end, 
             read_messages()
     after 10 -> ok
     end.
