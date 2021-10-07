@@ -165,23 +165,28 @@ modify_state_bulk(Vertices)->
 -spec parse_vertex_data(binary()) -> {ok, {binary(), binary()}} | {error, any()}.
 parse_vertex_data(Bin) when is_binary(Bin) ->
     case gmm_utils:split_bin(Bin) of
-        [Type, Name] when Type =:= <<"user">>; Type =:= <<"group">>; Type =:= <<"space">>; Type =:= <<"provider">> ->
-            {ok, {Type, Name}};
-        _ -> {error, "Invalid vertex data"}
+        [Type, Name] ->
+            case list_to_binary(string:to_lower( binary_to_list(Type) )) of
+                T when T =:= <<"user">>; T =:= <<"group">>; T =:= <<"space">>; T =:= <<"provider">> ->
+                    {ok, {T, Name}};
+                _ -> {error, {unrecognized_type, {Type, Name}}}
+            end;
+        _ -> {error, {invalid_vertex_data, Bin}}
     end;
-parse_vertex_data(_) ->
-    {error, "Argument is not a binary"}.
+parse_vertex_data(X) ->
+    {error, {invalid_vertex_data, X}}.
 
 -spec parse_bulk_list(binary()) -> {ok, list({binary(), binary()})} | {error, any()}.
 parse_bulk_list(Data) ->
     case gmm_utils:decode(Data) of
         #{<<"vertices">> := List} when is_list(List) ->
-            ParsedList = lists:map(fun parse_vertex_data/1, List),
-            case lists:all(fun({ok, _}) -> true; (_) -> false end, ParsedList) of
-                true ->
-                    {_, Unzipped} = lists:unzip(ParsedList),
-                    {ok, Unzipped};
-                false -> {error, "Incorrect JSON"}
-            end;
-        _ -> {error, "Incorrect JSON"}
+            lists:foldl(
+                fun
+                    ({ok, Elem}, {ok, Acc})         -> {ok, [Elem | Acc]};
+                    ({error, R}, {ok, _})           -> {error, [R]};
+                    ({ok, _},    {error, ErrList})  -> {error, ErrList};
+                    ({error, R}, {error, ErrList})  -> {error, [R | ErrList]}
+                end, {ok, []}, lists:map(fun parse_vertex_data/1, List)
+            );
+        _ -> {error, {invalid_bulk_json, Data}}
     end.

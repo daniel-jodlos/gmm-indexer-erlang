@@ -41,9 +41,12 @@
     set_indexation_enabled/2, %% @todo ignore
     simulate_load/2, %% @todo ignore
     wait_for_index/2, %% @todo ignore
-    reaches/4, %% @todo naive -> necessary, indexed -> ignore
-    members/3, %% @todo naive -> necessary, indexed -> ignore
-    effective_permissions/4 %% @todo naive -> necessary, indexed -> ignore
+    reaches/4,
+    reaches/5,
+    members/3,
+    members/4,
+    effective_permissions/4,
+    effective_permissions/5
 ]).
 
 -include("records.hrl").
@@ -83,41 +86,35 @@ index_ready(Zones) when is_list(Zones) ->
         Results
     ).
 
-% MUST
 -spec is_adjacent(Zone:: binary(), From:: binary(), To:: binary()) -> {ok, boolean()} | {error, any()}.
 is_adjacent(Zone, From, To) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"is_adjacent">>, [{<<"from">>, From}, {<<"to">>, To}]),
     http_executor:post(Url, true).
 
-% SHOULD POTENTIAL
 -spec list_adjacent(Zone:: binary(), Of:: binary()) -> {ok, list(binary())} | {error, any()}.
 list_adjacent(Zone, Of) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"list_adjacent">>, [{<<"of">>, Of}]),
     http_executor:post(Url, true).
 
-% SHOULD POTENTIAL
 -spec list_adjacent_reversed(Zone:: binary(), Of:: binary()) -> {ok, list(binary())} | {error, any()}.
 list_adjacent_reversed(Zone, Of) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"list_adjacent_reversed">>, [{<<"of">>, Of}]),
     http_executor:post(Url, true).
 
-% MUST POTENTIAL
 -spec permissions(Zone::binary(), From:: binary(), To:: binary()) -> {ok, binary()} | {error, any()}.
 permissions(Zone, From, To) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"permissions">>, [{<<"from">>, From}, {<<"to">>, To}]),
     http_executor:post(Url, true).
 
-% MUST
 -spec add_edge(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: permissions(), Trace:: binary()
     ) -> ok | {error, any()}.
 add_edge(Zone, From, To, Permissions, Trace) ->
     add_edge(Zone, From, To, Permissions, Trace, false).
 
-% MUST
 -spec add_edge(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: permissions(), Trace:: binary(),
     Successive:: boolean()) -> ok | {error, any()}.
 add_edge(Zone, From, To, Permissions, Trace, Successive) ->
@@ -133,12 +130,10 @@ add_edges(Zone, BulkRequest) ->
     Url = http_utils:build_url(Address, <<"graph/edges/bulk">>,[]),
     http_executor:post(Url, BulkRequest, false).
 
-% MUST
 -spec remove_edge(Zone:: binary(), From:: binary(), To:: binary(), Trace:: binary()) -> ok | {error, any()}.
 remove_edge(Zone, From, To, Trace) ->
     remove_edge(Zone, From, To, Trace, false).
 
-% MUST
 -spec remove_edge(Zone:: binary(), From:: binary(), To:: binary(), Trace:: binary(),
     Successive:: boolean()) -> ok | {error, any()}.
 remove_edge(Zone, From, To, Trace, Successive) ->
@@ -148,13 +143,11 @@ remove_edge(Zone, From, To, Trace, Successive) ->
     Url = http_utils:build_url(Address, <<"graph/edges/delete">>, Params),
     http_executor:post(Url, false).
 
-% MUST
 -spec set_permissions(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: permissions(),
     Trace:: binary()) -> ok | {error, any()}.
 set_permissions(Zone, From, To, Permissions, Trace) ->
     set_permissions(Zone, From, To, Permissions, Trace, false).
 
-% MUST
 -spec set_permissions(Zone:: binary(), From:: binary(), To:: binary(), Permissions:: permissions(),
     Trace:: binary(), Successive:: boolean()) -> ok | {error, any()}.
 set_permissions(Zone, From, To, Permissions, Trace, Successive) ->
@@ -164,7 +157,6 @@ set_permissions(Zone, From, To, Permissions, Trace, Successive) ->
     Url = http_utils:build_url(Address, <<"graph/edges/permissions">>, Params),
     http_executor:post(Url, false).
 
-% MUST
 -spec add_vertex(Zone:: binary(), Name:: binary(), Type:: binary()) -> ok | {error, any()}.
 add_vertex(Zone, Name, Type) ->
     {ok, Address} = http_utils:get_address(Zone),
@@ -178,7 +170,7 @@ add_vertices(Zone, BulkRequest) ->
     Url = http_utils:build_url(Address, <<"graph/vertices/bulk">>,[]),
     http_executor:post(Url, BulkRequest, false).
 
--spec post_event(Zone:: binary(), VertexId:: binary(), Event:: map()) -> ok | {error, any()}.
+-spec post_event(Zone:: binary(), VertexId:: binary(), Event:: event()) -> ok | {error, any()}.
 post_event(Zone, VertexId, Event) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"events">>, [{<<"id">>, VertexId}]),
@@ -225,7 +217,7 @@ set_indexation_enabled(Zone, Enabled) ->
     http_executor:put(Url, Enabled).
 
 -spec simulate_load(Zone:: binary(), LoadRequest:: map()) -> ok | {error, any()}.
-simulate_load(Zone, LoadRequest) ->
+simulate_load(Zone, _LoadRequest) ->
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"simulate_load">>,[]),
     http_executor:post(Url, false).
@@ -233,43 +225,64 @@ simulate_load(Zone, LoadRequest) ->
 %% function that blocks process until zone (all zones) returns 'true' from 'IP/index_ready' endpoint
 %%  - delay between consecutive requests may be constant, or Exponential Backoff can be used, whatever
 -spec wait_for_index(Zones:: binary() | list(binary()), Timeout:: integer()) -> ok | {error, any()}.
-wait_for_index(Zone, Timeout) when is_binary(Zone) ->
+wait_for_index(Zone, _Timeout) when is_binary(Zone) ->
     {error, not_implemented};
 
-wait_for_index(Zones, Timeout) when is_list(Zones) ->
+wait_for_index(Zones, _Timeout) when is_list(Zones) ->
     {error, not_implemented}.
 
-% MUST POTENTIAL
+
 -spec reaches(Algo:: naive | indexed, Zone:: binary(), From:: binary(), To:: binary()
     ) -> {ok, map()} | {error, any()}.
 reaches(Algo, Zone, From, To) ->
+    reaches(Algo, Zone, From, To, undefined).
+
+-spec reaches(Algo:: naive | indexed, Zone:: binary(), From:: binary(), To:: binary(), JumpCount::integer() | undefined
+    ) -> {ok, map()} | {error, any()}.
+reaches(Algo, Zone, From, To, JumpCount) ->
     Path = case Algo of
              naive -> <<"naive/reaches">>;
              indexed -> <<"indexed/reaches">>
            end,
     {ok, Address} = http_utils:get_address(Zone),
-    Url = http_utils:build_url(Address, Path, [{<<"from">>, From}, {<<"to">>, To}]),
+    Params = [{<<"from">>, From}, {<<"to">>, To}] ++ (case is_integer(JumpCount) of true ->
+        [{<<"jumpcount">>, list_to_binary( integer_to_list(JumpCount) )}]; false -> [] end),
+    Url = http_utils:build_url(Address, Path, Params),
     http_executor:post(Url, true).
 
 
-% MUST POTENTIAL
 -spec members(Algo:: naive | indexed, Zone:: binary(), Of:: binary()) -> {ok, map()} | {error, any()}.
 members(Algo, Zone, Of) ->
+    members(Algo, Zone, Of, undefined).
+
+-spec members(Algo:: naive | indexed, Zone:: binary(), Of:: binary(),
+    JumpCount:: integer() | undefined) -> {ok, map()} | {error, any()}.
+members(Algo, Zone, Of, JumpCount) ->
     Path = case Algo of
-            naive -> <<"naive/members">>;
-            indexed -> <<"indexed/members">>
-          end,
+               naive -> <<"naive/members">>;
+               indexed -> <<"indexed/members">>
+           end,
     {ok, Address} = http_utils:get_address(Zone),
-    Url = http_utils:build_url(Address, Path, [{<<"of">>, Of}]),
+    Params = [{<<"of">>, Of}] ++ (case is_integer(JumpCount) of true ->
+        [{<<"jumpcount">>, list_to_binary( integer_to_list(JumpCount) )}]; false -> [] end),
+    Url = http_utils:build_url(Address, Path, Params),
     http_executor:post(Url, true).
 
--spec effective_permissions(Algo:: naive | reaches, Zone:: binary(), From:: binary(),
-    To:: binary()) -> {ok, map()} | {error, any()}.
+
+-spec effective_permissions(Algo:: naive | reaches, Zone:: binary(), From:: binary(), To:: binary()
+    ) -> {ok, map()} | {error, any()}.
 effective_permissions(Algo, Zone, From, To) ->
+    effective_permissions(Algo, Zone, From, To, undefined).
+
+-spec effective_permissions(Algo:: naive | reaches, Zone:: binary(), From:: binary(), To:: binary(),
+    JumpCount::integer() | undefined) -> {ok, map()} | {error, any()}.
+effective_permissions(Algo, Zone, From, To, JumpCount) ->
     Path = case Algo of
                naive -> <<"naive/effective_permissions">>;
                indexed -> <<"indexed/effective_permissions">>
            end,
     {ok, Address} = http_utils:get_address(Zone),
-    Url = http_utils:build_url(Address, Path, [{<<"from">>, From}, {<<"to">>, To}]),
+    Params = [{<<"from">>, From}, {<<"to">>, To}] ++ (case is_integer(JumpCount) of true ->
+        [{<<"jumpcount">>, list_to_binary( integer_to_list(JumpCount) )}]; false -> [] end),
+    Url = http_utils:build_url(Address, Path, Params),
     http_executor:post(Url, true).
