@@ -66,7 +66,6 @@ from_json(Req, State = #{operation := Op, from := From, to := To, permissions :=
     ok = execute_operation(Op, From, To, Permissions, Trace, Successive),
     {true, Req, State};
 from_json(Req, State = #{operation := bulk, body := #{src_zone := SrcZone, dst_zone := DstZone, successive := Successive, edges := Edges}}) ->
-    %% @todo execute bulk request parsed in init/2
     ok = execute_bulk_request(SrcZone, DstZone, Successive, Edges),
     {true, Req, State}.
 
