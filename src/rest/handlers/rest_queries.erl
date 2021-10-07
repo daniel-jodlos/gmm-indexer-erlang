@@ -35,7 +35,7 @@ init(Req, State = #{operation := Op, algorithm := Algo}) when Op == reaches; Op 
             naive -> [{jumpcount, fun(Bin) -> {ok, list_to_integer( binary_to_list(Bin) )} end}];
             indexed -> []
         end),
-    NewState = gmm_utils:parse_rest_params(Req, State, ParamsSpec, ParamsParsers),
+    NewState = parser:parse_rest_params(Req, State, ParamsSpec, ParamsParsers),
     {cowboy_rest, Req, NewState};
 init(Req, State = #{operation := members, algorithm := Algo}) ->
     ParamsSpec = [{'of', nonempty}] ++ (case Algo of naive -> [{jumpcount, [], <<"1">>}]; indexed -> [] end),
@@ -44,7 +44,7 @@ init(Req, State = #{operation := members, algorithm := Algo}) ->
             naive -> [{jumpcount, fun(Bin) -> {ok, list_to_integer( binary_to_list(Bin) )} end}];
             indexed -> []
         end),
-    NewState = gmm_utils:parse_rest_params(Req, State, ParamsSpec, ParamsParsers),
+    NewState = parser:parse_rest_params(Req, State, ParamsSpec, ParamsParsers),
     {cowboy_rest, Req, NewState}.
 
 allowed_methods(Req, State) ->
@@ -114,7 +114,7 @@ execute(Fun, Args, FieldName) ->
         case Result of
             {error, Reason} -> {error, Reason};
             {ok, Value} ->
-                {ok, #{<<"duration">> => gmm_utils:convert_microseconds_to_iso_8601(Duration), FieldName => Value}}
+                {ok, #{<<"duration">> => parser:convert_microseconds_to_iso_8601(Duration), FieldName => Value}}
         end
     catch Class:Pattern:Stacktrace ->
         gmm_logger:log_error(Class, Pattern, Stacktrace),

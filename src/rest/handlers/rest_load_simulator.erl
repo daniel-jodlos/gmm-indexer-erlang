@@ -25,7 +25,7 @@
 %%%---------------------------
 
 init(Req0, State) ->
-    {Req, NewState} = gmm_utils:parse_rest_body(Req0, State, fun parse_load_body/1),
+    {Req, NewState} = parser:parse_rest_body(Req0, State, fun parse_load_body/1),
     {cowboy_rest, Req, NewState}.
 
 allowed_methods(Req, State) ->

@@ -69,7 +69,7 @@ post(Vertex, Event) ->
 post(Vertex, Event, Timestamp) ->
     BaseNotification = notification:queue(Vertex, Event),
     do_post(Vertex, Event,
-        maps:update(time, gmm_utils:nanosecond_timestamp_to_iso6801(Timestamp), BaseNotification)).
+        maps:update(time, parser:nanosecond_timestamp_to_iso6801(Timestamp), BaseNotification)).
 
 -spec is_empty() -> boolean().
 is_empty() ->
