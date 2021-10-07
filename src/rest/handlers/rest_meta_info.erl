@@ -62,10 +62,10 @@ resource_exists(Req, State) ->
 from_json(Req, bad_request) ->
     {false, Req, bad_request};
 from_json(Req, State = #{operation := instrumentation, enabled := Bool}) ->
-    gmm_utils:set_instrumentation_enabled(Bool),
+    settings:set_instrumentation_enabled(Bool),
     {true, Req, State};
 from_json(Req, State = #{operation := indexation, enabled := Bool}) ->
-    gmm_utils:set_indexation_enabled(Bool),
+    settings:set_indexation_enabled(Bool),
     {true, Req, State};
 from_json(Req0, State = #{operation := dependent_zones, body := List}) ->
     {ok, NewList} = get_dependent_zones(List),
@@ -79,7 +79,7 @@ to_json(Req, State = #{operation := index_ready}) ->
     Bool = is_index_up_to_date(),
     {gmm_utils:encode(Bool), Req, State};
 to_json(Req, State = #{operation := instrumentation}) ->
-    Bool = gmm_utils:get_instrumentation_enabled(),
+    Bool = settings:get_instrumentation_enabled(),
     {gmm_utils:encode(Bool), Req, State}.
 
 

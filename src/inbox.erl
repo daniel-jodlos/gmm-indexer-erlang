@@ -112,7 +112,7 @@ create_queue_if_absent(Vertex) ->
 local_post(Vertex, Event, Notification) ->
     instrumentation:notify(Notification),
 
-    case gmm_utils:get_indexation_enabled() of
+    case settings:get_indexation_enabled() of
         true ->
             create_queue_if_absent(Vertex),
             Idx = ets:update_counter(i_state_of_queues, Vertex, {3, 1}),

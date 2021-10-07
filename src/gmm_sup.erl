@@ -32,6 +32,7 @@ start_link() ->
 
 init([]) ->
     %% create ets tables
+    settings:create_ets(),
     ets:new(outboxes, [named_table, public]),
     inbox:create_ets_tables(),
 

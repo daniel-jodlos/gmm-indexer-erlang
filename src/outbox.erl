@@ -98,7 +98,7 @@ check_emptiness(Zone) ->
 -spec poll_batch(Zone :: binary()) -> {list(map()), list(map())}.
 poll_batch(Zone) when is_binary(Zone) ->
     Events = ets:lookup_element(outboxes, Zone, 3),
-    BatchSize = gmm_utils:batch_size(),
+    BatchSize = settings:get_events_batch_size(),
     case length(Events) of
         Small when Small =< BatchSize -> {Events, []};
         _Large -> lists:split(BatchSize, Events)
