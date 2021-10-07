@@ -49,7 +49,6 @@ from_json(Req, bad_request) ->
     {false, Req, bad_request};
 from_json(Req, State) ->
     Parent = self(),
-    Ref = erlang:make_ref(),
 
     Pids = lists:map(fun(#{op_type := Type, from := From, to := To, permissions := Permissions, trace := Trace}) ->
         Operation = operation_type(Type),
@@ -57,38 +56,29 @@ from_json(Req, State) ->
             update -> spawn(fun() ->
                             Result = try rest_edges:execute_operation(Operation, From, To, Permissions, Trace, false)
                             catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
-                            Parent ! {Ref, self(), Result}  end);
+                            Parent ! {self(), Result}  end);
             _ -> rest_edges:execute_operation(Operation, From, To, Permissions, Trace, false)
         end end, maps:get(body, State)),
 
     % POTENTIAL PIDS FILTER WILL BE REQUIRED
 
-    Gather = fun
-                 F(PendingPids = [_ | _], PidsOrResults) ->
-                     receive
-                         {Ref, Pid, Result} ->
-                             NewPidsOrResults = rest_utils:replace(Pid, Result, PidsOrResults),
-                             F(lists:delete(Pid, PendingPids), NewPidsOrResults)
-                     after 5000 ->
-                         case lists:any(fun erlang:is_process_alive/1, PendingPids) of
-                             true ->
-                                 F(PendingPids, PidsOrResults);
-                             false ->
-                                 error({parallel_call_failed, {processes_dead, Pids}})
-                         end
-                     end;
-                 F([], AllResults) ->
-                     Errors = lists:filtermap(
-                         fun({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
-                             {true, {Pid, Type, Reason, Stacktrace}};
-                             (_) -> false end, AllResults),
-                     case Errors of
-                         [] ->
-                             ok;
-                         _ ->
-                             {error, Errors}
-                     end
-             end,
+    Gather = fun F(PendingPids = [_ | _], PidsOrResults) ->
+        receive {Pid, Result} ->
+            NewPidsOrResults = rest_utils:replace(Pid, Result, PidsOrResults),
+            F(lists:delete(Pid, PendingPids), NewPidsOrResults)
+        after 5000 ->
+            case lists:any(fun erlang:is_process_alive/1, PendingPids) of
+                true -> F(PendingPids, PidsOrResults);
+                false -> error({parallel_call_failed, {processes_dead, Pids}}) end
+            end;
+        F([], AllResults) ->
+            Errors = lists:filtermap(fun({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
+                    {true, {Pid, Type, Reason, Stacktrace}};
+                    (_) -> false end, AllResults),
+            case Errors of
+                [] -> ok;
+                _ -> {error, Errors}
+            end end,
     Gather(Pids, Pids),
     {true, Req, State}.
 

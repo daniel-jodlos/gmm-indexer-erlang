@@ -112,21 +112,20 @@ to_json(Req, State = #{operation := listing}) ->
 -spec modify_state_bulk(Vertices :: list({binary(), binary()})) -> ok | {error, any()}.
 modify_state_bulk(Vertices)->
     Parent = self(),
-    Ref = erlang:make_ref(),
 
     Pids = lists:map(fun({Type, Name}) ->
         spawn(fun() ->
             Result = try graph:create_vertex(Type, Name)
                      catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
 
-            Parent ! {Ref, self(), Result} end) end, Vertices),
+            Parent ! {self(), Result} end) end, Vertices),
 
     % GATHERING RESULTS
     Gather = fun
     %PidsOrResults is initially the list of pids, gradually replaced by corresponding results
                  F(PendingPids = [_ | _], PidsOrResults) ->
                      receive
-                         {Ref, Pid, Result} ->
+                         {Pid, Result} ->
                              NewPidsOrResults = rest_utils:replace(Pid, Result, PidsOrResults),
                              F(lists:delete(Pid, PendingPids), NewPidsOrResults)
                      after 5000 ->
@@ -137,17 +136,15 @@ modify_state_bulk(Vertices)->
                                  error({parallel_call_failed, {processes_dead, Pids}})
                          end
                      end;
-                 % wait for all pids to report back and then look for errors
+
                  F([], AllResults) ->
                      Errors = lists:filtermap(
                          fun({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
                              {true, {Pid, Type, Reason, Stacktrace}};
                              (_) -> false end, AllResults),
                      case Errors of
-                         [] ->
-                             ok;
-                         _ ->
-                             {error, Errors}
+                         [] -> ok;
+                         _ -> {error, Errors}
                      end
              end,
     Gather(Pids, Pids).
