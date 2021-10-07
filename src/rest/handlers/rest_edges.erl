@@ -186,14 +186,6 @@ modify_state(delete, From, To, _, _, _) ->
 %%%---------------------------
 %% bulk operation executor
 %%%---------------------------
--spec replace(T, T, [T]) -> [T].
-replace(Element, Replacement, [Element | T]) ->
-    [Replacement | T];
-replace(Element, Replacement, [H | T]) ->
-    [H | replace(Element, Replacement, T)];
-replace(_Element, _Replacement, []) ->
-    [].
-
 
 -spec conditions_met_bulk(SrcZone :: binary(), DstZone :: binary(), Successive :: boolean(), Edges :: list(map())) -> boolean().
 conditions_met_bulk(SrcZone, DstZone, Successive, Edges) ->
@@ -223,7 +215,7 @@ conditions_met_bulk(SrcZone, DstZone, Successive, Edges) ->
                  F(PendingPids = [_ | _], PidsOrResults) ->
                      receive
                          {Ref, Pid, Result} ->
-                             NewPidsOrResults = replace(Pid, Result, PidsOrResults),
+                             NewPidsOrResults = rest_utils:replace(Pid, Result, PidsOrResults),
                              F(lists:delete(Pid, PendingPids), NewPidsOrResults)
                      after 5000 ->
                          case lists:any(fun erlang:is_process_alive/1, PendingPids) of
@@ -275,7 +267,7 @@ modify_state_bulk(SrcZone, DstZone, Edges, _, _)->
                  F(PendingPids = [_ | _], PidsOrResults) ->
                      receive
                          {Ref, Pid, Result} ->
-                             NewPidsOrResults = replace(Pid, Result, PidsOrResults),
+                             NewPidsOrResults = rest_utils:replace(Pid, Result, PidsOrResults),
                              F(lists:delete(Pid, PendingPids), NewPidsOrResults)
                      after 5000 ->
                          case lists:any(fun erlang:is_process_alive/1, PendingPids) of

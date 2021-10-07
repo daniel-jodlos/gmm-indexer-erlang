@@ -108,13 +108,6 @@ to_json(Req, State = #{operation := listing}) ->
     {gmm_utils:encode(Vertices), Req, State}.
 
 %%% BULK handler
--spec replace(T, T, [T]) -> [T].
-replace(Element, Replacement, [Element | T]) ->
-    [Replacement | T];
-replace(Element, Replacement, [H | T]) ->
-    [H | replace(Element, Replacement, T)];
-replace(_Element, _Replacement, []) ->
-    [].
 
 -spec modify_state_bulk(Vertices :: list({binary(), binary()})) -> ok | {error, any()}.
 modify_state_bulk(Vertices)->
@@ -134,10 +127,10 @@ modify_state_bulk(Vertices)->
                  F(PendingPids = [_ | _], PidsOrResults) ->
                      receive
                          {Ref, Pid, Result} ->
-                             NewPidsOrResults = replace(Pid, Result, PidsOrResults),
+                             NewPidsOrResults = rest_utils:replace(Pid, Result, PidsOrResults),
                              F(lists:delete(Pid, PendingPids), NewPidsOrResults)
                      after 5000 ->
-                         case lists:all(fun erlang:is_process_alive/1, PendingPids) of
+                         case lists:any(fun erlang:is_process_alive/1, PendingPids) of
                              true ->
                                  F(PendingPids, PidsOrResults);
                              false ->
