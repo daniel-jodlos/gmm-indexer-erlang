@@ -117,7 +117,7 @@ execute(Fun, Args, FieldName) ->
                 {ok, #{<<"duration">> => gmm_utils:convert_microseconds_to_iso_8601(Duration), FieldName => Value}}
         end
     catch Class:Pattern:Stacktrace ->
-        gmm_utils:log_error(Class, Pattern, Stacktrace),
+        gmm_logger:log_error(Class, Pattern, Stacktrace),
         {error, {Class, Pattern}}
     end.
 
@@ -144,7 +144,7 @@ reaches_naive(From, To, JumpCount) ->
             case zone_client:reaches(naive, Other, From, To, JumpCount + 1) of
                 {ok, #{<<"reaches">> := Bool}} -> {ok, Bool};
                 {error, Reason} ->
-                    gmm_utils:log_error(network_error, Reason, undefined),
+                    gmm_logger:log_error(network_error, Reason, undefined),
                     {ok, false}
             end
     end.
@@ -178,7 +178,7 @@ effective_permissions_naive(From, To, JumpCount) ->
             case zone_client:effective_permissions(naive, Other, From, To, JumpCount + 1) of
                 {ok, #{<<"effectivePermissions">> := Perm}} -> {ok, Perm};
                 {error, Reason} ->
-                    gmm_utils:log_error(network_error, Reason, undefined),
+                    gmm_logger:log_error(network_error, Reason, undefined),
                     {ok, <<"00000">>}
             end
     end.
@@ -223,7 +223,7 @@ members_naive(Of, JumpCount) ->
             case zone_client:members(naive, Other, Of, JumpCount + 1) of
                 {ok, #{<<"members">> := Members}} -> {ok, Members};
                 {error, Reason} ->
-                    gmm_utils:log_error(network_error, Reason, undefined),
+                    gmm_logger:log_error(network_error, Reason, undefined),
                     {ok, []}
             end
     end.

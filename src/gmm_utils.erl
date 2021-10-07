@@ -39,8 +39,6 @@
     parse_rest_params/4,
     parse_rest_body/3,
 
-    log_error/3,
-    log_cowboy_req/2,
     uuid/0
 ]).
 
@@ -255,7 +253,7 @@ parse_rest_params(Req, State, ParamsSpec, ParsingSpec) ->
             ),
         maps:merge(State, ParsedParams)
     catch Class:Pattern:Stacktrace ->
-        log_error(Class, Pattern, Stacktrace),
+        gmm_logger:log_error(Class, Pattern, Stacktrace),
         bad_request end.
 
 -spec parse_rest_body( Req :: cowboy_req:req(), State :: rest_handler_state(),
@@ -268,18 +266,8 @@ parse_rest_body(Req0, State, Parser) ->
         {ok, Body} = Parser( Data ),
         {Req1, maps:merge(State, #{body => Body})}
     catch Class:Pattern:Stacktrace ->
-        log_error(Class, Pattern, Stacktrace),
+        gmm_logger:log_error(Class, Pattern, Stacktrace),
         {Req0, bad_request} end.
-
-log_error(Class, Pattern, Stacktrace) ->
-    io:format("Class: ~p;\nPattern: ~p;\nStacktrace: ~p\n\n", [Class, Pattern, Stacktrace]).
-
-log_cowboy_req(Req, State) ->
-    io:format("==============================\n\n"),
-    io:format("Req = ~p\n\n", [Req]),
-    io:format("------------------------------\n\n"),
-    io:format("State = ~p\n\n", [State]),
-    io:format("==============================\n\n").
 
 
 uuid() ->
