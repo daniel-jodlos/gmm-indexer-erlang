@@ -8,6 +8,7 @@
 
 %% API
 -export([
+    create_ets/0,
     specs_for_supervisor/0,
     start_link/1,
     init_outbox/1,
@@ -16,10 +17,17 @@
     all_empty/0
 ]).
 
+-define(INITIAL_DELAY, 10).
+-define(MAXIMUM_DELAY, 1000).
+-define(BACKOFF_FACTOR, 1.2).
+
 
 %%%---------------------------
 %% Exported functions
 %%%---------------------------
+
+create_ets() ->
+    ets:new(outboxes, [named_table, public]).
 
 -spec specs_for_supervisor() -> list(map()).
 specs_for_supervisor() ->
@@ -41,8 +49,8 @@ start_link(Zone) ->
 
 init_outbox(Zone) ->
     ets:update_element(outboxes, Zone, {2, self()}),
-    timer:send_after(initial_delay(), send),
-    outbox_routine(Zone, initial_delay()).
+    timer:send_after(?INITIAL_DELAY, send),
+    outbox_routine(Zone, ?INITIAL_DELAY).
 
 -spec post(Vertex :: binary(), Event :: map()) -> ok.
 post(Vertex, Event) ->
@@ -71,10 +79,6 @@ all_empty() ->
 %%%---------------------------
 %% Internal functions
 %%%---------------------------
-
-initial_delay() -> 10.
-maximum_delay() -> 1000.
-backoff_factor() -> 1.2.
 
 -spec outbox_pid(Zone :: binary()) -> pid().
 outbox_pid(Zone) ->
@@ -139,9 +143,9 @@ outbox_routine(Zone, Delay) ->
                 case try_sending(Zone, Batch) of
                     ok ->
                         ets:update_element(outboxes, Zone, {3, Remaining}),
-                        initial_delay();
-                    no_events -> initial_delay();
-                    {error, _} -> min( trunc(Delay * backoff_factor()), maximum_delay() )
+                        ?INITIAL_DELAY;
+                    no_events -> ?INITIAL_DELAY;
+                    {error, _} -> min( trunc(Delay * ?BACKOFF_FACTOR), ?MAXIMUM_DELAY )
                 end,
             timer:send_after(NextDelay, send),
             outbox_routine(Zone, NextDelay);

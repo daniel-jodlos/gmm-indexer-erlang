@@ -10,7 +10,7 @@
 %% API
 -export([
     start_link/0,
-    create_ets_tables/0,
+    create_ets/0,
     init_dispatcher/0,
     post/2,
     post/3,
@@ -33,7 +33,7 @@ init_dispatcher() ->
     look_for_eligible_queues(),
     dispatcher_routine().
 
-create_ets_tables() ->
+create_ets() ->
     %% i_events; record looks like: {
     %%   {VertexId, Idx} <- {binary(), integer()}, key;
     %%   Event <- event()
