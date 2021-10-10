@@ -37,6 +37,8 @@
     set_indexation_enabled/1,
 
     convert_microseconds_to_iso_8601/1,
+    nanosecond_timestamp_to_iso6801/1,
+
     permissions_and/2,
     permissions_or/2,
 
@@ -200,21 +202,48 @@ convert_microseconds_to_iso_8601(TotalMicroseconds) when TotalMicroseconds >= 0 
     Hours = TotalHours rem 24,
 
     %% parse it to string
-    SecondsString = io_lib:format("~.6fS", [(Seconds * 1000000 + Microseconds) / 1000000]),
-    MinutesString =
-    case Minutes of
-        0 -> "";
-        _ -> io_lib:format("~wM", [Minutes])
-    end,
-    HoursString =
-    case Hours of
-        0 -> "";
-        _ -> io_lib:format("~wH", [Hours])
-    end,
+    Components = [
+        "PT",
+        case Hours of
+            0 -> "";
+            _ -> io_lib:format("~wH", [Hours])
+        end,
+        case Minutes of
+            0 -> "";
+            _ -> io_lib:format("~wM", [Minutes])
+        end,
+        io_lib:format("~.6fS", [(Seconds * 1000000 + Microseconds) / 1000000])
+    ],
 
     %% compose final result
-    TimeString = "PT" ++ HoursString ++ MinutesString ++ SecondsString,
-    list_to_binary(TimeString).
+    DurationString = lists:foldl(fun (S, Acc) -> Acc ++ S end, "", Components),
+    list_to_binary(DurationString).
+
+-spec nanosecond_timestamp_to_iso6801(integer()) -> binary().
+nanosecond_timestamp_to_iso6801(Timestamp) when is_integer(Timestamp), Timestamp > 0 ->
+    Nanos = Timestamp rem 1000000000,
+    {{Year, Month, Day}, {Hour, Minute, Second}} = calendar:system_time_to_universal_time(Timestamp, nanosecond),
+
+    Components = [
+        io_lib:format("~4..0w", [Year]),
+        "-",
+        io_lib:format("~2..0w", [Month]),
+        "-",
+        io_lib:format("~2..0w", [Day]),
+        "T",
+        io_lib:format("~2..0w", [Hour]),
+        ":",
+        io_lib:format("~2..0w", [Minute]),
+        ":",
+        io_lib:format("~2..0w", [Second]),
+        ".",
+        io_lib:format("~9..0w", [Nanos]),
+        "Z"
+    ],
+
+    InstantString = lists:foldl(fun(Elem, Acc) -> Acc ++ Elem end, "", Components),
+    list_to_binary(InstantString).
+
 
 -spec char_to_boolean(char()) -> boolean().
 char_to_boolean($0) -> false;
