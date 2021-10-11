@@ -10,7 +10,7 @@
 %% API
 -export([
     start_link/0,
-    create_ets_tables/0,
+    create_ets/0,
     init_dispatcher/0,
     post/2,
     post/3,
@@ -33,7 +33,7 @@ init_dispatcher() ->
     look_for_eligible_queues(),
     dispatcher_routine().
 
-create_ets_tables() ->
+create_ets() ->
     %% i_events; record looks like: {
     %%   {VertexId, Idx} <- {binary(), integer()}, key;
     %%   Event <- event()
@@ -69,7 +69,7 @@ post(Vertex, Event) ->
 post(Vertex, Event, Timestamp) ->
     BaseNotification = notification:queue(Vertex, Event),
     do_post(Vertex, Event,
-        maps:update(time, gmm_utils:nanosecond_timestamp_to_iso6801(Timestamp), BaseNotification)).
+        maps:update(time, parser:nanosecond_timestamp_to_iso6801(Timestamp), BaseNotification)).
 
 -spec is_empty() -> boolean().
 is_empty() ->
@@ -112,7 +112,7 @@ create_queue_if_absent(Vertex) ->
 local_post(Vertex, Event, Notification) ->
     instrumentation:notify(Notification),
 
-    case gmm_utils:get_indexation_enabled() of
+    case settings:get_indexation_enabled() of
         true ->
             create_queue_if_absent(Vertex),
             Idx = ets:update_counter(i_state_of_queues, Vertex, {3, 1}),

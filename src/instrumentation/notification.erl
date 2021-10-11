@@ -56,7 +56,7 @@ base_notification(NotificationType, VertexId, _Event = #{<<"id">> := EventId,
     <<"trace">> := Trace, <<"type">> := EventType, <<"sender">> := Sender, <<"originalSender">> := OriginalSender}) ->
     #{
         zone            => gmm_utils:zone_id(),
-        time            => gmm_utils:nanosecond_timestamp_to_iso6801( erlang:system_time(nanosecond) ),
+        time            => parser:nanosecond_timestamp_to_iso6801( erlang:system_time(nanosecond) ),
         thread          => list_to_binary( pid_to_list(self()) ),
         notif_type      => NotificationType,
         trace           => Trace,

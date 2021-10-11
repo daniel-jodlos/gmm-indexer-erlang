@@ -29,18 +29,18 @@
 %%%---------------------------
 
 init(Req = #{method := <<"POST">>}, State = #{operation := add}) ->
-    NewState = gmm_utils:parse_rest_params(Req, State, [{type, nonempty}, {name, nonempty}], []),
+    NewState = parser:parse_rest_params(Req, State, [{type, nonempty}, {name, nonempty}], []),
     {cowboy_rest, Req, NewState};
 init(Req = #{method := <<"GET">>}, State = #{operation := details}) ->
-    NewState = gmm_utils:parse_rest_params(Req, State, [{id, nonempty}], [{id, fun gmm_utils:validate_vertex_id/1}]),
+    NewState = parser:parse_rest_params(Req, State, [{id, nonempty}], [{id, fun gmm_utils:validate_vertex_id/1}]),
     {cowboy_rest, Req, NewState};
 init(Req = #{method := <<"GET">>}, State = #{operation := listing}) ->
     {cowboy_rest, Req, State};
 init(Req = #{method := <<"POST">>}, State = #{operation := delete}) ->
-    NewState = gmm_utils:parse_rest_params(Req, State, [{id, nonempty}], [{id, fun gmm_utils:validate_vertex_id/1}]),
+    NewState = parser:parse_rest_params(Req, State, [{id, nonempty}], [{id, fun gmm_utils:validate_vertex_id/1}]),
     {cowboy_rest, Req, NewState};
 init(Req0 = #{method := <<"POST">>}, State = #{operation := bulk}) ->
-    {Req, NewState} = gmm_utils:parse_rest_body(Req0, State, fun parse_bulk_list/1),
+    {Req, NewState} = parser:parse_rest_body(Req0, State, fun parse_bulk_list/1),
     {cowboy_rest, Req, NewState};
 init(Req, _) ->
     {cowboy_rest, Req, bad_request}.

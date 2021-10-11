@@ -35,7 +35,7 @@ init(Req, State = #{operation := Op, algorithm := Algo}) when Op == reaches; Op 
             naive -> [{jumpcount, fun(Bin) -> {ok, list_to_integer( binary_to_list(Bin) )} end}];
             indexed -> []
         end),
-    NewState = gmm_utils:parse_rest_params(Req, State, ParamsSpec, ParamsParsers),
+    NewState = parser:parse_rest_params(Req, State, ParamsSpec, ParamsParsers),
     {cowboy_rest, Req, NewState};
 init(Req, State = #{operation := members, algorithm := Algo}) ->
     ParamsSpec = [{'of', nonempty}] ++ (case Algo of naive -> [{jumpcount, [], <<"1">>}]; indexed -> [] end),
@@ -44,7 +44,7 @@ init(Req, State = #{operation := members, algorithm := Algo}) ->
             naive -> [{jumpcount, fun(Bin) -> {ok, list_to_integer( binary_to_list(Bin) )} end}];
             indexed -> []
         end),
-    NewState = gmm_utils:parse_rest_params(Req, State, ParamsSpec, ParamsParsers),
+    NewState = parser:parse_rest_params(Req, State, ParamsSpec, ParamsParsers),
     {cowboy_rest, Req, NewState}.
 
 allowed_methods(Req, State) ->
@@ -114,10 +114,10 @@ execute(Fun, Args, FieldName) ->
         case Result of
             {error, Reason} -> {error, Reason};
             {ok, Value} ->
-                {ok, #{<<"duration">> => gmm_utils:convert_microseconds_to_iso_8601(Duration), FieldName => Value}}
+                {ok, #{<<"duration">> => parser:convert_microseconds_to_iso_8601(Duration), FieldName => Value}}
         end
     catch Class:Pattern:Stacktrace ->
-        gmm_utils:log_error(Class, Pattern, Stacktrace),
+        gmm_logger:log_error(Class, Pattern, Stacktrace),
         {error, {Class, Pattern}}
     end.
 
@@ -144,7 +144,7 @@ reaches_naive(From, To, JumpCount) ->
             case zone_client:reaches(naive, Other, From, To, JumpCount + 1) of
                 {ok, #{<<"reaches">> := Bool}} -> {ok, Bool};
                 {error, Reason} ->
-                    gmm_utils:log_error(network_error, Reason, undefined),
+                    gmm_logger:log_error(network_error, Reason, undefined),
                     {ok, false}
             end
     end.
@@ -178,7 +178,7 @@ effective_permissions_naive(From, To, JumpCount) ->
             case zone_client:effective_permissions(naive, Other, From, To, JumpCount + 1) of
                 {ok, #{<<"effectivePermissions">> := Perm}} -> {ok, Perm};
                 {error, Reason} ->
-                    gmm_utils:log_error(network_error, Reason, undefined),
+                    gmm_logger:log_error(network_error, Reason, undefined),
                     {ok, <<"00000">>}
             end
     end.
@@ -223,7 +223,7 @@ members_naive(Of, JumpCount) ->
             case zone_client:members(naive, Other, Of, JumpCount + 1) of
                 {ok, #{<<"members">> := Members}} -> {ok, Members};
                 {error, Reason} ->
-                    gmm_utils:log_error(network_error, Reason, undefined),
+                    gmm_logger:log_error(network_error, Reason, undefined),
                     {ok, []}
             end
     end.
