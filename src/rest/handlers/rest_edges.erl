@@ -214,10 +214,12 @@ modify_state_bulk(SrcZone, DstZone, Edges, _, _)->
 
     Pids = lists:map(
         fun(#{from := FromName, to := ToName, permissions := Permissions, trace := _Trace}) ->
-            spawn(fun() ->
-                Result = try graph:create_edge(gmm_utils:create_vertex_id(SrcZone,  FromName), gmm_utils:create_vertex_id(DstZone, ToName), Permissions)
-                        catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
-                Parent ! {self(), Result} end)
+            spawn(
+                fun() ->
+                    Result = try graph:create_edge(gmm_utils:create_vertex_id(SrcZone,  FromName), gmm_utils:create_vertex_id(DstZone, ToName), Permissions)
+                            catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
+                    Parent ! {self(), Result}
+                end)
         end, Edges),
 
     % GATHERING RESULTS
