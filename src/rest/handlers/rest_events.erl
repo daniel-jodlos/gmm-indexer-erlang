@@ -32,11 +32,11 @@
 init(Req = #{method := <<"GET">>}, State = #{operation := stats}) ->
     {cowboy_rest, Req, State};
 init(Req0 = #{method := <<"POST">>}, State0 = #{operation := single_event}) ->
-    State1 = gmm_utils:parse_rest_params(Req0, State0, [{id, nonempty}], [{id, fun gmm_utils:validate_vertex_id/1}]),
-    {Req, State2} = gmm_utils:parse_rest_body(Req0, State1, fun parse_event/1),
+    State1 = parser:parse_rest_params(Req0, State0, [{id, nonempty}], [{id, fun gmm_utils:validate_vertex_id/1}]),
+    {Req, State2} = parser:parse_rest_body(Req0, State1, fun parse_event/1),
     {cowboy_rest, Req, State2};
 init(Req0 = #{method := <<"POST">>}, State0 = #{operation := bulk}) ->
-    {Req, NewState} = gmm_utils:parse_rest_body(Req0, State0, fun parse_bulk_events/1),
+    {Req, NewState} = parser:parse_rest_body(Req0, State0, fun parse_bulk_events/1),
     {cowboy_rest, Req, NewState};
 init(Req, _) ->
     {cowboy_rest, Req, bad_request}.

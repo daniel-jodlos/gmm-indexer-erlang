@@ -27,22 +27,22 @@
 %%%---------------------------
 
 init(Req, State = #{operation := Op}) when Op == add; Op == update ->
-    NewState = gmm_utils:parse_rest_params(Req, State,
+    NewState = parser:parse_rest_params(Req, State,
         [{from, nonempty}, {to, nonempty}, {permissions, nonempty}, {trace, [], <<"">>}, {successive, nonempty}],
         [{from, fun gmm_utils:validate_vertex_id/1}, {to, fun gmm_utils:validate_vertex_id/1},
-            {successive, fun gmm_utils:parse_boolean/1}]),
+            {successive, fun parser:parse_boolean/1}]),
     {cowboy_rest, Req, NewState};
 init(Req, State = #{operation := delete}) ->
-    NewState = gmm_utils:parse_rest_params(Req, State,
+    NewState = parser:parse_rest_params(Req, State,
         [{from, nonempty}, {to, nonempty}, {trace, [], <<"">>}, {successive, nonempty}],
         [{from, fun gmm_utils:validate_vertex_id/1}, {to, fun gmm_utils:validate_vertex_id/1},
-            {successive, fun gmm_utils:parse_boolean/1}]),
+            {successive, fun parser:parse_boolean/1}]),
     case NewState of
         bad_request -> {cowboy_rest, Req, bad_request};
         _ -> {cowboy_rest, Req, maps:merge(NewState, #{permissions => undefined})}
     end;
 init(Req0, State = #{operation := bulk}) ->
-    {Req, NewState} = gmm_utils:parse_rest_body(Req0, State, fun parse_bulk_request/1),
+    {Req, NewState} = parser:parse_rest_body(Req0, State, fun parse_bulk_request/1),
     {cowboy_rest, Req, NewState};
 init(Req, _) ->
     {cowboy_rest, Req, bad_request}.
