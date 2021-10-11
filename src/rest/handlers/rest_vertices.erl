@@ -124,29 +124,7 @@ modify_state_bulk(Vertices)->
         end, Vertices),
 
     % GATHERING RESULTS
-    Gather = fun F(PendingPids = [_ | _], PidsOrResults) ->
-        receive
-            {Pid, Result} ->
-                NewPidsOrResults = rest_utils:replace(Pid, Result, PidsOrResults),
-                F(lists:delete(Pid, PendingPids), NewPidsOrResults)
-        after 5000 ->
-            case lists:any(fun erlang:is_process_alive/1, PendingPids) of
-                true -> F(PendingPids, PidsOrResults);
-                false -> error({parallel_call_failed, {processes_dead, Pids}})
-            end
-        end;
-
-        F([], AllResults) ->
-            Errors = lists:filtermap(
-                fun({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
-                    {true, {Pid, Type, Reason, Stacktrace}};
-                    (_) -> false end, AllResults),
-            case Errors of
-                [] -> ok;
-                _ -> {error, Errors}
-            end
-        end,
-    Gather(Pids, Pids).
+    parallel_utils:gather(no_conditions, Pids).
 %%%---------------------------
 %% internal functions
 %%%---------------------------

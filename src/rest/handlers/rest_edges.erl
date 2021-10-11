@@ -204,28 +204,7 @@ conditions_met_bulk(SrcZone, DstZone, Successive, Edges) ->
             Parent ! {self(), Result} end) end, Edges),
 
     % GATHERING RESULTS
-    Gather = fun F(PendingPids = [_ | _], PidsOrResults) ->
-        receive {Pid, Result} ->
-            NewPidsOrResults = rest_utils:replace(Pid, Result, PidsOrResults),
-            F(lists:delete(Pid, PendingPids), NewPidsOrResults)
-            after 5000 ->
-                case lists:any(fun erlang:is_process_alive/1, PendingPids) of
-                    true -> F(PendingPids, PidsOrResults);
-                    false -> error({parallel_call_failed, {processes_dead, Pids}}) end
-            end;
-        F([], AllResults) ->
-            Errors =
-                lists:filtermap(
-                    fun({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
-                        {true, {Pid, Type, Reason, Stacktrace}};
-                        (_) -> false
-                    end, AllResults),
-            case Errors of
-                [] -> lists:all(fun(X) -> X end, AllResults);
-                _ -> false
-            end
-            end,
-    Gather(Pids, Pids).
+    parallel_utils:gather(conditions, Pids).
 
 -spec modify_state_bulk(SrcZone :: binary(), DstZone :: binary(), Edges :: list(map()), Successive :: boolean(), OneZoneOperation :: boolean()) -> ok | {error, any()}.
 modify_state_bulk(_, _, _, false, true) ->
@@ -242,25 +221,7 @@ modify_state_bulk(SrcZone, DstZone, Edges, _, _)->
         end, Edges),
 
     % GATHERING RESULTS
-    Gather = fun F(PendingPids = [_ | _], PidsOrResults) ->
-        receive {Pid, Result} ->
-            NewPidsOrResults = rest_utils:replace(Pid, Result, PidsOrResults),
-            F(lists:delete(Pid, PendingPids), NewPidsOrResults)
-        after 5000 ->
-            case lists:any(fun erlang:is_process_alive/1, PendingPids) of
-                true -> F(PendingPids, PidsOrResults);
-                false -> error({parallel_call_failed, {processes_dead, Pids}})
-            end
-        end;
-        F([], AllResults) -> Errors = lists:filtermap(fun({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
-            {true, {Pid, Type, Reason, Stacktrace}};
-            (_) -> false end, AllResults),
-            case Errors of
-                [] -> ok;
-                _ -> {error, Errors}
-            end
-        end,
-    Gather(Pids, Pids).
+    parallel_utils:gather(no_conditions, Pids).
 
 
 -spec execute_locally_bulk(SrcZone :: binary(), DstZone :: binary(), Successive :: boolean(), Edges :: list(map())) -> ok | {error, any()}.
