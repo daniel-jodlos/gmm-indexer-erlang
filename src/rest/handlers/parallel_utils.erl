@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 07. Oct 2021 15:22
 %%%-------------------------------------------------------------------
--module(rest_utils).
+-module(parallel_utils).
 -author("piotr").
 
 %% API

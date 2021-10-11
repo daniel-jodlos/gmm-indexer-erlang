@@ -54,9 +54,10 @@ from_json(Req, State) ->
         Operation = operation_type(Type),
         case Operation of
             update -> spawn(fun() ->
-                            Result = try rest_edges:execute_operation(Operation, From, To, Permissions, Trace, false)
-                            catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
-                            Parent ! {self(), Result}  end);
+                            Result =
+                                try rest_edges:execute_operation(Operation, From, To, Permissions, Trace, false)
+                                catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
+                            Parent ! {self(), Result} end);
             _ -> rest_edges:execute_operation(Operation, From, To, Permissions, Trace, false)
         end end, maps:get(body, State)),
 
@@ -69,8 +70,9 @@ from_json(Req, State) ->
         after 5000 ->
             case lists:any(fun erlang:is_process_alive/1, PendingPids) of
                 true -> F(PendingPids, PidsOrResults);
-                false -> error({parallel_call_failed, {processes_dead, Pids}}) end
-            end;
+                false -> error({parallel_call_failed, {processes_dead, Pids}})
+            end
+        end;
         F([], AllResults) ->
             Errors = lists:filtermap(fun({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
                     {true, {Pid, Type, Reason, Stacktrace}};
@@ -78,7 +80,8 @@ from_json(Req, State) ->
             case Errors of
                 [] -> ok;
                 _ -> {error, Errors}
-            end end,
+            end
+        end,
     Gather(Pids, Pids),
     {true, Req, State}.
 

@@ -194,12 +194,12 @@ conditions_met_bulk(SrcZone, DstZone, Successive, Edges) ->
         spawn(fun() ->
             Result =
                 try From = gmm_utils:create_vertex_id(SrcZone,  FromName),
-                To = gmm_utils:create_vertex_id(DstZone, ToName),
-                Vertex = case Successive of false -> From; true -> To end,
-                case [graph:vertex_exists(Vertex), graph:edge_exists(From, To)] of
-                    [{ok, true}, {ok, false}] -> true;
-                    _ -> false
-                end
+                    To = gmm_utils:create_vertex_id(DstZone, ToName),
+                    Vertex = case Successive of false -> From; true -> To end,
+                    case [graph:vertex_exists(Vertex), graph:edge_exists(From, To)] of
+                        [{ok, true}, {ok, false}] -> true;
+                        _ -> false
+                    end
                 catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
             Parent ! {self(), Result} end) end, Edges),
 
@@ -208,10 +208,10 @@ conditions_met_bulk(SrcZone, DstZone, Successive, Edges) ->
         receive {Pid, Result} ->
             NewPidsOrResults = rest_utils:replace(Pid, Result, PidsOrResults),
             F(lists:delete(Pid, PendingPids), NewPidsOrResults)
-        after 5000 ->
-            case lists:any(fun erlang:is_process_alive/1, PendingPids) of
-                true -> F(PendingPids, PidsOrResults);
-                false -> error({parallel_call_failed, {processes_dead, Pids}}) end
+            after 5000 ->
+                case lists:any(fun erlang:is_process_alive/1, PendingPids) of
+                    true -> F(PendingPids, PidsOrResults);
+                    false -> error({parallel_call_failed, {processes_dead, Pids}}) end
             end;
         F([], AllResults) ->
             Errors =
@@ -220,11 +220,11 @@ conditions_met_bulk(SrcZone, DstZone, Successive, Edges) ->
                         {true, {Pid, Type, Reason, Stacktrace}};
                         (_) -> false
                     end, AllResults),
-
             case Errors of
                 [] -> lists:all(fun(X) -> X end, AllResults);
                 _ -> false
-            end end,
+            end
+            end,
     Gather(Pids, Pids).
 
 -spec modify_state_bulk(SrcZone :: binary(), DstZone :: binary(), Edges :: list(map()), Successive :: boolean(), OneZoneOperation :: boolean()) -> ok | {error, any()}.
@@ -233,12 +233,13 @@ modify_state_bulk(_, _, _, false, true) ->
 modify_state_bulk(SrcZone, DstZone, Edges, _, _)->
     Parent = self(),
 
-    Pids = lists:map(fun(#{from := FromName, to := ToName, permissions := Permissions, trace := _Trace}) ->
-        spawn(fun() ->
-            Result = try graph:create_edge(gmm_utils:create_vertex_id(SrcZone,  FromName), gmm_utils:create_vertex_id(DstZone, ToName), Permissions)
-                     catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
-            Parent ! {self(), Result} end)
-            end, Edges),
+    Pids = lists:map(
+        fun(#{from := FromName, to := ToName, permissions := Permissions, trace := _Trace}) ->
+            spawn(fun() ->
+                Result = try graph:create_edge(gmm_utils:create_vertex_id(SrcZone,  FromName), gmm_utils:create_vertex_id(DstZone, ToName), Permissions)
+                        catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
+                Parent ! {self(), Result} end)
+        end, Edges),
 
     % GATHERING RESULTS
     Gather = fun F(PendingPids = [_ | _], PidsOrResults) ->
@@ -249,14 +250,16 @@ modify_state_bulk(SrcZone, DstZone, Edges, _, _)->
             case lists:any(fun erlang:is_process_alive/1, PendingPids) of
                 true -> F(PendingPids, PidsOrResults);
                 false -> error({parallel_call_failed, {processes_dead, Pids}})
-            end end;
+            end
+        end;
         F([], AllResults) -> Errors = lists:filtermap(fun({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
             {true, {Pid, Type, Reason, Stacktrace}};
             (_) -> false end, AllResults),
             case Errors of
                 [] -> ok;
                 _ -> {error, Errors}
-            end end,
+            end
+        end,
     Gather(Pids, Pids).
 
 

@@ -113,40 +113,39 @@ to_json(Req, State = #{operation := listing}) ->
 modify_state_bulk(Vertices)->
     Parent = self(),
 
-    Pids = lists:map(fun({Type, Name}) ->
-        spawn(fun() ->
-            Result = try graph:create_vertex(Type, Name)
-                     catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
+    Pids = lists:map(
+        fun({Type, Name}) ->
+            spawn(fun() ->
+                Result = try graph:create_vertex(Type, Name)
+                        catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
 
-            Parent ! {self(), Result} end) end, Vertices),
+                Parent ! {self(), Result}
+            end)
+        end, Vertices),
 
     % GATHERING RESULTS
-    Gather = fun
-    %PidsOrResults is initially the list of pids, gradually replaced by corresponding results
-                 F(PendingPids = [_ | _], PidsOrResults) ->
-                     receive
-                         {Pid, Result} ->
-                             NewPidsOrResults = rest_utils:replace(Pid, Result, PidsOrResults),
-                             F(lists:delete(Pid, PendingPids), NewPidsOrResults)
-                     after 5000 ->
-                         case lists:any(fun erlang:is_process_alive/1, PendingPids) of
-                             true ->
-                                 F(PendingPids, PidsOrResults);
-                             false ->
-                                 error({parallel_call_failed, {processes_dead, Pids}})
-                         end
-                     end;
+    Gather = fun F(PendingPids = [_ | _], PidsOrResults) ->
+        receive
+            {Pid, Result} ->
+                NewPidsOrResults = rest_utils:replace(Pid, Result, PidsOrResults),
+                F(lists:delete(Pid, PendingPids), NewPidsOrResults)
+        after 5000 ->
+            case lists:any(fun erlang:is_process_alive/1, PendingPids) of
+                true -> F(PendingPids, PidsOrResults);
+                false -> error({parallel_call_failed, {processes_dead, Pids}})
+            end
+        end;
 
-                 F([], AllResults) ->
-                     Errors = lists:filtermap(
-                         fun({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
-                             {true, {Pid, Type, Reason, Stacktrace}};
-                             (_) -> false end, AllResults),
-                     case Errors of
-                         [] -> ok;
-                         _ -> {error, Errors}
-                     end
-             end,
+        F([], AllResults) ->
+            Errors = lists:filtermap(
+                fun({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
+                    {true, {Pid, Type, Reason, Stacktrace}};
+                    (_) -> false end, AllResults),
+            case Errors of
+                [] -> ok;
+                _ -> {error, Errors}
+            end
+        end,
     Gather(Pids, Pids).
 %%%---------------------------
 %% internal functions
