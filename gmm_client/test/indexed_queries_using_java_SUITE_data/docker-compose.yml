@@ -1,0 +1,110 @@
+version: '3'
+
+services:
+    redis:
+        image: redis:latest
+        container_name: redis
+        networks:
+            intranet:
+        ports:
+            - 6379:6379
+        volumes:
+            - ../../../config/redis.conf:/redis.conf
+        command: [ "redis-server", "/redis.conf", "--port", "6379" ]
+
+    zone0:
+        image: gmmindexererlang:latest
+        container_name: zone0
+        stdin_open: true
+        networks:
+            intranet:
+        environment:
+            - ZONE_ID=zone0
+            - GMM_REDIS_HOST=redis
+            - GMM_REDIS_PORT=6379
+            - PORT=8080
+        expose:
+            - "8080"
+        ports:
+            - 8080:8080
+        depends_on:
+            - redis
+
+    redis2:
+        image: redis:latest
+        container_name: redis2
+        networks:
+            intranet:
+        ports:
+            - 6380:6380
+        volumes:
+            - ../../../config/redis.conf:/redis.conf
+        command: [ "redis-server", "/redis.conf", "--port", "6380" ]
+
+    zone1:
+        image: gmmindexererlang:latest
+        container_name: zone1
+        stdin_open: true
+        networks:
+            intranet:
+        environment:
+            - ZONE_ID=zone1
+            - GMM_REDIS_HOST=redis2
+            - GMM_REDIS_PORT=6380
+            - PORT=8081
+        expose:
+            - "8081"
+        ports:
+            - 8081:8081
+        depends_on:
+            - redis2
+
+    redis3:
+        image: redis:latest
+        container_name: redis3
+        networks:
+            intranet:
+        ports:
+            - 6381:6381
+        volumes:
+            - ../../../config/redis.conf:/redis.conf
+        command: [ "redis-server", "/redis.conf", "--port", "6381" ]
+
+    zone2:
+        image: gmmindexererlang:latest
+        container_name: zone2
+        stdin_open: true
+        networks:
+            intranet:
+        environment:
+            - ZONE_ID=zone2
+            - GMM_REDIS_HOST=redis3
+            - GMM_REDIS_PORT=6381
+            - PORT=8082
+        expose:
+            - "8082"
+        ports:
+            - 8082:8082
+        depends_on:
+            - redis3
+
+    java_client:
+        image: kjarosh/ms-graph-simulator:latest
+        container_name: java_client
+        stdin_open: true
+        tty: true
+        networks:
+            intranet:
+        depends_on:
+            - zone0
+            - zone1
+            - zone2
+        volumes:
+            - ./graph.json:/graph.json
+            - ../../../config/config.json:/config/config.json
+        command: 
+            - client
+            # - ./run-main.sh com.github.kjarosh.agh.pp.cli.ConstantLoadClientMain -n 0 -d 1 -g graph.json -l 
+
+networks:
+  intranet:
