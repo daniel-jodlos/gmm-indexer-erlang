@@ -93,10 +93,12 @@ from_json(Req, State = #{operation := add, type := Type, name := Name}) ->
 from_json(Req, State = #{operation := delete, id := Id}) ->
     ok = graph:remove_vertex(Id),
     {true, Req, State};
+%from_json(Req, State = #{operation := bulk, body := List}) ->
+%    lists:foreach(fun({Type, Name}) -> {ok, _} = graph:create_vertex(Type, Name) end, List),
+%    {true, Req, State}.
 from_json(Req, State = #{operation := bulk, body := List}) ->
-    lists:foreach(fun({Type, Name}) -> {ok, _} = graph:create_vertex(Type, Name) end, List),
+    ok = modify_state_bulk(List),
     {true, Req, State}.
-
 %% GET handler
 to_json(Req, State = #{operation := details, id := Id}) ->
     {ok, Details} = graph:get_vertex(Id),
@@ -105,7 +107,24 @@ to_json(Req, State = #{operation := listing}) ->
     {ok, Vertices} = graph:list_vertices(),
     {gmm_utils:encode(Vertices), Req, State}.
 
+%%% BULK handler
 
+-spec modify_state_bulk(Vertices :: list({binary(), binary()})) -> ok | {error, any()}.
+modify_state_bulk(Vertices)->
+    Parent = self(),
+
+    Pids = lists:map(
+        fun({Type, Name}) ->
+            spawn(fun() ->
+                Result = try graph:create_vertex(Type, Name)
+                        catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
+
+                Parent ! {self(), Result}
+            end)
+        end, Vertices),
+
+    % GATHERING RESULTS
+    parallel_utils:gather(no_conditions, Pids).
 %%%---------------------------
 %% internal functions
 %%%---------------------------
