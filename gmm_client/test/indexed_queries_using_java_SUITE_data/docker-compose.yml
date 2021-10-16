@@ -102,9 +102,10 @@ services:
         volumes:
             - ./graph.json:/graph.json
             - ../../../config/config.json:/config/config.json
+        entrypoint:
+            - ./entrypoint.sh
         command: 
-            - client
-            # - ./run-main.sh com.github.kjarosh.agh.pp.cli.ConstantLoadClientMain -n 0 -d 1 -g graph.json -l 
+            - ./run-main.sh com.github.kjarosh.agh.pp.cli.ConstantLoadClientMain -n 0 -d 1 -g graph.json -l 
 
 networks:
   intranet:
