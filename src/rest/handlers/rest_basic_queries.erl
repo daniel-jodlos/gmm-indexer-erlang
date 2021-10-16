@@ -28,11 +28,11 @@
 %%%---------------------------
 
 init(Req, State = #{operation := Op}) when Op == is_adjacent; Op == permissions ->
-    NewState = gmm_utils:parse_rest_params(Req, State, [{from, nonempty}, {to, nonempty}],
+    NewState = parser:parse_rest_params(Req, State, [{from, nonempty}, {to, nonempty}],
         [{from, fun gmm_utils:validate_vertex_id/1}, {to, fun gmm_utils:validate_vertex_id/1}]),
     {cowboy_rest, Req, NewState};
 init(Req, State = #{operation := Op}) when Op == list_adjacent; Op == list_adjacent_reversed ->
-    NewState = gmm_utils:parse_rest_params(Req, State, [{'of', nonempty}],
+    NewState = parser:parse_rest_params(Req, State, [{'of', nonempty}],
         [{'of', fun gmm_utils:validate_vertex_id/1}]),
     {cowboy_rest, Req, NewState}.
 
