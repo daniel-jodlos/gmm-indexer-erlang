@@ -4,7 +4,7 @@ FROM erlang:alpine
 RUN mkdir /buildroot
 WORKDIR /buildroot
 
-RUN apk add -uUv git gcc g++ redis && \
+RUN apk add -uUv git gcc g++ && \
     git clone https://github.com/erlang/rebar3.git && \
     cd rebar3 && \
     ./bootstrap
@@ -12,15 +12,16 @@ RUN apk add -uUv git gcc g++ redis && \
 COPY src src/
 COPY include include/
 COPY rebar.config .
-COPY config/redis.conf redis.conf
 RUN rebar3 as prod release
 
 FROM erlang:alpine
 
 RUN apk add --no-cache openssl && \
-    apk add --no-cache ncurses-libs
+    apk add --no-cache ncurses-libs && \
+    apk add --no-cache redis
 
 COPY --from=0 /buildroot/_build/prod/rel/prod /prod
+COPY config/redis.conf .
 
 CMD redis-server /redis.conf --port 6379 && \
     /prod/bin/prod console
