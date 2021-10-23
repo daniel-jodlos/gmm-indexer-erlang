@@ -22,6 +22,6 @@ RUN apk add --no-cache openssl && \
 
 COPY --from=0 /buildroot/_build/prod/rel/prod /prod
 COPY config/redis.conf .
+COPY ./single_image_entrypoint.sh .
 
-CMD redis-server /redis.conf --port 6379 && \
-    /prod/bin/prod console
+ENTRYPOINT [ "./single_image_entrypoint.sh" ]

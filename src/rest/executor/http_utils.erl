@@ -20,11 +20,11 @@
 %% Router
 
 -spec get_address(Zone :: binary()) -> {ok, binary()} | {error, any()}.
-get_address(<<"zone1">>) ->
+get_address(<<"zone0">>) ->
     {ok, <<"gmm_server:8080">>};
-get_address(<<"zone2">>) ->
+get_address(<<"zone1">>) ->
     {ok, <<"gmm_server2:8081">>};
-get_address(<<"zone3">>) ->
+get_address(<<"zone2">>) ->
     {ok, <<"gmm_server3:8082">>};
 get_address(Zone) ->
     {error, {zone_not_found, Zone}}.
