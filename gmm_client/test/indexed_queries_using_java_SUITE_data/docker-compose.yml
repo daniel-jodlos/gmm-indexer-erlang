@@ -105,8 +105,6 @@ services:
             - ../../../config/config.json:/config/config.json
         entrypoint:
             - ./entrypoint.sh
-        command: 
-            - ./run-main.sh com.github.kjarosh.agh.pp.cli.ConstantLoadClientMain -n 0 -d 1 -g graph.json -l 
 
 networks:
   intranet:

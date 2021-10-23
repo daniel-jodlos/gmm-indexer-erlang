@@ -23,4 +23,6 @@ java \
     -Djava.rmi.server.hostname=$JMX_HOST \
     -Xmx2G \
     -jar \
-    app.jar client
+    app.jar client 2>&1 | sed 's/^/[client] /' >&2 &
+
+./run-main.sh com.github.kjarosh.agh.pp.cli.ConstantLoadClientMain -n 0 -d 1 -g graph.json -l 
