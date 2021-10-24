@@ -174,7 +174,7 @@ reaches_naive_check_parents(From, To, JumpCount) ->
                 {ok, false},
                 LocalParents
             ),
-            RemoteResults = parallel_utils:gather_reaches/2(Pids, {ok, true}),
+            RemoteResults = parallel_utils:gather_reaches(Pids, {ok, true}),
 
             LocalResults ++ RemoteResults;
 
@@ -208,7 +208,7 @@ effective_permissions_naive_locally(From, To, JumpCount) ->
 
             {LocalParents, RemoteParents} = gmm_utils:split_local_remote(gmm_utils:zone_id(), Parents),
 
-            Pids = lists:map(
+            lists:map(
                 fun(RemoteParent) ->
                     spawn(fun() ->
                         Result =
