@@ -1,4 +1,4 @@
--module(indexed_queries_SUITE).
+-module(indexed_queries_using_java_SUITE).
 -include_lib("common_test/include/ct.hrl").
 
 -export([
