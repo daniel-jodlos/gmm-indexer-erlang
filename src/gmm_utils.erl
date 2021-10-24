@@ -169,7 +169,6 @@ permissions_and(A,B) ->
 permissions_or(A,B) ->
     combine_permissions(A,B, fun (X,Y) -> X or Y end).
 
--spec split_local_remote(ZoneId :: any(), Parents :: list()) -> {list(), list()}.
 split_local_remote(ZoneId, Parents) ->
     lists:splitwith(fun(Parent) ->
         case gmm_utils:owner_of(Parent) of
