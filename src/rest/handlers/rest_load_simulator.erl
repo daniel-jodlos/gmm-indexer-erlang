@@ -50,6 +50,7 @@ from_json(Req, bad_request) ->
 from_json(Req, State) ->
     Parent = self(),
 
+    % list of maps is divided
     {Updates, NotUpdates} = lists:splitwith(fun(#{op_type := Type, from := _From, to := _To, permissions := _Permissions, trace := _Trace}) ->
         Operation = operation_type(Type),
         case Operation of
@@ -57,12 +58,14 @@ from_json(Req, State) ->
             _ -> false
         end end, maps:get(body, State)),
 
+    % operations which cannot be done at one time are done separately
     lists:foreach(
         fun(#{op_type := Type, from := From, to := To, permissions := Permissions, trace := Trace}) ->
             Operation = operation_type(Type),
             rest_edges:execute_operation(Operation, From, To, Permissions, Trace, false)
         end, NotUpdates),
 
+    % operations which can be are done in parallel
     Pids = lists:map(
         fun(#{op_type := _Type, from := From, to := To, permissions := Permissions, trace := Trace}) ->
             spawn(fun() ->
@@ -72,7 +75,6 @@ from_json(Req, State) ->
                 Parent ! {self(), Result} end)
         end, Updates),
 
-    % POTENTIAL PIDS FILTER WILL BE REQUIRED
 
     parallel_utils:gather(no_conditions, Pids),
     {true, Req, State}.

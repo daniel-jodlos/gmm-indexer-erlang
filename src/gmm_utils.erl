@@ -32,6 +32,8 @@
     permissions_and/2,
     permissions_or/2,
 
+    split_local_remote/2,
+
     uuid/0
 ]).
 
@@ -167,6 +169,13 @@ permissions_and(A,B) ->
 permissions_or(A,B) ->
     combine_permissions(A,B, fun (X,Y) -> X or Y end).
 
+-spec split_local_remote(ZoneId :: string(), Parents :: list) -> {list(), list()}.
+split_local_remote(ZoneId, Parents) ->
+    lists:splitwith(fun(Parent) ->
+        case gmm_utils:owner_of(Parent) of
+            ZoneId -> true;
+            _ -> false
+        end end, Parents).
 
 uuid() ->
     list_to_binary(uuid:to_string( uuid:uuid4() )).
