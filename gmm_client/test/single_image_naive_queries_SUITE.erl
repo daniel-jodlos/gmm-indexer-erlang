@@ -23,10 +23,7 @@ groups() -> [{coverage, [sequence], [
 all() -> [{group, coverage}].
 
 init_per_suite(Config) ->
-    [
-        {ct_hooks, [{docker_compose_cth, [{docker_compose_file, "../../../../../single_image.docker-compose.yml"}]}]}
-        | Config
-    ].
+    [{ct_hooks, [docker_compose_cth]} | Config].
 
 end_per_suite(_Config) ->
     ok = application:stop(gmm_client).
