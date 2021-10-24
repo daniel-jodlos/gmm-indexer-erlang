@@ -24,7 +24,7 @@ all() -> [{group, coverage}].
 
 init_per_suite(Config) ->
     [
-        {ct_hooks, [{docker_compose_cth, [{docker_compose_file, "../../single_image.docker-compose.yml"}]}]}
+        {ct_hooks, [{docker_compose_cth, [{docker_compose_file, "../../../../../single_image.docker-compose.yml"}]}]}
         | Config
     ].
 
