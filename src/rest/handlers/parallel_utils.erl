@@ -20,21 +20,6 @@ replace(Element, Replacement, [H | T]) ->
 replace(_Element, _Replacement, []) ->
   [].
 
-gather_members()->
-  Gather = fun() ->
-    receive {_, {_, Result}} ->
-
-      case permissions_gather_combined(CurrentPermission, Result) of
-        HappyEndCondition -> HappyEndCondition;
-        Other -> gather_permissions(HappyEndCondition, Other)
-      end
-
-    after 5000 ->
-      CurrentPermission
-    end end,
-
-  Gather().
-
 
 permissions_gather_combined(AlreadyGathered, NewResult)->
   JoinPermissions = fun(A, B) -> gmm_utils:permissions_or(A,B) end,
