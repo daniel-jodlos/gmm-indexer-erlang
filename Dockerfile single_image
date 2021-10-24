@@ -24,4 +24,6 @@ COPY --from=0 /buildroot/_build/prod/rel/prod /prod
 COPY config/redis.conf .
 COPY ./single_image_entrypoint.sh .
 
+RUN chmod 777 ./single_image_entrypoint.sh
+
 ENTRYPOINT [ "./single_image_entrypoint.sh" ]
