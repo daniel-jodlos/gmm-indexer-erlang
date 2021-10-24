@@ -41,38 +41,21 @@ gather_permissions(HappyEndCondition, CurrentPermission)->
 
     Gather().
 
-gather_reaches(Pids, HappyEndCondition) ->
+gather_reaches(HappyEndCondition, CurrentResult)->
 
-  Gather = fun F(PendingPids = [_ | _], PidsOrResults) ->
-    receive {Pid, Result} ->
+  Gather = fun() ->
+    receive {_, Result} ->
 
       case Result of
         HappyEndCondition -> HappyEndCondition;
-        Other ->
-          NewPidsOrResults = replace(Pid, Other, PidsOrResults),
-          F(lists:delete(Pid, PendingPids), NewPidsOrResults)
+        Other -> gather_reaches(HappyEndCondition, Other)
       end
 
     after 5000 ->
-      case lists:any(fun erlang:is_process_alive/1, PendingPids) of
-        true -> F(PendingPids, PidsOrResults);
-        false -> error({parallel_call_failed, {processes_dead, Pids}})
-      end
-    end;
-    F([], AllResults) ->
+      CurrentResult
+    end end,
 
-      Errors = lists:filtermap(
-        fun({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
-          {true, {Pid, Type, Reason, Stacktrace}};
-          (_) -> false
-        end, AllResults),
-
-      case Errors of
-        [] -> lists:all(fun(X) -> X end, AllResults);
-        _ -> false
-      end end,
-
-  Gather(Pids, Pids).
+  Gather().
 
 
 gather(ConditionsMet, Pids) ->

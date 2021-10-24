@@ -174,9 +174,16 @@ reaches_naive_check_parents(From, To, JumpCount) ->
                 {ok, false},
                 LocalParents
             ),
-            RemoteResults = parallel_utils:gather_reaches(Pids, {ok, true}),
+            RemoteResults = parallel_utils:gather_reaches({ok, true}, {ok, false}),
 
-            LocalResults ++ RemoteResults;
+            case LocalResults of
+                {_, true} -> {ok, true};
+                _ ->
+                    case RemoteResults of
+                        {_, true} -> {ok, true};
+                        Other -> Other
+                    end
+            end;
 
         {error, Reason} -> {error, Reason}
     end.
@@ -237,7 +244,7 @@ effective_permissions_naive_locally(From, To, JumpCount) ->
             ),
 
             RemoteResults = parallel_utils:gather_permissions(<<"11111">>, <<"00000">>),
-            LocalResults ++ RemoteResults;
+            JoinPermissions(LocalResults, RemoteResults);
         {error, Reason} -> {error, Reason}
     end.
 
