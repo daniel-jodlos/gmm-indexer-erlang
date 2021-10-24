@@ -242,9 +242,10 @@ effective_permissions_naive_locally(From, To, JumpCount) ->
                 {ok, <<"00000">>},
                 LocalParents
             ),
+            {_, LocalPermissions} = LocalResults,
+            RemotePermissions = parallel_utils:gather_permissions(<<"11111">>, <<"00000">>),
 
-            RemoteResults = parallel_utils:gather_permissions(<<"11111">>, <<"00000">>),
-            {ok, JoinPermissions(LocalResults, RemoteResults)};
+            {ok, JoinPermissions(LocalPermissions, RemotePermissions)};
         {error, Reason} -> {error, Reason}
     end.
 
