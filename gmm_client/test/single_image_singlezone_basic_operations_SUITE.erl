@@ -30,8 +30,7 @@ all() -> [{group, coverage}].
 
 init_per_suite(Config) ->
     [
-        {ct_hooks, [docker_compose_cth]},
-        {docker_compose_file, "../../single_image.docker-compose.yml"}
+        {ct_hooks, [{docker_compose_cth, [{docker_compose_file, "../../single_image.docker-compose.yml"}]}]},
         | Config
     ].
 
@@ -39,7 +38,7 @@ end_per_suite(_Config) ->
     ok = application:stop(gmm_client).
 
 init_per_group(coverage, _Config) ->
-    timer:sleep(10000), %% for unknown reasons some delay is needed before executing first tests -
+    timer:sleep(5000), %% for unknown reasons some delay is needed before executing first tests -
                        %% without it tests fail with reason {badmatch, {error, closed}}
                        %% <<PAWEL>>: It seems that server is not ready immediately; {error, close} indicates,
                        %%            that hackney received error from tcp port
