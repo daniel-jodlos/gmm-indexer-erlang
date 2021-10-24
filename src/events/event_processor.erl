@@ -23,7 +23,7 @@ process(Vertex, Event) ->
     
     
 process_child_change(Vertex, Event) ->
-    #{<<"effectiveVerticies">> := Verticies, <<"sender">> := Sender} = Event,
+    #{<<"effectiveVertices">> := Verticies, <<"sender">> := Sender} = Event,
     EffectiveChildren = 
         lists:filter(fun (Child) ->
             graph:add_intermediate_vertex(Child, Vertex, Vertex, Sender),
@@ -32,13 +32,13 @@ process_child_change(Vertex, Event) ->
             {ok, Result} = gmm_utils:parse_boolean(Updated),
             Result
         end, Verticies),
-    NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVerticies">> => EffectiveChildren},
+    NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVertices">> => EffectiveChildren},
     {ok, Parents} = graph:list_parents(Vertex),
     propagate(Parents, NewEvent),
     ok.
 
 process_child_removed(Vertex, Event) ->
-    #{<<"effectiveVerticies">> := Verticies, <<"sender">> := Sender} = Event,
+    #{<<"effectiveVertices">> := Verticies, <<"sender">> := Sender} = Event,
     EffectiveChildren =
         lists:filter(fun (Child) ->
             graph:remove_intermediate_vertex(Child, Vertex, Vertex, Sender),
@@ -52,13 +52,13 @@ process_child_removed(Vertex, Event) ->
                     false
             end
         end, Verticies),
-    NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVerticies">> => EffectiveChildren},
+    NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVertices">> => EffectiveChildren},
     {ok, Parents} = graph:list_parents(Vertex),
     propagate(Parents, NewEvent),
     ok.
 
 process_parent_change(Vertex, Event) ->
-    #{<<"effectiveVerticies">> := Verticies, <<"sender">> := Sender} = Event,
+    #{<<"effectiveVertices">> := Verticies, <<"sender">> := Sender} = Event,
     EffectiveParents =
         lists:filter(fun (Parent) ->
             graph:add_intermediate_vertex(Vertex, Parent, Vertex, Sender),
@@ -66,13 +66,13 @@ process_parent_change(Vertex, Event) ->
             {ok, Result} = gmm_utils:parse_boolean(Updated),
             Result
         end, Verticies),
-    NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVerticies">> => EffectiveParents},
+    NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVertices">> => EffectiveParents},
     {ok, Children} = graph:list_children(Vertex),
     propagate(Children, NewEvent),  
     ok.
 
 process_parent_removed(Vertex, Event) ->
-    #{<<"effectiveVerticies">> := Verticies, <<"sender">> := Sender} = Event,
+    #{<<"effectiveVertices">> := Verticies, <<"sender">> := Sender} = Event,
     EffectiveParents =
         lists:filter(fun (Parent) ->
             graph:remove_intermediate_vertex(Vertex, Parent, Vertex, Sender),
@@ -83,7 +83,7 @@ process_parent_removed(Vertex, Event) ->
                 _other -> false
             end
         end, Verticies),
-    NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVerticies">> => EffectiveParents},
+    NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVertices">> => EffectiveParents},
     {ok, Children} = graph:list_children(Vertex),
     propagate(Children, NewEvent),  
     ok.
@@ -103,15 +103,16 @@ recalculatePermissions(Child, Vertex) ->
 calculatePermissions(From, To) ->
     Intermediate = graph:get_intermediate_verticies(From, To, To),
     IntermediatePermissions = lists:map(fun (Vertex) ->
-        case graph:get_edge(Vertex, To) of % w sumie to trochę problem, jak nie wywalamy usuniętych połączeń z intermediali
-        {ok, #{<<"permissions">> := Permissions}} -> Permissions;
-        _other -> <<"00000">>
-    end
+        case graph:get_edge(Vertex, To) of
+            {ok, #{<<"permissions">> := Permissions}} -> Permissions;
+            _other -> <<"00000">>
+        end
     end, Intermediate),
+    io:format("DUPA: ~p~n", [IntermediatePermissions]),
     lists:foldl(fun (A, B) -> gmm_utils:permissions_or(A, B) end, <<"00000">>, IntermediatePermissions).
     
 propagate(Targets, Event) ->
-    #{<<"effectiveVerticies">> := Verticies} = Event,
+    #{<<"effectiveVertices">> := Verticies} = Event,
     case Verticies of
         [] -> ok;
         _else ->

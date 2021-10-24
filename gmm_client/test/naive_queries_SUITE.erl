@@ -147,5 +147,5 @@ operations_after_graph_update_test(_Config) ->
     ?assertEqual(true, ReachesResponse4),
 
     ?assertEqual(<<"10101">>, EPResponse1),
-    ?assertEqual(<<"00000">>, EPResponse2),
+    ?assertEqual(<<"01100">>, EPResponse2),
     ?assertEqual(<<"01010">>, EPResponse3).

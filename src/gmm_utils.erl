@@ -182,8 +182,8 @@ set_instrumentation_enabled(NewVal) when is_boolean(NewVal) ->
 -spec get_indexation_enabled() -> boolean().
 get_indexation_enabled() ->
     case os:getenv("INDEXATION_ENABLED") of
-        "true" -> true;
-        _ -> false
+        "false" -> false;
+        _ -> true
     end.
 
 -spec set_indexation_enabled(boolean()) -> true.

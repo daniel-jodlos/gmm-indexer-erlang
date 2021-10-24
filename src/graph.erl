@@ -290,7 +290,10 @@ create_effective_edge(From, To, Permissions) ->
 
 -spec update_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
 update_edge(From, To, Permissions) ->
-    validate([persistence:set(edge_id(From, To), Permissions)]).
+    Result = validate([persistence:set(edge_id(From, To), Permissions)]),
+    post_events_about_effective_children(From, To, <<"updated">>),
+    post_events_about_effective_parents(To, From, <<"updated">>),
+    Result.
 
 -spec update_effective_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
 update_effective_edge(From, To, Permissions) -> validate([
@@ -411,8 +414,11 @@ list_children(Vertex) -> persistence:set_list_members(children_id(Vertex)).
 all_zones() ->
     {ok, []}.
 
--spec effective_list_parents(Vertex :: binary()) -> {ok, list(binary())} | {error, any()}.
-effective_list_parents(Vertex) -> persistence:set_list_members(effective_parents_id(Vertex)).
+-spec effective_list_parents(Vertex :: binary()) -> list(binary()).
+effective_list_parents(Vertex) -> do_list(persistence:set_list_members(effective_parents_id(Vertex))).
+
+do_list({ok, Result}) -> Result;
+do_list({error, _Error}) -> [].
 
 add_effective_parent(Vertex, Parent) ->
     persistence:set_add(effective_parents_id(Vertex), Parent).
@@ -424,19 +430,19 @@ add_effective_child(Vertex, Child) ->
 remove_effective_child(Vertex, Child) ->
     persistence:set_remove(effective_children_id(Vertex), Child).
 
--spec effective_list_children(Vertex :: binary()) -> {ok, list(binary())} | {error, any()}.
-effective_list_children(Vertex) -> persistence:set_list_members(effective_children_id(Vertex)).
+-spec effective_list_children(Vertex :: binary()) -> list(binary()).
+effective_list_children(Vertex) -> do_list(persistence:set_list_members(effective_children_id(Vertex))).
 
 %% @TODO change shape of the event to be compliant with "standard" (ask Pawel for details)
 
 post_events_about_effective_children(Vertex, TargetVertex, Type) ->
-    {ok, Children} = effective_list_children(Vertex),
-    Event = #{<<"id">> => gmm_utils:uuid(), <<"type">> => <<"child/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVerticies">> => [Vertex | Children], <<"trace">> => <<"null">>},
+    Children = effective_list_children(Vertex),
+    Event = #{<<"id">> => gmm_utils:uuid(), <<"type">> => <<"child/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVertices">> => [Vertex | Children], <<"trace">> => <<"null">>},
     inbox:post(TargetVertex, Event).
 
 post_events_about_effective_parents(Vertex, TargetVertex, Type) ->
-    {ok, Parents} = effective_list_parents(Vertex),
-    Event = #{<<"id">> => gmm_utils:uuid(), <<"type">> => <<"parent/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVerticies">> => [Vertex | Parents], <<"trace">> => <<"null">>},
+    Parents = effective_list_parents(Vertex),
+    Event = #{<<"id">> => gmm_utils:uuid(), <<"type">> => <<"parent/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVertices">> => [Vertex | Parents], <<"trace">> => <<"null">>},
     inbox:post(TargetVertex, Event).
 
 test() ->

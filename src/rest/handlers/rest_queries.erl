@@ -262,10 +262,12 @@ reaches_indexed(From, To) ->
 -spec effective_permissions_indexed(binary(), binary()) -> {ok, permissions()} | {error, any()}.
 effective_permissions_indexed(From, To) ->
     case graph:get_effective_edge(From, To) of
+        {ok, #{<<"permissions">> := undefined}} -> {ok, <<"00000">>};
         {ok, #{<<"permissions">> := Permissions}} -> {ok, Permissions};
         {error, Reason} -> {error, Reason}
     end.
 
 -spec members_indexed(binary()) -> {ok, list(binary())} | {error, any()}.
 members_indexed(Of) ->
-    graph:effective_list_children(Of).
+    % {ok, graph:effective_list_children(Of) ++ graph:effective_list_parents(Of)}.
+    {ok, graph:effective_list_children(Of)}.

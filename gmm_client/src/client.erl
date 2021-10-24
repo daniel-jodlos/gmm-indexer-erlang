@@ -150,14 +150,14 @@ indexed_members(Of) ->
 
 -spec indexed_reaches(From :: binary(), To :: binary()) -> {ok, map()} | {error, any()}.
 indexed_reaches(From, To) ->
-    Zone = client_utils:owner_of(From),
+    Zone = client_utils:owner_of(To),
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"indexed/reaches">>, [{<<"from">>, From}, {<<"to">>, To}]),
     http_executor:post(Url, true).
 
 -spec indexed_effective_permissions(From :: binary(), To :: binary()) -> {ok, map()} | {error, any()}.
 indexed_effective_permissions(From, To) ->
-    Zone = client_utils:owner_of(From),
+    Zone = client_utils:owner_of(To),
     {ok, Address} = http_utils:get_address(Zone),
     Url = http_utils:build_url(Address, <<"indexed/effective_permissions">>, [{<<"from">>, From}, {<<"to">>, To}]),
     http_executor:post(Url, true).
