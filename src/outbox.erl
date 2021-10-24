@@ -14,7 +14,8 @@
     init_outbox/1,
     post/2,
     is_empty/1,
-    all_empty/0
+    all_empty/0,
+    all_count/0
 ]).
 
 -define(INITIAL_DELAY, 10).
@@ -153,3 +154,7 @@ outbox_routine(Zone, Delay) ->
             queue_event(Zone, Vertex, Event),
             outbox_routine(Zone, Delay)
     end.
+
+%todo implement
+all_count()->
+    ok.

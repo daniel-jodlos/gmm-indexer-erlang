@@ -68,12 +68,16 @@ from_json(Req, State = #{operation := bulk, body := List}) ->
         end, List),
     {true, Req, State}.
 
+current_processing()->
+
+    .
+
 %% @todo
 %% GET handler
 to_json(Req, State = #{operation := stats}) ->
     Map = #{
         <<"processing">> => 0,
-        <<"processingNanos">> => 0.0,
+        <<"processingNanos">> => 0.0, % todo event_processor required
         <<"processingByType">> => #{
             %% not all fields required
             <<"user">> => 0,
@@ -81,8 +85,8 @@ to_json(Req, State = #{operation := stats}) ->
             <<"space">> => 0,
             <<"provider">> => 0
         },
-        <<"queued">> => 0,
-        <<"outbox">> => 0,
+        <<"queued">> => inbox:queued_count(),
+        <<"outbox">> => outbox:all_count(),
         <<"total">> => 0,
         <<"load1">> => 0.0,
         <<"load5">> => 0.0,

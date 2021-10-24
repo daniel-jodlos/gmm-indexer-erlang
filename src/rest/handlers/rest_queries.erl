@@ -153,38 +153,15 @@ reaches_naive(From, To, JumpCount) ->
 reaches_naive_check_parents(From, To, JumpCount) ->
     case graph:list_parents(From) of
         {ok, Parents} ->
-
-            {LocalParents, RemoteParents} = gmm_utils:split_local_remote(gmm_utils:zone_id(), Parents),
-
-            Pids = lists:map(
-                fun(RemoteParent) ->
-                    spawn(fun() ->
-                        Result =
-                            try reaches_naive(RemoteParent, To, JumpCount + 1)
-                            catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
-                        RemoteParent ! {self(), Result} end)
-                end, RemoteParents),
-
-            LocalResults = lists:foldr(
+            lists:foldr(
                 fun
                     (_, {error, Reason}) -> {error, Reason};
                     (_, {ok, true}) -> {ok, true};
-                    (Parent, _) -> reaches_naive(Parent, To, JumpCount + 1)
+                    (LocalParent, _) -> reaches_naive(LocalParent, To, JumpCount + 1)
                 end,
                 {ok, false},
-                LocalParents
-            ),
-            RemoteResults = parallel_utils:gather_reaches({ok, true}, {ok, false}),
-
-            case LocalResults of
-                {_, true} -> {ok, true};
-                _ ->
-                    case RemoteResults of
-                        {_, true} -> {ok, true};
-                        Other -> Other
-                    end
-            end;
-
+                Parents
+            );
         {error, Reason} -> {error, Reason}
     end.
 
@@ -212,19 +189,7 @@ effective_permissions_naive_locally(From, To, JumpCount) ->
     JoinPermissions = fun(A, B) -> gmm_utils:permissions_or(A,B) end,
     case graph:list_parents(From) of
         {ok, Parents} ->
-
-            {LocalParents, RemoteParents} = gmm_utils:split_local_remote(gmm_utils:zone_id(), Parents),
-
-            lists:map(
-                fun(RemoteParent) ->
-                    spawn(fun() ->
-                        Result =
-                            try effective_permissions_naive(RemoteParent, To, JumpCount + 1)
-                            catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
-                        RemoteParent ! {self(), Result} end)
-                end, RemoteParents),
-
-            LocalResults = lists:foldr(
+            lists:foldr(
                 fun
                     (_, {error, Reason}) -> {error, Reason};
                     (_, {ok, <<"11111">>}) -> {ok, <<"11111">>};
@@ -240,12 +205,8 @@ effective_permissions_naive_locally(From, To, JumpCount) ->
                         end
                 end,
                 {ok, <<"00000">>},
-                LocalParents
-            ),
-            {_, LocalPermissions} = LocalResults,
-            RemotePermissions = parallel_utils:gather_permissions(<<"11111">>, <<"00000">>),
-
-            {ok, JoinPermissions(LocalPermissions, RemotePermissions)};
+                Parents
+            );
         {error, Reason} -> {error, Reason}
     end.
 

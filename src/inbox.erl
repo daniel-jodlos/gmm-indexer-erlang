@@ -15,7 +15,8 @@
     post/2,
     post/3,
     is_empty/0,
-    free_vertex/1
+    free_vertex/1,
+    queued_count/0
 ]).
 
 -include("records.hrl").
@@ -184,3 +185,8 @@ read_messages() ->
             read_messages()
     after 10 -> ok
     end.
+
+%todo implement
+queued_count()->
+   ok.
+
