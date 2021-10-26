@@ -2,7 +2,7 @@ version: '3'
 
 services:
     gmm_server:
-        image: gmmindexererlang_single_image:latest
+        image: gmmindexererlang:latest
         container_name: gmm_server
         stdin_open: true
         environment:
@@ -15,7 +15,7 @@ services:
             - 8080:8080
 
     gmm_server2:
-        image: gmmindexererlang_single_image:latest
+        image: gmmindexererlang:latest
         container_name: gmm_server2
         stdin_open: true
         environment:
@@ -28,7 +28,7 @@ services:
             - 8081:8081
 
     gmm_server3:
-        image: gmmindexererlang_single_image:latest
+        image: gmmindexererlang:latest
         container_name: gmm_server3
         stdin_open: true
         environment:
