@@ -15,6 +15,7 @@ services:
         container_name: gmm_server
         stdin_open: true
         environment:
+            - REDIS=false
             - ZONE_ID=zone0
             - GMM_REDIS_HOST=redis
             - GMM_REDIS_PORT=6379
@@ -40,6 +41,7 @@ services:
         container_name: gmm_server2
         stdin_open: true
         environment:
+            - REDIS=false
             - ZONE_ID=zone1
             - GMM_REDIS_HOST=redis2
             - GMM_REDIS_PORT=6380
@@ -65,6 +67,7 @@ services:
         container_name: gmm_server3
         stdin_open: true
         environment:
+            - REDIS=false
             - ZONE_ID=zone2
             - GMM_REDIS_HOST=redis3
             - GMM_REDIS_PORT=6381
