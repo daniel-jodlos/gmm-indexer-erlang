@@ -1,4 +1,4 @@
--module(naive_queries_SUITE).
+-module(naive_queries_redis_outside_SUITE).
 -include_lib("common_test/include/ct.hrl").
 -include_lib("stdlib/include/assert.hrl").
 

@@ -1,77 +1,41 @@
 version: '3'
 
 services:
-    redis:
-        image: redis:latest
-        container_name: redis
-        ports:
-            - 6379:6379
-        volumes:
-            - ./config/redis.conf:/redis.conf
-        command: [ "redis-server", "/redis.conf", "--port", "6379" ]
-
     gmm_server:
         image: gmmindexererlang:latest
         container_name: gmm_server
         stdin_open: true
         environment:
-            - ZONE_ID=zone1
-            - GMM_REDIS_HOST=redis
-            - GMM_REDIS_PORT=6379
+            - GMM_REDIS_HOST=127.0.0.1
+            - ZONE_ID=zone0
             - PORT=8080
         expose:
             - "8080"
         ports:
             - 8080:8080
-        depends_on:
-            - redis
-
-    redis2:
-        image: redis:latest
-        container_name: redis2
-        ports:
-            - 6380:6380
-        volumes:
-            - ./config/redis.conf:/redis.conf
-        command: [ "redis-server", "/redis.conf", "--port", "6380" ]
 
     gmm_server2:
         image: gmmindexererlang:latest
         container_name: gmm_server2
         stdin_open: true
         environment:
-            - ZONE_ID=zone2
-            - GMM_REDIS_HOST=redis2
-            - GMM_REDIS_PORT=6380
+            - GMM_REDIS_HOST=127.0.0.1
+            - ZONE_ID=zone1
             - PORT=8081
         expose:
             - "8081"
         ports:
             - 8081:8081
-        depends_on:
-            - redis2
-
-    redis3:
-        image: redis:latest
-        container_name: redis3
-        ports:
-            - 6381:6381
-        volumes:
-            - ./config/redis.conf:/redis.conf
-        command: [ "redis-server", "/redis.conf", "--port", "6381" ]
 
     gmm_server3:
         image: gmmindexererlang:latest
         container_name: gmm_server3
         stdin_open: true
         environment:
-            - ZONE_ID=zone3
-            - GMM_REDIS_HOST=redis3
-            - GMM_REDIS_PORT=6381
+            - GMM_REDIS_HOST=127.0.0.1
+            - ZONE_ID=zone2
             - PORT=8082
         expose:
             - "8082"
         ports:
             - 8082:8082
-        depends_on:
-            - redis3
