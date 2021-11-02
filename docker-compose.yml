@@ -1,40 +1,43 @@
 version: '3'
 
 services:
-    gmm_server:
+    zone0:
         image: gmmindexererlang:latest
-        container_name: gmm_server
+        container_name: zone0
         stdin_open: true
         environment:
             - GMM_REDIS_HOST=127.0.0.1
             - ZONE_ID=zone0
             - PORT=8080
+            - LOCAL_TESTS=true
         expose:
             - "8080"
         ports:
             - 8080:8080
 
-    gmm_server2:
+    zone1:
         image: gmmindexererlang:latest
-        container_name: gmm_server2
+        container_name: zone1
         stdin_open: true
         environment:
             - GMM_REDIS_HOST=127.0.0.1
             - ZONE_ID=zone1
             - PORT=8081
+            - LOCAL_TESTS=true
         expose:
             - "8081"
         ports:
             - 8081:8081
 
-    gmm_server3:
+    zone2:
         image: gmmindexererlang:latest
-        container_name: gmm_server3
+        container_name: zone2
         stdin_open: true
         environment:
             - GMM_REDIS_HOST=127.0.0.1
             - ZONE_ID=zone2
             - PORT=8082
+            - LOCAL_TESTS=true
         expose:
             - "8082"
         ports:

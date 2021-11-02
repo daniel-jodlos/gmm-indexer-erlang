@@ -134,5 +134,5 @@ start_server() ->
 
 -spec get_port() -> integer().
 get_port() ->
-    EnvVar = os:getenv("PORT", "8080"),
+    EnvVar = os:getenv("PORT", "80"),
     list_to_integer(EnvVar).
