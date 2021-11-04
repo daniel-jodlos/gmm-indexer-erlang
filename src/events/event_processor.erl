@@ -29,7 +29,7 @@ process_child_change(Vertex, Event) ->
             graph:add_intermediate_vertex(Child, Vertex, Vertex, Sender),
             {ok, Updated} = graph:add_effective_child(Vertex, Child),
             recalculatePermissions(Child, Vertex),
-            {ok, Result} = gmm_utils:parse_boolean(Updated),
+            {ok, Result} = parser:parse_boolean(Updated),
             Result
         end, Verticies),
     NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVertices">> => EffectiveChildren},
@@ -63,7 +63,7 @@ process_parent_change(Vertex, Event) ->
         lists:filter(fun (Parent) ->
             graph:add_intermediate_vertex(Vertex, Parent, Vertex, Sender),
             {ok, Updated} = graph:add_effective_parent(Vertex, Parent),
-            {ok, Result} = gmm_utils:parse_boolean(Updated),
+            {ok, Result} = parser:parse_boolean(Updated),
             Result
         end, Verticies),
     NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVertices">> => EffectiveParents},

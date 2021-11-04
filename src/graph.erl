@@ -446,7 +446,7 @@ post_events_about_effective_parents(Vertex, TargetVertex, Type) ->
     inbox:post(TargetVertex, Event).
 
 test() ->
-    gmm_utils:set_indexation_enabled(true),
+    settings:set_indexation_enabled(true),
     A = <<"zone0:A">>,
     B = <<"zone0:B">>,
     C = <<"zone0:C">>,
