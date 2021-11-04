@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-    redis:
+    redis0:
         image: redis:latest
         container_name: redis
         ports:
@@ -10,7 +10,7 @@ services:
             - ./config/redis.conf:/redis.conf
         command: [ "redis-server", "/redis.conf", "--port", "6379" ]
 
-    gmm_server:
+    zone0:
         image: gmmindexererlang:latest
         container_name: gmm_server
         stdin_open: true
@@ -20,14 +20,15 @@ services:
             - GMM_REDIS_HOST=redis
             - GMM_REDIS_PORT=6379
             - PORT=8080
+            - LOCAL_TESTS=true
         expose:
             - "8080"
         ports:
             - 8080:8080
         depends_on:
-            - redis
+            - redis0
 
-    redis2:
+    redis1:
         image: redis:latest
         container_name: redis2
         ports:
@@ -36,7 +37,7 @@ services:
             - ./config/redis.conf:/redis.conf
         command: [ "redis-server", "/redis.conf", "--port", "6380" ]
 
-    gmm_server2:
+    zone1:
         image: gmmindexererlang:latest
         container_name: gmm_server2
         stdin_open: true
@@ -46,14 +47,15 @@ services:
             - GMM_REDIS_HOST=redis2
             - GMM_REDIS_PORT=6380
             - PORT=8081
+            - LOCAL_TESTS=true
         expose:
             - "8081"
         ports:
             - 8081:8081
         depends_on:
-            - redis2
+            - redis1
 
-    redis3:
+    redis2:
         image: redis:latest
         container_name: redis3
         ports:
@@ -62,7 +64,7 @@ services:
             - ./config/redis.conf:/redis.conf
         command: [ "redis-server", "/redis.conf", "--port", "6381" ]
 
-    gmm_server3:
+    zone2:
         image: gmmindexererlang:latest
         container_name: gmm_server3
         stdin_open: true
@@ -72,9 +74,10 @@ services:
             - GMM_REDIS_HOST=redis3
             - GMM_REDIS_PORT=6381
             - PORT=8082
+            - LOCAL_TESTS=true
         expose:
             - "8082"
         ports:
             - 8082:8082
         depends_on:
-            - redis3
+            - redis2
