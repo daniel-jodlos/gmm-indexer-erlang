@@ -1,4 +1,4 @@
--module(naive_queries_SUITE).
+-module(naive_queries_redis_outside_SUITE).
 -include_lib("common_test/include/ct.hrl").
 -include_lib("stdlib/include/assert.hrl").
 
@@ -147,5 +147,5 @@ operations_after_graph_update_test(_Config) ->
     ?assertEqual(true, ReachesResponse4),
 
     ?assertEqual(<<"10101">>, EPResponse1),
-    ?assertEqual(<<"01100">>, EPResponse2),
+    ?assertEqual(<<"00000">>, EPResponse2),
     ?assertEqual(<<"01010">>, EPResponse3).

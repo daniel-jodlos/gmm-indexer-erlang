@@ -13,7 +13,8 @@
     init/2,
     allowed_methods/2,
     content_types_accepted/2,
-    resource_exists/2
+    resource_exists/2,
+    execute_operation/6
 ]).
 
 -export([
@@ -27,22 +28,22 @@
 %%%---------------------------
 
 init(Req, State = #{operation := Op}) when Op == add; Op == update ->
-    NewState = gmm_utils:parse_rest_params(Req, State,
+    NewState = parser:parse_rest_params(Req, State,
         [{from, nonempty}, {to, nonempty}, {permissions, nonempty}, {trace, [], <<"">>}, {successive, nonempty}],
         [{from, fun gmm_utils:validate_vertex_id/1}, {to, fun gmm_utils:validate_vertex_id/1},
-            {successive, fun gmm_utils:parse_boolean/1}]),
+            {successive, fun parser:parse_boolean/1}]),
     {cowboy_rest, Req, NewState};
 init(Req, State = #{operation := delete}) ->
-    NewState = gmm_utils:parse_rest_params(Req, State,
+    NewState = parser:parse_rest_params(Req, State,
         [{from, nonempty}, {to, nonempty}, {trace, [], <<"">>}, {successive, nonempty}],
         [{from, fun gmm_utils:validate_vertex_id/1}, {to, fun gmm_utils:validate_vertex_id/1},
-            {successive, fun gmm_utils:parse_boolean/1}]),
+            {successive, fun parser:parse_boolean/1}]),
     case NewState of
         bad_request -> {cowboy_rest, Req, bad_request};
         _ -> {cowboy_rest, Req, maps:merge(NewState, #{permissions => undefined})}
     end;
 init(Req0, State = #{operation := bulk}) ->
-    {Req, NewState} = gmm_utils:parse_rest_body(Req0, State, fun parse_bulk_request/1),
+    {Req, NewState} = parser:parse_rest_body(Req0, State, fun parse_bulk_request/1),
     {cowboy_rest, Req, NewState};
 init(Req, _) ->
     {cowboy_rest, Req, bad_request}.
@@ -65,7 +66,6 @@ from_json(Req, State = #{operation := Op, from := From, to := To, permissions :=
     ok = execute_operation(Op, From, To, Permissions, Trace, Successive),
     {true, Req, State};
 from_json(Req, State = #{operation := bulk, body := #{src_zone := SrcZone, dst_zone := DstZone, successive := Successive, edges := Edges}}) ->
-    %% @todo execute bulk request parsed in init/2
     ok = execute_bulk_request(SrcZone, DstZone, Successive, Edges),
     {true, Req, State}.
 
@@ -185,121 +185,45 @@ modify_state(delete, From, To, _, _, _) ->
 %%%---------------------------
 %% bulk operation executor
 %%%---------------------------
--spec replace(T, T, [T]) -> [T].
-replace(Element, Replacement, [Element | T]) ->
-    [Replacement | T];
-replace(Element, Replacement, [H | T]) ->
-    [H | replace(Element, Replacement, T)];
-replace(_Element, _Replacement, []) ->
-    [].
-
 
 -spec conditions_met_bulk(SrcZone :: binary(), DstZone :: binary(), Successive :: boolean(), Edges :: list(map())) -> boolean().
 conditions_met_bulk(SrcZone, DstZone, Successive, Edges) ->
     Parent = self(),
-    Ref = erlang:make_ref(),
 
     Pids = lists:map(fun(#{from := FromName, to := ToName, permissions := _Permissions, trace := _Trace}) ->
         spawn(fun() ->
-            Result = try
-                         From = gmm_utils:create_vertex_id(SrcZone,  FromName),
-                         To = gmm_utils:create_vertex_id(DstZone, ToName),
-                         Vertex = case Successive of false -> From; true -> To end,
-                         case [graph:vertex_exists(Vertex), graph:edge_exists(From, To)] of
-                             [{ok, true}, {ok, false}] -> true;
-                             _ -> false
-                         end
-                     catch Type:Reason:Stacktrace ->
-                {'$pmap_error', self(), Type, Reason, Stacktrace}
-                     end,
-            Parent ! {Ref, self(), Result}
-              end)
-                     end, Edges),
+            Result =
+                try From = gmm_utils:create_vertex_id(SrcZone,  FromName),
+                    To = gmm_utils:create_vertex_id(DstZone, ToName),
+                    Vertex = case Successive of false -> From; true -> To end,
+                    case [graph:vertex_exists(Vertex), graph:edge_exists(From, To)] of
+                        [{ok, true}, {ok, false}] -> true;
+                        _ -> false
+                    end
+                catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
+            Parent ! {self(), Result} end) end, Edges),
 
     % GATHERING RESULTS
-    Gather = fun
-    %PidsOrResults is initially the list of pids, gradually replaced by corresponding results
-                 F(PendingPids = [_ | _], PidsOrResults) ->
-                     receive
-                         {Ref, Pid, Result} ->
-                             NewPidsOrResults = replace(Pid, Result, PidsOrResults),
-                             F(lists:delete(Pid, PendingPids), NewPidsOrResults)
-                     after 5000 ->
-                         case lists:any(fun erlang:is_process_alive/1, PendingPids) of
-                             true ->
-                                 F(PendingPids, PidsOrResults);
-                             false ->
-                                 error({parallel_call_failed, {processes_dead, Pids}})
-                         end
-                     end;
-                 % wait for all pids to report back and then look for errors
-                 F([], AllResults) ->
-                     Errors = lists:filtermap(fun
-                                                  ({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
-                                                      {true, {Pid, Type, Reason, Stacktrace}};
-                                                  (_) ->
-                                                      false
-                                              end, AllResults),
-
-                     case Errors of
-                         [] ->
-                             lists:all(fun(X) -> X end, AllResults);
-                         _ ->
-                             false
-                     end
-             end,
-    Gather(Pids, Pids).
+    parallel_utils:gather(conditions, Pids).
 
 -spec modify_state_bulk(SrcZone :: binary(), DstZone :: binary(), Edges :: list(map()), Successive :: boolean(), OneZoneOperation :: boolean()) -> ok | {error, any()}.
 modify_state_bulk(_, _, _, false, true) ->
     ok;
 modify_state_bulk(SrcZone, DstZone, Edges, _, _)->
     Parent = self(),
-    Ref = erlang:make_ref(),
 
-    Pids = lists:map(fun(#{from := FromName, to := ToName, permissions := Permissions, trace := _Trace}) ->
-        spawn(fun() ->
-            Result = try
-                         graph:create_edge(gmm_utils:create_vertex_id(SrcZone,  FromName), gmm_utils:create_vertex_id(DstZone, ToName), Permissions)
-                    catch Type:Reason:Stacktrace ->
-                        {'$pmap_error', self(), Type, Reason, Stacktrace}
-                    end,
-                    Parent ! {Ref, self(), Result}
+    Pids = lists:map(
+        fun(#{from := FromName, to := ToName, permissions := Permissions, trace := _Trace}) ->
+            spawn(
+                fun() ->
+                    Result = try graph:create_edge(gmm_utils:create_vertex_id(SrcZone,  FromName), gmm_utils:create_vertex_id(DstZone, ToName), Permissions)
+                            catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
+                    Parent ! {self(), Result}
                 end)
-            end, Edges),
+        end, Edges),
 
     % GATHERING RESULTS
-    Gather = fun
-    %PidsOrResults is initially the list of pids, gradually replaced by corresponding results
-                 F(PendingPids = [_ | _], PidsOrResults) ->
-                     receive
-                         {Ref, Pid, Result} ->
-                             NewPidsOrResults = replace(Pid, Result, PidsOrResults),
-                             F(lists:delete(Pid, PendingPids), NewPidsOrResults)
-                     after 5000 ->
-                         case lists:any(fun erlang:is_process_alive/1, PendingPids) of
-                             true ->
-                                 F(PendingPids, PidsOrResults);
-                             false ->
-                                 error({parallel_call_failed, {processes_dead, Pids}})
-                         end
-                     end;
-                 % wait for all pids to report back and then look for errors
-                 F([], AllResults) ->
-                     Errors = lists:filtermap(fun
-                                                  ({'$pmap_error', Pid, Type, Reason, Stacktrace}) ->
-                                                      {true, {Pid, Type, Reason, Stacktrace}};
-                                                  (_) ->
-                                                      false
-                                              end, AllResults),
-                     case Errors of
-                         [] ->
-                             ok;
-                         _ ->
-                             {error, Errors}
-                     end
-             end,
-    Gather(Pids, Pids).
+    parallel_utils:gather(no_conditions, Pids).
 
 
 -spec execute_locally_bulk(SrcZone :: binary(), DstZone :: binary(), Successive :: boolean(), Edges :: list(map())) -> ok | {error, any()}.

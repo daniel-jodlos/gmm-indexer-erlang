@@ -29,18 +29,18 @@
 %%%---------------------------
 
 init(Req = #{method := <<"POST">>}, State = #{operation := add}) ->
-    NewState = gmm_utils:parse_rest_params(Req, State, [{type, nonempty}, {name, nonempty}], []),
+    NewState = parser:parse_rest_params(Req, State, [{type, nonempty}, {name, nonempty}], []),
     {cowboy_rest, Req, NewState};
 init(Req = #{method := <<"GET">>}, State = #{operation := details}) ->
-    NewState = gmm_utils:parse_rest_params(Req, State, [{id, nonempty}], [{id, fun gmm_utils:validate_vertex_id/1}]),
+    NewState = parser:parse_rest_params(Req, State, [{id, nonempty}], [{id, fun gmm_utils:validate_vertex_id/1}]),
     {cowboy_rest, Req, NewState};
 init(Req = #{method := <<"GET">>}, State = #{operation := listing}) ->
     {cowboy_rest, Req, State};
 init(Req = #{method := <<"POST">>}, State = #{operation := delete}) ->
-    NewState = gmm_utils:parse_rest_params(Req, State, [{id, nonempty}], [{id, fun gmm_utils:validate_vertex_id/1}]),
+    NewState = parser:parse_rest_params(Req, State, [{id, nonempty}], [{id, fun gmm_utils:validate_vertex_id/1}]),
     {cowboy_rest, Req, NewState};
 init(Req0 = #{method := <<"POST">>}, State = #{operation := bulk}) ->
-    {Req, NewState} = gmm_utils:parse_rest_body(Req0, State, fun parse_bulk_list/1),
+    {Req, NewState} = parser:parse_rest_body(Req0, State, fun parse_bulk_list/1),
     {cowboy_rest, Req, NewState};
 init(Req, _) ->
     {cowboy_rest, Req, bad_request}.
@@ -93,10 +93,12 @@ from_json(Req, State = #{operation := add, type := Type, name := Name}) ->
 from_json(Req, State = #{operation := delete, id := Id}) ->
     ok = graph:remove_vertex(Id),
     {true, Req, State};
+%from_json(Req, State = #{operation := bulk, body := List}) ->
+%    lists:foreach(fun({Type, Name}) -> {ok, _} = graph:create_vertex(Type, Name) end, List),
+%    {true, Req, State}.
 from_json(Req, State = #{operation := bulk, body := List}) ->
-    lists:foreach(fun({Type, Name}) -> {ok, _} = graph:create_vertex(Type, Name) end, List),
+    ok = modify_state_bulk(List),
     {true, Req, State}.
-
 %% GET handler
 to_json(Req, State = #{operation := details, id := Id}) ->
     {ok, Details} = graph:get_vertex(Id),
@@ -105,7 +107,24 @@ to_json(Req, State = #{operation := listing}) ->
     {ok, Vertices} = graph:list_vertices(),
     {gmm_utils:encode(Vertices), Req, State}.
 
+%%% BULK handler
 
+-spec modify_state_bulk(Vertices :: list({binary(), binary()})) -> ok | {error, any()}.
+modify_state_bulk(Vertices)->
+    Parent = self(),
+
+    Pids = lists:map(
+        fun({Type, Name}) ->
+            spawn(fun() ->
+                Result = try graph:create_vertex(Type, Name)
+                        catch Type:Reason:Stacktrace -> {'$pmap_error', self(), Type, Reason, Stacktrace} end,
+
+                Parent ! {self(), Result}
+            end)
+        end, Vertices),
+
+    % GATHERING RESULTS
+    parallel_utils:gather(no_conditions, Pids).
 %%%---------------------------
 %% internal functions
 %%%---------------------------

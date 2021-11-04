@@ -32,8 +32,9 @@ start_link() ->
 
 init([]) ->
     %% create ets tables
-    ets:new(outboxes, [named_table, public]),
-    inbox:create_ets_tables(),
+    settings:create_ets(),
+    outbox:create_ets(),
+    inbox:create_ets(),
 
     %% spawn child processes
     SupFlags = #{

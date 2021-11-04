@@ -1,4 +1,3 @@
-
 FROM erlang:alpine
 
 RUN mkdir /buildroot
@@ -17,8 +16,13 @@ RUN rebar3 as prod release
 FROM erlang:alpine
 
 RUN apk add --no-cache openssl && \
-    apk add --no-cache ncurses-libs
+    apk add --no-cache ncurses-libs && \
+    apk add --no-cache redis
 
 COPY --from=0 /buildroot/_build/prod/rel/prod /prod
+COPY config/redis.conf .
+COPY ./entrypoint.sh .
 
-CMD ["/prod/bin/prod", "console"]
+RUN chmod 777 ./entrypoint.sh
+
+ENTRYPOINT [ "./entrypoint.sh" ]

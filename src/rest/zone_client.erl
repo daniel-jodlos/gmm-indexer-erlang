@@ -16,12 +16,12 @@
 
 %% API
 -export([
-    healthcheck/1, %% @todo optional
-    index_ready/1, %% @todo ignore
-    is_adjacent/3, %% @todo necessary
+    healthcheck/1,
+    index_ready/1,
+    is_adjacent/3,
     list_adjacent/2, %% @todo important
     list_adjacent_reversed/2, %% @todo important
-    permissions/3, %% @todo necessary
+    permissions/3,
     add_edge/5,
     add_edge/6, %% @todo necessary
     add_edges/2, %% @todo optional
@@ -36,9 +36,9 @@
     get_event_stats/1, %% @todo ignore
     get_dependent_zones/1, %% @todo necessary later now optional
     get_dependent_zones/2, %% @todo necessary later now optional
-    is_instrumentation_enabled/1, %% @todo ???
-    set_instrumentation_enabled/2, %% @todo ???
-    set_indexation_enabled/2, %% @todo ignore
+    is_instrumentation_enabled/1,
+    set_instrumentation_enabled/2,
+    set_indexation_enabled/2,
     simulate_load/2, %% @todo ignore
     wait_for_index/2, %% @todo ignore
     reaches/4,
