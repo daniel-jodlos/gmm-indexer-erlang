@@ -33,13 +33,14 @@ get_address(_) ->
 
 -spec build_url(Address :: binary(), Path :: binary()) -> binary().
 build_url(Address, Path) ->
-    << Address/binary, "/", Path/binary >>.
+    binary:replace(<< Address/binary, "/", Path/binary >>, <<" ">>, <<"_">>, [global]).
 
 -spec build_url(Address :: binary(), Path :: binary(), Params :: list({binary(), binary()})) -> binary().
 build_url(Address, Path, []) ->
     build_url(Address, Path);
 build_url(Address, Path, [{FirstPar, FirstVal} | Rest]) ->
     Base = << Address/binary, "/", Path/binary, "?", FirstPar/binary, "=", FirstVal/binary >>,
-    lists:foldl(
+    Url = lists:foldl(
         fun({Param, Value}, Acc) -> << Acc/binary, "&", Param/binary, "=", Value/binary >> end,
-        Base, Rest).
+        Base, Rest),
+    binary:replace(Url, <<" ">>, <<"_">>, [global]).

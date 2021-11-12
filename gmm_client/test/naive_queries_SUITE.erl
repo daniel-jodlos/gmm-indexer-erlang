@@ -113,7 +113,7 @@ operations_after_graph_update_test(_Config) ->
     ok = client:set_permissions(<<"zone1:Group3">>, <<"zone2:Group4">>, <<"00010">>, <<"trace9">>),
     ok = client:set_permissions(<<"zone2:Space4">>, <<"zone1:Provider2">>, <<"01010">>, <<"trace12">>),
     ok = client:add_edge(<<"zone1:Group2">>, <<"zone2:Provider3">>, <<"01101">>, <<"trace13">>),
-    {error, _} = client:add_edge(<<"zone2:User5">>, <<"zone2:Space3">>, <<"01101">>, <<"trace14">>),
+    ok = client:add_edge(<<"zone2:User5">>, <<"zone1:Space3">>, <<"01101">>, <<"trace14">>),
     %% @todo I think that there should be separate test for the case when we want edge creation to fail
     %%       and I suspect that it wasn't intentional, which suggests to check all those tests once more
 
@@ -147,5 +147,5 @@ operations_after_graph_update_test(_Config) ->
     ?assertEqual(true, ReachesResponse4),
 
     ?assertEqual(<<"10101">>, EPResponse1),
-    ?assertEqual(<<"00000">>, EPResponse2),
+    ?assertEqual(<<"01100">>, EPResponse2),
     ?assertEqual(<<"01010">>, EPResponse3).

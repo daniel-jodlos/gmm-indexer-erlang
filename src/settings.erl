@@ -37,7 +37,7 @@ create_ets() ->
     LocalTests = os:getenv("LOCAL_TESTS") =/= false,
 
     ets:new(?TABLE, [named_table, public, {read_concurrency, true}]),
-    ets:insert(?TABLE, {?INDEXATION, false}),
+    ets:insert(?TABLE, {?INDEXATION, true}),
     ets:insert(?TABLE, {?INSTRUMENTATION, false}),
     ets:insert(?TABLE, {?EVENTS_BATCH_SIZE, 5}),
     ets:insert(?TABLE, {?LOCAL_TESTS, LocalTests}).
