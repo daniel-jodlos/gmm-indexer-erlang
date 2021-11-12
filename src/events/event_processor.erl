@@ -9,18 +9,17 @@ async_process(Vertex, Event) ->
     spawn(?MODULE, process, [Vertex, Event]).
     
 process(Vertex, Event) ->
-    base_instrumentation:event_started(Vertex, Event),
-    #{<<"type">> := Type} = Event,
-    case Type of
-        <<"child/updated">> -> process_child_change(Vertex, Event);
-        <<"child/removed">> -> process_child_removed(Vertex, Event);
-        <<"parent/updated">> -> process_parent_change(Vertex, Event);
-        <<"parent/removed">> -> process_parent_removed(Vertex, Event)
-    end,
-    base_instrumentation:event_finished(Vertex, Event),
-    inbox:free_vertex(Vertex),
+    try 
+        #{<<"type">> := Type} = Event,
+        case Type of
+            <<"child/updated">> -> process_child_change(Vertex, Event);
+            <<"child/removed">> -> process_child_removed(Vertex, Event);
+            <<"parent/updated">> -> process_parent_change(Vertex, Event);
+            <<"parent/removed">> -> process_parent_removed(Vertex, Event)
+        end,
+        inbox:free_vertex(Vertex)
+    catch _:_ -> inbox:free_vertex(Vertex) end,
     ok.
-    
     
 process_child_change(Vertex, Event) ->
     #{<<"effectiveVertices">> := Verticies, <<"sender">> := Sender} = Event,
@@ -108,7 +107,6 @@ calculatePermissions(From, To) ->
             _other -> <<"00000">>
         end
     end, Intermediate),
-    io:format("DUPA: ~p~n", [IntermediatePermissions]),
     lists:foldl(fun (A, B) -> gmm_utils:permissions_or(A, B) end, <<"00000">>, IntermediatePermissions).
     
 propagate(Targets, Event) ->

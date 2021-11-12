@@ -22,8 +22,7 @@
     vertex_exists/1,
     get_vertex/1,
     list_vertices/0,
-    list_vertices/1,
-    test/0
+    list_vertices/1
 ]).
 
 %% API for edges
@@ -433,42 +432,12 @@ remove_effective_child(Vertex, Child) ->
 -spec effective_list_children(Vertex :: binary()) -> list(binary()).
 effective_list_children(Vertex) -> do_list(persistence:set_list_members(effective_children_id(Vertex))).
 
-%% @TODO change shape of the event to be compliant with "standard" (ask Pawel for details)
-
 post_events_about_effective_children(Vertex, TargetVertex, Type) ->
     Children = effective_list_children(Vertex),
-    Event = #{<<"id">> => gmm_utils:uuid(), <<"type">> => <<"child/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVertices">> => [Vertex | Children], <<"trace">> => <<"null">>},
+    Event = #{<<"id">> => gmm_utils:uuid(), <<"type">> => <<"child/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVertices">> => [Vertex | Children], <<"trace">> => gmm_utils:uuid()},
     inbox:post(TargetVertex, Event).
 
 post_events_about_effective_parents(Vertex, TargetVertex, Type) ->
     Parents = effective_list_parents(Vertex),
-    Event = #{<<"id">> => gmm_utils:uuid(), <<"type">> => <<"parent/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVertices">> => [Vertex | Parents], <<"trace">> => <<"null">>},
+    Event = #{<<"id">> => gmm_utils:uuid(), <<"type">> => <<"parent/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVertices">> => [Vertex | Parents], <<"trace">> => gmm_utils:uuid()},
     inbox:post(TargetVertex, Event).
-
-test() ->
-    settings:set_indexation_enabled(true),
-    A = <<"zone0:A">>,
-    B = <<"zone0:B">>,
-    C = <<"zone0:C">>,
-    D = <<"zone0:D">>,
-    E = <<"zone0:E">>,
-    F = <<"zone0:F">>,
-    Perms = <<"11111">>,
-    create_edge(A, B, Perms),
-    create_edge(A, D, Perms),
-    timer:sleep(1000),
-    io:format("Next test case~n"),
-    create_edge(D, C, Perms),
-    timer:sleep(1000),
-    io:format("Next test case~n"),
-    create_edge(B, C, Perms),
-    timer:sleep(1000),
-    io:format("Next test case~n"),
-    create_edge(E, A, Perms),
-    timer:sleep(1000),
-    io:format("Next test case~n"),
-    create_edge(C, F, Perms),
-    timer:sleep(1000),
-    io:format("Next test case~n"),
-    remove_edge(E, A),
-    ok.

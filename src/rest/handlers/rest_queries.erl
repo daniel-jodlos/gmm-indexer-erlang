@@ -269,5 +269,4 @@ effective_permissions_indexed(From, To) ->
 
 -spec members_indexed(binary()) -> {ok, list(binary())} | {error, any()}.
 members_indexed(Of) ->
-    % {ok, graph:effective_list_children(Of) ++ graph:effective_list_parents(Of)}.
     {ok, graph:effective_list_children(Of)}.

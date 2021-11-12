@@ -143,5 +143,4 @@ validate_event(#{<<"type">> := Type, <<"trace">> := Trace, <<"sender">> := Sende
         false -> {error, "One of event's parameters is invalid"}
     end;
 validate_event(Event) ->
-    erlang:display(Event),
     {error, "Event's JSON in a wrong format"}.
