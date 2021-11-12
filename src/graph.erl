@@ -62,29 +62,33 @@
 %% VERTICES API
 %%%---------------------------
 
--spec generate_id(binary()) -> {ok, binary()} | {error, any()}.
-generate_id(Name) ->
+-spec get_or_generate_id(binary()) -> {ok, binary()} | {already_exists, binary()} | {error, any()}.
+get_or_generate_id(Name) ->
     Id = gmm_utils:create_vertex_id(Name),
     case persistence:exists(Id) of
         {ok, false} -> {ok, Id};
-        {ok, true} -> {error, "Vertex exists"};
+        {ok, true} -> {already_exists, Id};
         {error, Reason} -> {error, Reason}
     end.
 
 
 -spec create_vertex(Type :: binary(), Name :: binary()) -> {ok, binary()} | {error, any()}.
 create_vertex(Type, Name) ->
-    {ok, Id} = generate_id(Name),
-    Json =
-        gmm_utils:encode(#{
-            <<"type">> => Type,
-            <<"id">> => Id,
-            <<"name">> => Name,
-            <<"zone">> => gmm_utils:zone_id()
-        }),
-    case persistence:set(Id, Json) of
-        {error, Reason} -> {error, Reason};
-        {ok, _Result} -> {ok, Id}
+    case get_or_generate_id(Name) of
+        {ok, Id} ->
+            Json =
+                gmm_utils:encode(#{
+                    <<"type">> => Type,
+                    <<"id">> => Id,
+                    <<"name">> => Name,
+                    <<"zone">> => gmm_utils:zone_id()
+                }),
+            case persistence:set(Id, Json) of
+                {error, Reason} -> {error, Reason};
+                {ok, _Result} -> {ok, Id}
+            end;
+        {already_exists, Id} -> {ok, Id};
+        {error, Reason} -> error(Reason)
     end.
 
 

@@ -39,7 +39,7 @@ resource_exists(Req, State) ->
 
 operation_type(Type)->
     case Type of
-        <<"a">> -> create;
+        <<"a">> -> add;
         <<"p">> -> update;
         <<"r">> -> delete
     end.
