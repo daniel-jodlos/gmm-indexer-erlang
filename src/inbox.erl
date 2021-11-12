@@ -152,7 +152,7 @@ schedule_events(Set) ->
                 Idx = ets:update_counter(i_state_of_queues, Vertex, {2, 1}),
                 Event = ets:lookup_element(i_events, {Vertex, Idx}, 2),
                 ets:update_element(i_state_of_queues, Vertex, {4, false}),
-                event_processor:async_process(Vertex, Event), %% todo -- check if this is correct; perhaps it should take Vertex too
+                event_processor:async_process(Vertex, Event),
                 ets:delete(i_events, {Vertex, Idx}),
                 sets:del_element(Vertex, SetAcc)
                 %% todo -- delete it if processor can process any number of events; utilize this code if not
@@ -181,7 +181,7 @@ read_messages() ->
             case Free and (C1 < C2) of
                 true -> mark_queue_as_ready_for_scheduling(Vertex);
                 false -> ok
-            end, 
+            end,
             read_messages()
     after 10 -> ok
     end.
