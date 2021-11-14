@@ -53,11 +53,7 @@ init([]) ->
         intensity => 0,
         period => 1
     },
-    %RedisSpecs = create_redis_spec([], ?CLIENT_NUMBER) ++ outbox:specs_for_supervisor(),
-    RedisSpec = #{
-        id => ?REDIS_SERVER,
-        start => {persistence, create_redis_client, [1]}
-    },
+    RedisSpecs = [create_redis_spec([], ?CLIENT_NUMBER) | outbox:specs_for_supervisor()],
     InboxDispatcherSpec = #{
         id => << "inbox_dispatcher" >>,
         start => {inbox, start_link, []}
@@ -66,5 +62,5 @@ init([]) ->
         id => <<"instrumentation">>,
         start => {instrumentation, start_link, []}
     },
-    ChildSpecs = [InstrumentationSpecs, InboxDispatcherSpec, RedisSpec | outbox:specs_for_supervisor()],
+    ChildSpecs = [InstrumentationSpecs, InboxDispatcherSpec |  RedisSpecs],
     {ok, {SupFlags, ChildSpecs}}.
