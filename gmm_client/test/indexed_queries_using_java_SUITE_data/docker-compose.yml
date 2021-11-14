@@ -55,6 +55,6 @@ services:
         volumes:
             - ./entrypoint.sh:/entrypoint.sh
             - ./graph.json:/graph.json
-            - ../../../config/config.json:/config/config.json
+            - ./config.json:/config/config.json
         entrypoint:
             - ./entrypoint.sh
