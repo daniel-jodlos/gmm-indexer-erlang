@@ -23,6 +23,8 @@
 %%%---------------------------
 
 -spec parse_boolean(binary()) -> {ok, boolean()} | {error, any()}.
+parse_boolean(<<"1">>) -> {ok, true};
+parse_boolean(<<"0">>) -> {ok, false};
 parse_boolean(<<"true">>) -> {ok, true};
 parse_boolean(<<"false">>) -> {ok, false};
 parse_boolean(X) -> {error, {not_a_binary_bool, X}}.

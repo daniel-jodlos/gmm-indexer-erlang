@@ -111,10 +111,10 @@ parse_bulk_events(Bin) ->
                 fun
                     (#{<<"vn">> := VertexName, <<"e">> := Event}) when is_binary(VertexName) ->
                         case validate_event(Event) of
-                            ok -> #{
+                            ok -> {ok, #{
                                 vertex => gmm_utils:create_vertex_id(VertexName),
                                 event => maps:put(<<"id">>, gmm_utils:uuid(), Event)
-                            };
+                            }};
                             {error, R} -> {error, R}
                         end;
                     (_) -> {error, "Invalid JSON"}
@@ -142,5 +142,5 @@ validate_event(#{<<"type">> := Type, <<"trace">> := Trace, <<"sender">> := Sende
         true -> ok;
         false -> {error, "One of event's parameters is invalid"}
     end;
-validate_event(_) ->
+validate_event(Event) ->
     {error, "Event's JSON in a wrong format"}.

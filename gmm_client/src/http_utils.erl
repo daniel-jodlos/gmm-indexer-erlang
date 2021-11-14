@@ -21,11 +21,11 @@
 
 -spec get_address(Zone :: binary()) -> {ok, binary()} | {error, any()}.
 get_address(<<"zone0">>) ->
-    {ok, <<"localhost:8080">>};
+    {ok, <<"127.0.0.1:8080">>};
 get_address(<<"zone1">>) ->
-    {ok, <<"localhost:8081">>};
+    {ok, <<"127.0.0.1:8081">>};
 get_address(<<"zone2">>) ->
-    {ok, <<"localhost:8082">>};
+    {ok, <<"127.0.0.1:8082">>};
 get_address(_) ->
     {error, "Zone not found"}.
 
@@ -33,7 +33,7 @@ get_address(_) ->
 
 -spec build_url(Address :: binary(), Path :: binary()) -> binary().
 build_url(Address, Path) ->
-    binary:replace(<< Address/binary, "/", Path/binary >>, <<" ">>, <<"">>, [global]).
+    binary:replace(<< Address/binary, "/", Path/binary >>, <<" ">>, <<"_">>, [global]).
 
 -spec build_url(Address :: binary(), Path :: binary(), Params :: list({binary(), binary()})) -> binary().
 build_url(Address, Path, []) ->
@@ -43,4 +43,4 @@ build_url(Address, Path, [{FirstPar, FirstVal} | Rest]) ->
     Url = lists:foldl(
         fun({Param, Value}, Acc) -> << Acc/binary, "&", Param/binary, "=", Value/binary >> end,
         Base, Rest),
-    binary:replace(Url, <<" ">>, <<"">>, [global]).
+    binary:replace(Url, <<" ">>, <<"_">>, [global]).

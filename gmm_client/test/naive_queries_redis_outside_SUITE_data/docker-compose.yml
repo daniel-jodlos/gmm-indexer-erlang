@@ -1,0 +1,83 @@
+version: '3'
+
+services:
+    redis0:
+        image: redis:latest
+        container_name: redis
+        ports:
+            - 6379:6379
+        volumes:
+            - ./config/redis.conf:/redis.conf
+        command: [ "redis-server", "/redis.conf", "--port", "6379" ]
+
+    zone0:
+        image: gmmindexererlang:latest
+        container_name: gmm_server
+        stdin_open: true
+        environment:
+            - REDIS=false
+            - ZONE_ID=zone0
+            - GMM_REDIS_HOST=redis
+            - GMM_REDIS_PORT=6379
+            - PORT=8080
+            - LOCAL_TESTS=true
+        expose:
+            - "8080"
+        ports:
+            - 8080:8080
+        depends_on:
+            - redis0
+
+    redis1:
+        image: redis:latest
+        container_name: redis2
+        ports:
+            - 6380:6380
+        volumes:
+            - ./config/redis.conf:/redis.conf
+        command: [ "redis-server", "/redis.conf", "--port", "6380" ]
+
+    zone1:
+        image: gmmindexererlang:latest
+        container_name: gmm_server2
+        stdin_open: true
+        environment:
+            - REDIS=false
+            - ZONE_ID=zone1
+            - GMM_REDIS_HOST=redis2
+            - GMM_REDIS_PORT=6380
+            - PORT=8081
+            - LOCAL_TESTS=true
+        expose:
+            - "8081"
+        ports:
+            - 8081:8081
+        depends_on:
+            - redis1
+
+    redis2:
+        image: redis:latest
+        container_name: redis3
+        ports:
+            - 6381:6381
+        volumes:
+            - ./config/redis.conf:/redis.conf
+        command: [ "redis-server", "/redis.conf", "--port", "6381" ]
+
+    zone2:
+        image: gmmindexererlang:latest
+        container_name: gmm_server3
+        stdin_open: true
+        environment:
+            - REDIS=false
+            - ZONE_ID=zone2
+            - GMM_REDIS_HOST=redis3
+            - GMM_REDIS_PORT=6381
+            - PORT=8082
+            - LOCAL_TESTS=true
+        expose:
+            - "8082"
+        ports:
+            - 8082:8082
+        depends_on:
+            - redis2

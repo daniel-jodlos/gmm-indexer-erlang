@@ -31,7 +31,7 @@
  create_redis_client(N)->
    Client = eredis:start_link(
     [
-      {host, os:getenv("GMM_REDIS_HOST", "localhost")},
+      {host, os:getenv("GMM_REDIS_HOST", "127.0.0.1")},
       {port, list_to_integer(os:getenv("GMM_REDIS_PORT", "6379"))}
     ]),
   case Client of

@@ -39,9 +39,9 @@ resource_exists(Req, State) ->
 
 operation_type(Type)->
     case Type of
-        <<"add">> -> create;
-        <<"perm">> -> update;
-        <<"del">> -> delete
+        <<"a">> -> add;
+        <<"p">> -> update;
+        <<"r">> -> delete
     end.
 
 %% POST handler
@@ -82,7 +82,7 @@ from_json(Req, State) ->
 %% internal functions
 %%%---------------------------
 
--spec parse_load_body(binary()) -> {ok, map()} | {error, any()}.
+-spec parse_load_body(binary()) -> {ok, list(map())} | {error, any()}.
 parse_load_body(Bin) ->
     case gmm_utils:decode(Bin) of
         #{<<"ops">> := List} when is_list(List) ->
@@ -92,10 +92,14 @@ parse_load_body(Bin) ->
                     {ok, #{op_type => Type, from => From, to => To, permissions => Permissions, trace => Trace}};
                     (_) -> {error, "Invalid JSON"}
                 end,
-            ValidatedList = lists:map(Validator, List),
-            case lists:all(fun({ok, _}) -> true; (_) -> false end, ValidatedList) of
-                true -> {ok, ValidatedList};
-                false -> {error, "Parsing JSON error"}
-            end;
+            lists:foldr(
+                fun
+                    (_, Err={error, _}) -> Err;
+                    (Err={error, _}, _) -> Err;
+                    ({ok, Op}, {ok, Acc}) -> {ok, [Op | Acc]}
+                end,
+                {ok, []},
+                lists:map(Validator, List)
+            );
         _ -> {error, "Invalid JSON"}
     end.

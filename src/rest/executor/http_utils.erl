@@ -20,14 +20,16 @@
 %% Router
 
 -spec get_address(Zone :: binary()) -> {ok, binary()} | {error, any()}.
-get_address(<<"zone0">>) ->
-    {ok, <<"zone0:8080">>};
-get_address(<<"zone1">>) ->
-    {ok, <<"zone1:8081">>};
-get_address(<<"zone2">>) ->
-    {ok, <<"zone2:8082">>};
 get_address(Zone) ->
-    {error, {zone_not_found, Zone}}.
+    case settings:get_local_tests() of
+        true -> {ok, <<Zone/binary, ":", (get_port(Zone))/binary>>};
+        false -> {ok, Zone}
+    end.
+
+get_port(Zone) ->
+    [<<>>, IdxBin] = binary:split(Zone, <<"zone">>),
+    Port = 8080 + binary_to_integer(IdxBin),
+    integer_to_binary(Port).
 
 %% URL builder
 
