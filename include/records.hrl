@@ -14,7 +14,7 @@
 
 -define(REDIS_CLIENT, "REDIS_CLIENT").
 
--define(CLIENT_NUMBER, 7).
+-define(CLIENT_NUMBER, 1).
 
 -define(CSV_FILE, "instrumentation.csv").
 
