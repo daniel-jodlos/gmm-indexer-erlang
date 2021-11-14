@@ -11,7 +11,8 @@
 -export(
   [
     create_redis_client/1,
-    prepare_client_queue/0
+    prepare_client_queue/0,
+    create_redis_spec/2
   ]
 ).
 -export(
@@ -27,7 +28,16 @@
     set_list_members/1
   ]
 ).
-
+create_redis_spec(Acc, N)->
+  case N of
+    0 -> Acc;
+    _ ->
+      RedisSpec = #{
+        id => "client" ++ integer_to_list(N),
+        start => {persistence, create_redis_client, [N]}
+      },
+      create_redis_spec([RedisSpec | Acc], N - 1)
+  end.
 %% gen_server api
  create_redis_client(N)->
    Client = eredis:start_link(

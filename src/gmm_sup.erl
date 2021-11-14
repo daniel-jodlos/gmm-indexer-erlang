@@ -30,17 +30,6 @@ start_link() ->
 %%                  type => worker(),       % optional
 %%                  modules => modules()}   % optional
 
-create_redis_spec(Acc, N)->
-    case N of
-        0 -> Acc;
-        _ ->
-            RedisSpec = #{
-                id => "client" ++ integer_to_list(N),
-                start => {persistence, create_redis_client, [N]}
-            },
-            create_redis_spec([RedisSpec | Acc], N - 1)
-    end.
-
 init([]) ->
     %% create ets tables
     settings:create_ets(),
@@ -53,7 +42,7 @@ init([]) ->
         intensity => 0,
         period => 1
     },
-    RedisSpecs = create_redis_spec([], ?CLIENT_NUMBER) ++ outbox:specs_for_supervisor(),
+    RedisSpecs = persistence:create_redis_spec([], ?CLIENT_NUMBER) ++ outbox:specs_for_supervisor(),
     InboxDispatcherSpec = #{
         id => << "inbox_dispatcher" >>,
         start => {inbox, start_link, []}
