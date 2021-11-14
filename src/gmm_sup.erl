@@ -34,8 +34,9 @@ create_redis_spec(Acc, N)->
     case N of
         0 -> Acc;
         _ ->
+            Id = "client" ++ integer_to_list(N),
             RedisSpec = #{
-                id => ?REDIS_SERVER,
+                id => <<Id>>,
                 start => {persistence, create_redis_client, [N]}
             },
             create_redis_spec([RedisSpec | Acc], N - 1)
