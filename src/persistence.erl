@@ -10,7 +10,9 @@
 
 -export(
   [
-    create_redis_client/0
+    create_redis_client/1,
+    prepare_client_queue/0,
+    create_redis_spec/2
   ]
 ).
 -export(
@@ -26,7 +28,16 @@
     set_list_members/1
   ]
 ).
-
+create_redis_spec(Acc, N)->
+  case N of
+    0 -> Acc;
+    _ ->
+      RedisSpec = #{
+        id => "client" ++ integer_to_list(N),
+        start => {persistence, create_redis_client, [N]}
+      },
+      create_redis_spec([RedisSpec | Acc], N - 1)
+  end.
 %% gen_server api
  create_redis_client(N)->
    Client = eredis:start_link(
@@ -36,22 +47,14 @@
     ]),
   case Client of
     {ok, ClientRef} ->
-      os:putenv(?REDIS_CLIENT ++ integer_to_list(N), pid_to_list(ClientRef)), Client;
+      os:putenv(?REDIS_CLIENT ++ integer_to_list(N), pid_to_list(ClientRef)),
+      Client;
     _ -> Client
   end.
 
- create_n_redis_clients(Acc, N) ->
-  case N of
-    0 -> Acc;
-    _ -> create_n_redis_clients([create_redis_client(N) | Acc], N - 1)
-  end.
-
-create_redis_client() ->
+prepare_client_queue() ->
   ets:new(client_iterator, [named_table, public]),
-  ets:insert(client_iterator, {counter, 1}),
-  Clients = create_n_redis_clients("", ?CLIENT_NUMBER),
-  [Head | _] = Clients,
-  Head.
+  ets:insert(client_iterator, {counter, 1}).
 
 get_redis_client()->
   os:getenv(?REDIS_CLIENT ++ integer_to_list(ets:update_counter(client_iterator, counter, {2, 1, ?CLIENT_NUMBER, 1}))).

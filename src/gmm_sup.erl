@@ -35,17 +35,15 @@ init([]) ->
     settings:create_ets(),
     outbox:create_ets(),
     inbox:create_ets(),
-
+    persistence:prepare_client_queue(),
     %% spawn child processes
     SupFlags = #{
         strategy => one_for_one,
         intensity => 0,
         period => 1
     },
-    RedisSpec = #{
-        id => ?REDIS_SERVER,
-        start => {persistence, create_redis_client, []}
-    },
+    RedisSpecs = persistence:create_redis_spec([], ?CLIENT_NUMBER),
+    OutboxSpecs = outbox:specs_for_supervisor(),
     InboxDispatcherSpec = #{
         id => << "inbox_dispatcher" >>,
         start => {inbox, start_link, []}
@@ -54,5 +52,5 @@ init([]) ->
         id => <<"instrumentation">>,
         start => {instrumentation, start_link, []}
     },
-    ChildSpecs = [InstrumentationSpecs, InboxDispatcherSpec, RedisSpec | outbox:specs_for_supervisor()],
+    ChildSpecs = [InstrumentationSpecs, InboxDispatcherSpec] ++ RedisSpecs ++ OutboxSpecs,
     {ok, {SupFlags, ChildSpecs}}.
