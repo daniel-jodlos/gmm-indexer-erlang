@@ -37,7 +37,8 @@
     ]),
   case Client of
     {ok, ClientRef} ->
-      os:putenv(?REDIS_CLIENT ++ integer_to_list(N), pid_to_list(ClientRef)), Client;
+      os:putenv(?REDIS_CLIENT ++ integer_to_list(N), pid_to_list(ClientRef)),
+      ClientRef;
     _ -> Client
   end.
 
