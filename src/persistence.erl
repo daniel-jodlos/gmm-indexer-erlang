@@ -42,12 +42,6 @@
     _ -> Client
   end.
 
-% create_n_redis_clients(Acc, N) ->
-%  case N of
-%    0 -> Acc;
-%    _ -> create_n_redis_clients([create_redis_client(N) | Acc], N - 1)
-%  end.
-
 prepare_client_queue() ->
   ets:new(client_iterator, [named_table, public]),
   ets:insert(client_iterator, {counter, 1}).
