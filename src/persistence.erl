@@ -10,7 +10,8 @@
 
 -export(
   [
-    create_redis_client/0
+    create_redis_client/1,
+    prepare_client_queue/0
   ]
 ).
 -export(
@@ -46,12 +47,9 @@
     _ -> create_n_redis_clients([create_redis_client(N) | Acc], N - 1)
   end.
 
-create_redis_client() ->
+prepare_client_queue() ->
   ets:new(client_iterator, [named_table, public]),
-  ets:insert(client_iterator, {counter, 1}),
-  Clients = create_n_redis_clients("", ?CLIENT_NUMBER),
-  [Head | _] = Clients,
-  Head.
+  ets:insert(client_iterator, {counter, 1}).
 
 get_redis_client()->
   os:getenv(?REDIS_CLIENT ++ integer_to_list(ets:update_counter(client_iterator, counter, {2, 1, ?CLIENT_NUMBER, 1}))).
