@@ -44,7 +44,7 @@ services:
             - 8082:8082
 
     java_client:
-        image: kjarosh/ms-graph-simulator:latest
+        image: kjarosh/agh-gmmf-prototype:latest
         container_name: java_client
         stdin_open: true
         tty: true
