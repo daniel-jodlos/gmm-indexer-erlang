@@ -35,7 +35,7 @@ vertices_from_file(Filename) ->
     GraphMap = jiffy:decode(Data, [return_maps]),
     Vertices = maps:get(<<"vertices">>, GraphMap),
     VerticesList = lists:map(fun (V) -> maps:get(<<"id">>, V) end, Vertices),
-    VerticesList.
+    [VerticesList].
 
 random_members(Vertices) ->
     Index = rand:uniform(length(Vertices)),

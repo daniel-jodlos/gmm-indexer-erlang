@@ -40,7 +40,7 @@ end_per_group(_Group, _Config) ->
 
 operations_test(Config) ->
     % when
-    Vertices = test_utils:vertices_from_file(filename:join([?config(data_dir, Config), "graph.json"])),
+    [Vertices] = test_utils:vertices_from_file(filename:join([?config(data_dir, Config), "graph.json"])),
 
     % then
     test_utils:random_operations(members, Vertices, 10),
