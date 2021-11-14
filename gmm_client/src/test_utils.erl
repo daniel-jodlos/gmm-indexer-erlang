@@ -15,10 +15,6 @@ add_vertex(VertexData) ->
     ok = client:add_vertex(Zone, maps:get(<<"type">>, VertexData), Name),
     <<Zone/binary, ":", Name/binary>>.
 
-vertex_id(VertexData) ->
-    [Zone, Name] = string:split(maps:get(<<"id">>, VertexData), ":"),
-    <<Zone/binary, ":", Name/binary>>.
-
 add_edge(EdgeData) ->
     From = maps:get(<<"src">>, EdgeData),
     To = maps:get(<<"dst">>, EdgeData),
@@ -38,7 +34,8 @@ vertices_from_file(Filename) ->
     {ok, Data} = file:read_file(Filename),
     GraphMap = jiffy:decode(Data, [return_maps]),
     Vertices = maps:get(<<"vertices">>, GraphMap),
-    lists:map(fun (V) -> vertex_id(V) end, Vertices).
+    VerticesList = lists:map(fun (V) -> maps:get(<<"id">>, V) end, Vertices),
+    VerticesList.
 
 random_members(Vertices) ->
     Index = rand:uniform(length(Vertices)),
