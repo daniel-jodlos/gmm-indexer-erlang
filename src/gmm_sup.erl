@@ -52,5 +52,5 @@ init([]) ->
         id => <<"instrumentation">>,
         start => {instrumentation, start_link, []}
     },
-    ChildSpecs = [InstrumentationSpecs, InboxDispatcherSpec] ++ RedisSpecs,
+    ChildSpecs = [InstrumentationSpecs, InboxDispatcherSpec] ++ RedisSpecs ++ OutboxSpecs,
     {ok, {SupFlags, ChildSpecs}}.
