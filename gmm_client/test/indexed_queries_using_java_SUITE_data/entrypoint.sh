@@ -25,4 +25,4 @@ java \
     -jar \
     app.jar client 2>&1 | sed 's/^/[client] /' >&2 &
 
-./run-main.sh com.github.kjarosh.agh.pp.cli.ConstantLoadClientMain -n 0 -d 1 -g graph.json -l 
+./run-main.sh com.github.kjarosh.agh.pp.cli.ConstantLoadClientMain -d 1 -n 0 -g graph.json -l 
