@@ -1,0 +1,13 @@
+{
+    "zones": {
+      "zone0": {
+        "address": "zone0:8080"
+      },
+      "zone1": {
+        "address": "zone1:8081"
+      },
+      "zone2": {
+        "address": "zone2:8082"
+      }
+    }
+  }

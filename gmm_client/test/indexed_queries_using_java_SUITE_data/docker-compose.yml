@@ -1,0 +1,60 @@
+version: '3'
+
+services:
+    zone0:
+        image: gmmindexererlang:latest
+        container_name: zone0
+        stdin_open: true
+        environment:
+            - GMM_REDIS_HOST=127.0.0.1
+            - ZONE_ID=zone0
+            - PORT=8080
+            - LOCAL_TESTS=true
+        expose:
+            - "8080"
+        ports:
+            - 8080:8080
+
+    zone1:
+        image: gmmindexererlang:latest
+        container_name: zone1
+        stdin_open: true
+        environment:
+            - GMM_REDIS_HOST=127.0.0.1
+            - ZONE_ID=zone1
+            - PORT=8081
+            - LOCAL_TESTS=true
+        expose:
+            - "8081"
+        ports:
+            - 8081:8081
+
+    zone2:
+        image: gmmindexererlang:latest
+        container_name: zone2
+        stdin_open: true
+        environment:
+            - GMM_REDIS_HOST=127.0.0.1
+            - ZONE_ID=zone2
+            - PORT=8082
+            - LOCAL_TESTS=true
+        expose:
+            - "8082"
+        ports:
+            - 8082:8082
+
+    java_client:
+        image: pmarszal/agh-gmmf-prototype:latest
+        container_name: java_client
+        stdin_open: true
+        tty: true
+        depends_on:
+            - zone0
+            - zone1
+            - zone2
+        volumes:
+            - ./entrypoint.sh:/entrypoint.sh
+            - ./graph.json:/graph.json
+            - ./config.json:/config/config.json
+        entrypoint:
+            - ./entrypoint.sh
