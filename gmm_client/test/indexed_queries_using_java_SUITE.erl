@@ -52,6 +52,6 @@ operations_test(Config) ->
     ),
 
     % then
-    test_utils:random_operations(members, Vertices, 10),
+    %test_utils:random_operations(members, Vertices, 10),
     test_utils:random_operations(reaches, Vertices, 10),
     test_utils:random_operations(ep, Vertices, 10).
