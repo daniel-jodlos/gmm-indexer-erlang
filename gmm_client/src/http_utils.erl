@@ -33,16 +33,10 @@ get_address(_) ->
 
 -spec build_url(Address :: binary(), Path :: binary()) -> binary().
 build_url(Address, Path) ->
-    NewPath = hackney_url:pathencode(Path),
-    << Address/binary, "/", NewPath/binary >>.
+   hackney_url:make_url(Address, Path, []).
 
 -spec build_url(Address :: binary(), Path :: binary(), Params :: list({binary(), binary()})) -> binary().
 build_url(Address, Path, []) ->
     build_url(Address, Path);
-build_url(Address, Path, [{FirstPar, FirstVal} | Rest]) ->
-    Base = << Path/binary, "?", FirstPar/binary, "=", FirstVal/binary >>,
-    Url = lists:foldl(
-        fun({Param, Value}, Acc) -> << Acc/binary, "&", Param/binary, "=", Value/binary >> end,
-        Base, Rest),
-    NewBase = hackney_url:pathencode(Path),
-    <<Address/binary, "/", NewBase/binary>>.
+build_url(Address, Path, Params) ->
+    hackney_url:make_url(Address, Path, Params).
