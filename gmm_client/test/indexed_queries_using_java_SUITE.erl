@@ -1,6 +1,5 @@
 -module(indexed_queries_using_java_SUITE).
 -include_lib("common_test/include/ct.hrl").
--include_lib("stdlib/include/assert.hrl").
 
 -export([
     all/0,
@@ -42,16 +41,8 @@ end_per_group(_Group, _Config) ->
 operations_test(Config) ->
     % when
     Vertices = test_utils:vertices_from_file(filename:join([?config(data_dir, Config), "graph.json"])),
-    Edges = test_utils:edges_from_file(filename:join([?config(data_dir, Config), "graph.json"])),
-
-    lists:foreach(
-        fun ([From, To]) ->
-            ?assertEqual({ok, true}, client:edge_exists(From, To))
-        end,
-        Edges
-    ),
 
     % then
-    %test_utils:random_operations(members, Vertices, 10),
+    test_utils:random_operations(members, Vertices, 10),
     test_utils:random_operations(reaches, Vertices, 10),
     test_utils:random_operations(ep, Vertices, 10).
