@@ -35,7 +35,7 @@ get_port(Zone) ->
 
 -spec build_url(Address :: binary(), Path :: binary()) -> binary().
 build_url(Address, Path) ->
-    binary:replace(<< Address/binary, "/", Path/binary >>, <<" ">>, <<"+">>, [global]).
+    binary:replace(<< Address/binary, "/", Path/binary >>, <<" ">>, <<"%20">>, [global]).
 
 -spec build_url(Address :: binary(), Path :: binary(), Params :: list({binary(), binary()})) -> binary().
 build_url(Address, Path, []) ->
@@ -45,4 +45,4 @@ build_url(Address, Path, [{FirstPar, FirstVal} | Rest]) ->
     Url = lists:foldl(
         fun({Param, Value}, Acc) -> << Acc/binary, "&", Param/binary, "=", Value/binary >> end,
         Base, Rest),
-    binary:replace(Url, <<" ">>, <<"+">>, [global]).
+    binary:replace(Url, <<" ">>, <<"%20">>, [global]).
