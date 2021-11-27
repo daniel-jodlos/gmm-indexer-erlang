@@ -43,6 +43,13 @@ operations_test(Config) ->
     [Vertices, _Edges] = test_utils:load_graph(filename:join([?config(data_dir, Config), "graph.json"])),
     timer:sleep(10_000),
 
+    lists:foreach(
+        fun ([From, To]) ->
+            ?assertEqual({ok, true}, client:edge_exists(From, To))
+        end,
+        Edges
+    ),
+
     % then
     test_utils:random_operations(members, Vertices, 10),
     test_utils:random_operations(reaches, Vertices, 10),
