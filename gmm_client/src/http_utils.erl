@@ -33,14 +33,16 @@ get_address(_) ->
 
 -spec build_url(Address :: binary(), Path :: binary()) -> binary().
 build_url(Address, Path) ->
-    edoc_lib:escape_uri(<< Address/binary, "/", Path/binary >>).
+    NewPath = edoc_lib:escape_uri(Path),
+    << Address/binary, "/", NewPath/binary >>.
 
 -spec build_url(Address :: binary(), Path :: binary(), Params :: list({binary(), binary()})) -> binary().
 build_url(Address, Path, []) ->
     build_url(Address, Path);
 build_url(Address, Path, [{FirstPar, FirstVal} | Rest]) ->
-    Base = << Address/binary, "/", Path/binary, "?", FirstPar/binary, "=", FirstVal/binary >>,
+    Base = << Path/binary, "?", FirstPar/binary, "=", FirstVal/binary >>,
     Url = lists:foldl(
         fun({Param, Value}, Acc) -> << Acc/binary, "&", Param/binary, "=", Value/binary >> end,
         Base, Rest),
-    edoc_lib:escape_uri(Url).
+    NewBase = edoc_lib:escape_uri(Url),
+    <<Address/binary, "/", NewBase/binary>>.
