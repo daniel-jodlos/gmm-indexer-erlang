@@ -39,7 +39,7 @@ vertices_from_file(Filename) ->
 edges_from_file(Filename) ->
     {ok, Data} = file:read_file(Filename),
     GraphMap = jiffy:decode(Data, [return_maps]),
-    Edges = maps:get(<<"vertices">>, GraphMap),
+    Edges = maps:get(<<"edges">>, GraphMap),
     lists:map(fun (V) -> [maps:get(<<"src">>, V), maps:get(<<"dst">>, V)] end, Edges).
 
 random_members(Vertices) ->
