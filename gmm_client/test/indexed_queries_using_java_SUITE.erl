@@ -46,7 +46,7 @@ operations_test(Config) ->
 
     lists:foreach(
         fun ([From, To]) ->
-            ?assertEqual({ok, true}, client:edge_exists(From, To)),
+            ?assertEqual({ok, true}, client:edge_exists(From, To))
         end,
         Edges
     ),
