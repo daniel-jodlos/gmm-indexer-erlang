@@ -35,13 +35,19 @@ get_port(Zone) ->
 
 -spec build_url(Address :: binary(), Path :: binary()) -> binary().
 build_url(Address, Path) ->
-    << Address/binary, "/", binary:replace(Path/binary, <<" ">>, <<"%20">>, [global]) >>.
+    NewPath = binary:replace(Path, <<" ">>, <<"%20">>, [global]),
+    << Address/binary, "/", NewPath/binary >>.
 
 -spec build_url(Address :: binary(), Path :: binary(), Params :: list({binary(), binary()})) -> binary().
 build_url(Address, Path, []) ->
     build_url(Address, Path);
 build_url(Address, Path, [{FirstPar, FirstVal} | Rest]) ->
-    Base = << Address/binary, "/", binary:replace(Path/binary, <<" ">>, <<"%20">>, [global]), "?", FirstPar/binary, "=", binary:replace(FirstVal/binary, <<" ">>, <<"+">>, [global]) >>,
+    NewPath = binary:replace(Path, <<" ">>, <<"%20">>, [global]),
+    NewFirstVal = binary:replace(FirstVal, <<" ">>, <<"+">>, [global]),
+    Base = << Address/binary, "/", NewPath/binary, "?", FirstPar/binary, "=", NewFirstVal/binary >>,
     lists:foldl(
-        fun({Param, Value}, Acc) -> << Acc/binary, "&", Param/binary, "=", binary:replace(Value/binary, <<" ">>, <<"+">>, [global]) >> end,
+        fun({Param, Value}, Acc) ->
+            NewValue = binary:replace(Value, <<" ">>, <<"+">>, [global]),
+            << Acc/binary, "&", Param/binary, "=", NewValue/binary >>
+        end,
         Base, Rest).
