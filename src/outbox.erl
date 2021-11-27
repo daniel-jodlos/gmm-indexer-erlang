@@ -82,7 +82,17 @@ all_empty() ->
 
 -spec outbox_pid(Zone :: binary()) -> pid().
 outbox_pid(Zone) ->
-    ets:lookup_element(outboxes, Zone, 2).
+    case ets:lookup(outboxes, Zone) of
+        [] ->
+            Pid = spawn(
+                fun() ->
+                    timer:send_after(?INITIAL_DELAY, send),
+                    outbox_routine(Zone, ?INITIAL_DELAY)
+                end),
+            ets:insert(outboxes, {Zone, Pid, []}),
+            Pid;
+        [{Zone, Pid, _}] -> Pid
+    end.
 
 %% @todo powinien wywalac sie ten kto zglasza event, nie outbox
 -spec queue_event(Zone :: binary(), Vertex :: binary(), Event :: binary()) -> ok.
