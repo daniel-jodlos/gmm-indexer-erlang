@@ -53,12 +53,13 @@ request(Method, Url, RawBody, GetResponse) ->
                 true ->
                     case hackney:body(ConnRef) of
                         {ok, Bin} -> {ok, gmm_utils:decode(Bin)};
-                        {error, R1} -> {error, R1}
+                        {error, R1} -> {error, #{reason => R1, req => {Method, Url, RawBody, GetResponse}}}
                     end;
                 false -> ok
             end;
-        {ok, SCode, _, _} -> {error, SCode};
-        {error, R2} -> {error, R2}
+        {ok, SCode, RespHeaders, _} ->
+            {error, #{code => SCode, req => {Method, Url, RawBody, GetResponse}, response_headers => RespHeaders}};
+        {error, R2} -> {error, #{reason => R2, req => {Method, Url, RawBody, GetResponse}}}
     end.
 
 -spec request(Method :: atom(), Url :: binary(), GetResponse :: boolean()) ->

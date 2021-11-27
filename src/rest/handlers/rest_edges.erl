@@ -80,28 +80,37 @@ parse_edge_string(Bin) when is_binary(Bin) ->
         case gmm_utils:split_bin(Bin) of
             [From, To, Permissions, Trace] when byte_size(From) > 0, byte_size(To) > 0, byte_size(Permissions) > 0 ->
                 {ok, #{from => From, to => To, permissions => Permissions, trace => Trace}};
-            _ -> {error, "Incorrect edge string"}
+            _ -> {error, {incorrect_edge_string, Bin}}
         end
-    catch _:_ -> {error, "Invalid JSON"} end;
-parse_edge_string(_) ->
-    {error, "Argument is not a binary"}.
+    catch
+        error:Reason -> {error, {Reason, Bin}};
+        Class:Reason -> {error, {{Class, Reason}, Bin}}
+    end.
 
 -spec parse_bulk_request(binary()) -> {ok, map()} | {error, any()}.
-parse_bulk_request(Bin) ->
+parse_bulk_request(Bin) when is_binary(Bin) ->
     case gmm_utils:decode(Bin) of
         #{<<"sourceZone">> := SourceZone, <<"destinationZone">> := DestinationZone, <<"successive">> := Successive,
                 <<"edges">> := List} when is_binary(SourceZone), is_binary(DestinationZone), is_list(List), is_boolean(Successive) ->
             ParsedEdges = lists:map(fun parse_edge_string/1, List),
-            case lists:all(fun({ok, _}) -> true; (_) -> false end, ParsedEdges) of
-                true ->
-                    {_, ParsedList} = lists:unzip(ParsedEdges),
+            Aggregated =
+                lists:foldr(
+                    fun
+                        ({error, R}, {error, RList}) -> {error, [R | RList]};
+                        ({error, R}, {ok, _}) -> {error, R};
+                        ({ok, _}, {error, RList}) -> {error, RList};
+                        ({ok, ParsedEdge}, {ok, ParsedList}) -> {ok, [ParsedEdge | ParsedList]}
+                    end,
+                    {ok, []}, ParsedEdges),
+            case Aggregated of
+                {ok, EdgesList} ->
                     {ok, #{
                         src_zone => SourceZone, dst_zone => DestinationZone,
-                        successive => Successive, edges => ParsedList
+                        successive => Successive, edges => EdgesList
                     }};
-                false -> {error, "Invalid JSON"}
+                {error, R} -> {error, R}
             end;
-        _ -> {error, "Invalid JSON"}
+        _ -> {error, {invalid_bulk_json, Bin}}
     end.
 
 get_trace(Trace) when is_binary(Trace) ->
@@ -147,7 +156,7 @@ execute_locally(Op, From, To, Permissions, Trace, false) ->
     SuccessiveCallResult =
         case conditions_met(Op, From, To, false) of
             true -> execute_operation(Op, From, To, Permissions, Trace, true);
-            false -> {error, "Conditions failed"}
+            false -> {error, {conditions_failed, {Op, From, To, false}}}
         end,
     case SuccessiveCallResult of
         ok -> modify_state(Op, From, To, Permissions, false, gmm_utils:owner_of(From) == gmm_utils:owner_of(To));
@@ -156,7 +165,7 @@ execute_locally(Op, From, To, Permissions, Trace, false) ->
 execute_locally(Op, From, To, Permissions, _Trace, true) ->
     case conditions_met(Op, From, To, true) of
         true -> modify_state(Op, From, To, Permissions, true, gmm_utils:owner_of(From) == gmm_utils:owner_of(To));
-        false -> {error, "Conditions failed"}
+        false -> {error, {conditions_failed, {Op, From, To, true}}}
     end.
 
 
@@ -231,7 +240,7 @@ execute_locally_bulk(SrcZone, DstZone, false, Edges) ->
     SuccessiveCallResult =
         case conditions_met_bulk(SrcZone, DstZone, false, Edges) of
             true -> execute_bulk_request(SrcZone, DstZone, true, Edges);
-            false -> {error, "Conditions failed"}
+            false -> {error, {conditions_failed, {SrcZone, DstZone, false, Edges}}}
         end,
         case SuccessiveCallResult of
             ok -> modify_state_bulk(SrcZone, DstZone, Edges, false, SrcZone == DstZone);
@@ -240,7 +249,7 @@ execute_locally_bulk(SrcZone, DstZone, false, Edges) ->
 execute_locally_bulk(SrcZone, DstZone, true, Edges) ->
     case conditions_met_bulk(SrcZone, DstZone, true, Edges) of
         true -> modify_state_bulk(SrcZone, DstZone, Edges, true, SrcZone == DstZone);
-        false -> {error, "Conditions failed"}
+        false -> {error, {conditions_failed, {SrcZone, DstZone, true, Edges}}}
     end.
 
 
