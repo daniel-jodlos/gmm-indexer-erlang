@@ -251,7 +251,6 @@ create_edge(From, To, Permissions) ->
     ZoneId = gmm_utils:zone_id(),
     FromZone = gmm_utils:owner_of(From),
     ToZone = gmm_utils:owner_of(To),
-    io:format("Creating edge from ~p to ~p with permissions of ~p~n", [From, To, Permissions]),
     Result =
         case {FromZone, ToZone} of
             {ZoneId, ZoneId} -> validate([
