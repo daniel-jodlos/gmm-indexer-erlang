@@ -35,7 +35,7 @@ get_port(Zone) ->
 
 -spec build_url(Address :: binary(), Path :: binary()) -> binary().
 build_url(Address, Path) ->
-    NewPath = edoc_lib:escape_uri(Path),
+    NewPath = hackney_url:pathencode(Path),
     << Address/binary, "/", NewPath/binary >>.
 
 -spec build_url(Address :: binary(), Path :: binary(), Params :: list({binary(), binary()})) -> binary().
@@ -46,5 +46,5 @@ build_url(Address, Path, [{FirstPar, FirstVal} | Rest]) ->
     Url = lists:foldl(
         fun({Param, Value}, Acc) -> << Acc/binary, "&", Param/binary, "=", Value/binary >> end,
         Base, Rest),
-    NewBase = edoc_lib:escape_uri(Url),
+    NewBase = hackney_url:pathencode(Path),
     <<Address/binary, "/", NewBase/binary>>.
