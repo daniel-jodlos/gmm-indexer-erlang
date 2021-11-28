@@ -8,7 +8,7 @@
 -include_lib("stdlib/include/assert.hrl").
 
 %% API
--export([load_graph/1, random_operations/3, vertices_from_file/1]).
+-export([load_graph/1, random_operations/3, vertices_from_file/1, edges_from_file/1]).
 
 add_vertex(VertexData) ->
     [Zone, Name] = string:split(maps:get(<<"id">>, VertexData), ":"),
@@ -35,6 +35,12 @@ vertices_from_file(Filename) ->
     GraphMap = jiffy:decode(Data, [return_maps]),
     Vertices = maps:get(<<"vertices">>, GraphMap),
     lists:map(fun (V) -> maps:get(<<"id">>, V) end, Vertices).
+
+edges_from_file(Filename) ->
+    {ok, Data} = file:read_file(Filename),
+    GraphMap = jiffy:decode(Data, [return_maps]),
+    Edges = maps:get(<<"edges">>, GraphMap),
+    lists:map(fun (V) -> [maps:get(<<"src">>, V), maps:get(<<"dst">>, V)] end, Edges).
 
 random_members(Vertices) ->
     Index = rand:uniform(length(Vertices)),

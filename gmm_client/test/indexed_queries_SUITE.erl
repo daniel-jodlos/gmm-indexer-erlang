@@ -1,5 +1,6 @@
 -module(indexed_queries_SUITE).
 -include_lib("common_test/include/ct.hrl").
+-include_lib("stdlib/include/assert.hrl").
 
 -export([
     all/0,
@@ -40,8 +41,15 @@ end_per_group(_Group, _Config) ->
 
 operations_test(Config) ->
     % when
-    [Vertices, _Edges] = test_utils:load_graph(filename:join([?config(data_dir, Config), "graph.json"])),
+    [Vertices, Edges] = test_utils:load_graph(filename:join([?config(data_dir, Config), "graph.json"])),
     timer:sleep(10_000),
+
+    lists:foreach(
+        fun ([From, To]) ->
+            ?assertEqual({ok, true}, client:edge_exists(From, To))
+        end,
+        Edges
+    ),
 
     % then
     test_utils:random_operations(members, Vertices, 10),
