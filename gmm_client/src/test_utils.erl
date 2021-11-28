@@ -37,7 +37,7 @@ graph_data_from_file(Filename) ->
     VerticesList = lists:map(fun (V) -> maps:get(<<"id">>, V) end, Vertices),
     Edges = maps:get(<<"edges">>, GraphMap),
     EdgesList = lists:map(fun (V) -> [maps:get(<<"src">>, V), maps:get(<<"dst">>, V)] end, Edges),
-    [VerticesList, EdgesList]
+    [VerticesList, EdgesList].
 
 random_members(Vertices) ->
     Index = rand:uniform(length(Vertices)),
