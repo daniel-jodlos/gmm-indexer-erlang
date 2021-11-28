@@ -42,6 +42,8 @@ end_per_group(_Group, _Config) ->
 operations_test(Config) ->
     % when
     [Vertices, Edges] = test_utils:graph_data_from_file(filename:join([?config(data_dir, Config), "graph.json"])),
+    timer:sleep(10_000),
+
 
     lists:foreach(
         fun ([From, To]) ->
