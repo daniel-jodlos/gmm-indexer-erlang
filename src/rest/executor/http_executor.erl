@@ -16,6 +16,8 @@
     put/2
 ]).
 
+-include("records.hrl").
+
 %%%---------------------------
 %% Implementations
 %%%---------------------------
@@ -47,7 +49,7 @@ request(Method, Url, RawBody, GetResponse) ->
             _ -> gmm_utils:encode(RawBody)
         end,
     ReqHeaders = [{<<"Content-Type">>, <<"application/json">>}],
-    case hackney:request(Method, Url, ReqHeaders, Body, [{pool, false}]) of
+    case hackney:request(Method, Url, ReqHeaders, Body, [{pool, false}, {recv_timeout, ?MAX_TIMEOUT}]) of
         {ok, SCode, _, ConnRef} when (SCode div 100) == 2 ->
             case GetResponse of
                 true ->

@@ -10,6 +10,8 @@
 %% API
 -export([start_server/0]).
 
+-include("records.hrl").
+
 start_server() ->
     Dispatch = cowboy_router:compile([
         {'_', [
@@ -124,7 +126,10 @@ start_server() ->
     ]),
     {ok, _} = cowboy:start_clear(my_http_listener,
         [{port, get_port()}],
-        #{env => #{dispatch => Dispatch}}
+        #{
+            request_timeout => ?MAX_TIMEOUT,
+            env => #{dispatch => Dispatch}
+        }
     ).
 
 
