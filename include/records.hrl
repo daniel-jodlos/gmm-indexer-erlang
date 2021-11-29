@@ -18,6 +18,8 @@
 
 -define(CSV_FILE, "instrumentation.csv").
 
+-define(MAX_TIMEOUT, 120000).
+
 -type permissions() :: <<_:5*8>>.
 
 -type rest_handler_state() :: bad_request | map().
