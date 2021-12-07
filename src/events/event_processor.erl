@@ -10,6 +10,7 @@ async_process(Vertex, Event) ->
     
 process(Vertex, Event) ->
     try 
+        instrumentation:notify(notification:start_processing(Vertex, Event)),
         #{<<"type">> := Type} = Event,
         case Type of
             <<"child/updated">> -> process_child_change(Vertex, Event);
@@ -17,8 +18,12 @@ process(Vertex, Event) ->
             <<"parent/updated">> -> process_parent_change(Vertex, Event);
             <<"parent/removed">> -> process_parent_removed(Vertex, Event)
         end,
-        inbox:free_vertex(Vertex)
-    catch _:_ -> inbox:free_vertex(Vertex) end,
+        inbox:free_vertex(Vertex),
+        instrumentation:notify(notification:end_processing(Vertex, Event))
+    catch _:_ ->
+        inbox:free_vertex(Vertex),
+        instrumentation:notify(notificatin:failed_processing(Vertex, Event))
+    end,
     ok.
     
 process_child_change(Vertex, Event) ->
@@ -33,7 +38,7 @@ process_child_change(Vertex, Event) ->
         end, Verticies),
     NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVertices">> => EffectiveChildren},
     {ok, Parents} = graph:list_parents(Vertex),
-    propagate(Parents, NewEvent),
+    propagate(Vertex, Parents, NewEvent),
     ok.
 
 process_child_removed(Vertex, Event) ->
@@ -53,7 +58,7 @@ process_child_removed(Vertex, Event) ->
         end, Verticies),
     NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVertices">> => EffectiveChildren},
     {ok, Parents} = graph:list_parents(Vertex),
-    propagate(Parents, NewEvent),
+    propagate(Vertex, Parents, NewEvent),
     ok.
 
 process_parent_change(Vertex, Event) ->
@@ -67,7 +72,7 @@ process_parent_change(Vertex, Event) ->
         end, Verticies),
     NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVertices">> => EffectiveParents},
     {ok, Children} = graph:list_children(Vertex),
-    propagate(Children, NewEvent),  
+    propagate(Vertex, Children, NewEvent),  
     ok.
 
 process_parent_removed(Vertex, Event) ->
@@ -84,7 +89,7 @@ process_parent_removed(Vertex, Event) ->
         end, Verticies),
     NewEvent = Event#{<<"sender">> => Vertex, <<"effectiveVertices">> => EffectiveParents},
     {ok, Children} = graph:list_children(Vertex),
-    propagate(Children, NewEvent),  
+    propagate(Vertex, Children, NewEvent),  
     ok.
     
 recalculatePermissions(Child, Vertex) ->
@@ -109,10 +114,11 @@ calculatePermissions(From, To) ->
     end, Intermediate),
     lists:foldl(fun (A, B) -> gmm_utils:permissions_or(A, B) end, <<"00000">>, IntermediatePermissions).
     
-propagate(Targets, Event) ->
+propagate(Vertex, Targets, Event) ->
     #{<<"effectiveVertices">> := Verticies} = Event,
     case Verticies of
         [] -> ok;
         _else ->
+            instrumentation:notify(notification:fork(Vertex, Event, length(Targets))),
             lists:foreach(fun (Target) -> inbox:post(Target, Event) end , Targets)
     end.
