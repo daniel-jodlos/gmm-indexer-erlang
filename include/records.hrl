@@ -16,7 +16,7 @@
 
 -define(CLIENT_NUMBER, 7).
 
--define(CSV_FILE, "instrumentation.csv").
+-define(CSV_FILE, "/instrumentation.csv").
 
 -define(MAX_TIMEOUT, 120000).
 
