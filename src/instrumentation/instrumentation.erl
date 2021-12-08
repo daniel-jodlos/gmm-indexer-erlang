@@ -13,7 +13,8 @@
     notify/1
 ]).
 
--define(MAX_BATCH_SIZE, 10000).
+-define(MAX_BATCH_SIZE, 1000).
+-define(WORKER_ID, instrumentation_process).
 
 -include("records.hrl").
 
@@ -26,7 +27,10 @@ start_link() ->
     {ok, spawn_link(instrumentation, init_writer, [])}.
 
 notify(Notification) ->
-    whereis(instrumentation_process) ! Notification.
+    case settings:get_instrumentation_enabled() of
+        true -> whereis(?WORKER_ID) ! Notification, ok;
+        false -> ok
+    end.
 
 
 %%%---------------------------
@@ -54,6 +58,6 @@ writer_loop(File, Batch, Size) ->
 %%%---------------------------
 
 init_writer() ->
-    register(instrumentation_process, self()),
+    register(?WORKER_ID, self()),
     {ok, File} = csv_writer:open_file(?CSV_FILE),
     writer_loop(File, [], 0).
