@@ -125,7 +125,7 @@ start_server() ->
         ]}
     ]),
     {ok, _} = cowboy:start_clear(my_http_listener,
-        [{port, get_port()}],
+        [{port, get_port()}, {max_connections, infinity}],
         #{
             request_timeout => ?MAX_TIMEOUT,
             env => #{dispatch => Dispatch}
