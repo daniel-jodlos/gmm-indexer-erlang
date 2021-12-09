@@ -268,8 +268,9 @@ create_edge(From, To, Permissions) ->
             ]);
             {_, _} -> {error, vertices_not_found}
         end,
-    post_events_about_effective_children(From, To, <<"updated">>),
-    post_events_about_effective_parents(To, From, <<"updated">>),
+    Trace = gmm_utils:uuid(),
+    post_events_about_effective_children(From, To, <<"updated">>, Trace),
+    post_events_about_effective_parents(To, From, <<"updated">>, Trace),
     Result.
 
 -spec create_effective_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
@@ -293,8 +294,9 @@ create_effective_edge(From, To, Permissions) ->
 -spec update_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
 update_edge(From, To, Permissions) ->
     Result = validate([persistence:set(edge_id(From, To), Permissions)]),
-    post_events_about_effective_children(From, To, <<"updated">>),
-    post_events_about_effective_parents(To, From, <<"updated">>),
+    Trace = gmm_utils:uuid(),
+    post_events_about_effective_children(From, To, <<"updated">>, Trace),
+    post_events_about_effective_parents(To, From, <<"updated">>, Trace),
     Result.
 
 -spec update_effective_edge(From :: binary(), To :: binary(), Permissions :: permissions()) -> ok | {error, any()}.
@@ -327,8 +329,9 @@ remove_edge(From, To) ->
             ]);
             {_, _} -> {error, vertices_not_found}
         end,
-    post_events_about_effective_children(From, To, <<"removed">>),
-    post_events_about_effective_parents(To, From, <<"removed">>),
+    Trace = gmm_utils:uuid(),
+    post_events_about_effective_children(From, To, <<"removed">>, Trace),
+    post_events_about_effective_parents(To, From, <<"removed">>, Trace),
     Result.
 
 -spec remove_effective_edge(From :: binary(), To :: binary()) -> ok | {error, any()}.
@@ -435,12 +438,12 @@ remove_effective_child(Vertex, Child) ->
 -spec effective_list_children(Vertex :: binary()) -> list(binary()).
 effective_list_children(Vertex) -> do_list(persistence:set_list_members(effective_children_id(Vertex))).
 
-post_events_about_effective_children(Vertex, TargetVertex, Type) ->
+post_events_about_effective_children(Vertex, TargetVertex, Type, Trace) ->
     Children = effective_list_children(Vertex),
-    Event = #{<<"id">> => gmm_utils:uuid(), <<"type">> => <<"child/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVertices">> => [Vertex | Children], <<"trace">> => gmm_utils:uuid()},
+    Event = #{<<"id">> => gmm_utils:uuid(), <<"type">> => <<"child/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVertices">> => [Vertex | Children], <<"trace">> => Trace},
     inbox:post(TargetVertex, Event).
 
-post_events_about_effective_parents(Vertex, TargetVertex, Type) ->
+post_events_about_effective_parents(Vertex, TargetVertex, Type, Trace) ->
     Parents = effective_list_parents(Vertex),
-    Event = #{<<"id">> => gmm_utils:uuid(), <<"type">> => <<"parent/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVertices">> => [Vertex | Parents], <<"trace">> => gmm_utils:uuid()},
+    Event = #{<<"id">> => gmm_utils:uuid(), <<"type">> => <<"parent/", Type/binary>>, <<"originalSender">> => Vertex, <<"sender">> => Vertex, <<"effectiveVertices">> => [Vertex | Parents], <<"trace">> => Trace},
     inbox:post(TargetVertex, Event).
