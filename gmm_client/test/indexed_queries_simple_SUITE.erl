@@ -42,6 +42,7 @@ end_per_group(_Group, _Config) ->
     ok.
 
 operations_test(_Config) ->
+    timer:sleep(30_000),
     % when
     ok = client:add_vertex(<<"zone0">>, <<"user">>, <<"User1">>),
     ok = client:add_vertex(<<"zone0">>, <<"user">>, <<"User2">>),
