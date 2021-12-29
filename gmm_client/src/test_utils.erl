@@ -44,8 +44,11 @@ random_members(Vertices) ->
     Vertex = lists:nth(Index, Vertices),
     {ok, #{<<"members">> := NaiveResponse}} = client:naive_members(Vertex),
     {ok, #{<<"members">> := IndexedResponse}} = client:indexed_members(Vertex),
-    ?assertEqual(<<"test">>, Vertex),
-    ?assert(client_utils:lists_equal(NaiveResponse, IndexedResponse)).
+    ?assert(client_utils:lists_equal(NaiveResponse, IndexedResponse)),
+    case NaiveResponse of
+        true -> 1;
+        _Else -> 0
+    end.
 
 random_reaches(Vertices) ->
     Index1 = rand:uniform(length(Vertices)),
@@ -65,14 +68,14 @@ random_ep(Vertices) ->
     {ok, #{<<"effectivePermissions">> := IndexedResponse}} = client:indexed_effective_permissions(Vertex1, Vertex2),
     ?assertEqual(NaiveResponse, IndexedResponse).
 
-random_operations(_Type, _Vertices, 0) ->
+random_operations(_Type, _Vertices, 0, Trues) ->
+    ?assertEqual(0, Trues)
     ok;
-random_operations(members, Vertices, N) ->
-    random_members(Vertices),
-    random_operations(members, Vertices, N-1);
-random_operations(reaches, Vertices, N) ->
+random_operations(members, Vertices, N, Trues) ->
+    random_operations(members, Vertices, N-1, Trues + random_members(Vertices));
+random_operations(reaches, Vertices, N, _Trues) ->
     random_reaches(Vertices),
-    random_operations(reaches, Vertices, N-1);
-random_operations(ep, Vertices, N) ->
+    random_operations(reaches, Vertices, N-1, 0);
+random_operations(ep, Vertices, N, _Trues) ->
     random_ep(Vertices),
-    random_operations(ep, Vertices, N-1).
+    random_operations(ep, Vertices, N-1, 0).
