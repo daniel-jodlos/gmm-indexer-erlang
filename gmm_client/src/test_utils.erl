@@ -56,6 +56,7 @@ random_reaches(Vertices) ->
     ?assertEqual(NaiveResponse, IndexedResponse),
     case NaiveResponse of
         true -> 1;
+        false -> 1;
         _Else -> 0
     end.
 
