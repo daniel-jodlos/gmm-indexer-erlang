@@ -44,6 +44,7 @@ random_members(Vertices) ->
     Vertex = lists:nth(Index, Vertices),
     {ok, #{<<"members">> := NaiveResponse}} = client:naive_members(Vertex),
     {ok, #{<<"members">> := IndexedResponse}} = client:indexed_members(Vertex),
+    ?assertEqual(<<"test">>, Vertex)
     ?assert(client_utils:lists_equal(NaiveResponse, IndexedResponse)).
 
 random_reaches(Vertices) ->
