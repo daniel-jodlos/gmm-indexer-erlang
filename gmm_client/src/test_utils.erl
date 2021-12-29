@@ -69,7 +69,7 @@ random_ep(Vertices) ->
     ?assertEqual(NaiveResponse, IndexedResponse).
 
 random_operations(_Type, _Vertices, 0, Trues) ->
-    ?assertEqual(0, Trues)
+    ?assertEqual(0, Trues),
     ok;
 random_operations(members, Vertices, N, Trues) ->
     random_operations(members, Vertices, N-1, Trues + random_members(Vertices));
