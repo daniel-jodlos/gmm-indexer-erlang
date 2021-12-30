@@ -42,7 +42,6 @@ end_per_group(_Group, _Config) ->
     ok.
 
 operations_test(_Config) ->
-    timer:sleep(10_000),
     % when
     ok = client:add_vertex(<<"zone0">>, <<"user">>, <<"User1">>),
     ok = client:add_vertex(<<"zone0">>, <<"user">>, <<"User2">>),
@@ -73,6 +72,8 @@ operations_test(_Config) ->
     ok = client:add_edge(<<"zone2:User5">>, <<"zone2:Group4">>, <<"01101">>, <<"trace10">>),
     ok = client:add_edge(<<"zone2:Group4">>, <<"zone2:Space4">>, <<"10111">>, <<"trace11">>),
     ok = client:add_edge(<<"zone2:Space4">>, <<"zone1:Provider2">>, <<"11110">>, <<"trace12">>),
+    
+    timer:sleep(10_000),
 
     % then
     {ok, #{<<"members">> := MembersResponse1}} = client:indexed_members(<<"zone2:Space4">>),
@@ -117,6 +118,8 @@ operations_after_graph_update_test(_Config) ->
     ok = client:add_edge(<<"zone2:User5">>, <<"zone1:Space3">>, <<"01101">>, <<"trace14">>),
     %% @todo I think that there should be separate test for the case when we want edge creation to fail
     %%       and I suspect that it wasn't intentional, which suggests to check all those tests once more
+    
+    timer:sleep(10_000),
 
     % then
     {ok, #{<<"members">> := MembersResponse1}} = client:indexed_members(<<"zone2:Space4">>),
