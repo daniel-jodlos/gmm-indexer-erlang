@@ -8,7 +8,7 @@
 -include_lib("stdlib/include/assert.hrl").
 
 %% API
--export([load_graph/1, random_operations/4, graph_data_from_file/1]).
+-export([load_graph/1, random_operations/3, graph_data_from_file/1]).
 
 add_vertex(VertexData) ->
     [Zone, Name] = string:split(maps:get(<<"id">>, VertexData), ":"),
@@ -53,12 +53,7 @@ random_reaches(Vertices) ->
     Vertex2 = lists:nth(Index2, Vertices),
     {ok, #{<<"reaches">> := NaiveResponse}} = client:naive_reaches(Vertex1, Vertex2),
     {ok, #{<<"reaches">> := IndexedResponse}} = client:indexed_reaches(Vertex1, Vertex2),
-    ?assertEqual(NaiveResponse, IndexedResponse),
-    case NaiveResponse of
-        true -> 1;
-        false -> 1;
-        _Else -> 0
-    end.
+    ?assertEqual(NaiveResponse, IndexedResponse).
 
 random_ep(Vertices) ->
     Index1 = rand:uniform(length(Vertices)),
@@ -69,15 +64,14 @@ random_ep(Vertices) ->
     {ok, #{<<"effectivePermissions">> := IndexedResponse}} = client:indexed_effective_permissions(Vertex1, Vertex2),
     ?assertEqual(NaiveResponse, IndexedResponse).
 
-random_operations(_Type, _Vertices, 0, Trues) ->
-    ?assertEqual(0, Trues),
+random_operations(_Type, _Vertices, 0) ->
     ok;
-random_operations(members, Vertices, N, _Trues) ->
+random_operations(members, Vertices, N) ->
     random_members(Vertices),
-    random_operations(members, Vertices, N-1, 0);
-random_operations(reaches, Vertices, N, Trues) ->
-    Res = random_reaches(Vertices),
-    random_operations(reaches, Vertices, N-1, Trues + Res);
-random_operations(ep, Vertices, N, _Trues) ->
+    random_operations(members, Vertices, N-1);
+random_operations(reaches, Vertices, N) ->
+    random_reaches(Vertices),
+    random_operations(reaches, Vertices, N-1);
+random_operations(ep, Vertices, N) ->
     random_ep(Vertices),
-    random_operations(ep, Vertices, N-1, 0).
+    random_operations(ep, Vertices, N-1).
