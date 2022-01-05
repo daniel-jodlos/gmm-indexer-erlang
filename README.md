@@ -8,7 +8,7 @@ This project is based on Rebar3. Hex has been included and the following librari
 Project template is [Cowboy Rebar3 template](https://github.com/sfinnie/rebar3_cowboy).
 
 
-## Instrukcja uruchomienia testów
+## Instrukcja uruchomienia testów skalowalności
 
 1. Sklonować repozytoria z serwisu GitHub: 
   * daniel-jodlos/gmm-indexer-erlang
@@ -51,4 +51,4 @@ Project template is [Cowboy Rebar3 template](https://github.com/sfinnie/rebar3_c
 17. W przypadku błędu wszystkie pody gmm-tester oraz instancje pozostaną w celu diagnozy problemu.
 
 
-
+## Instrukcja uruchomienia testów czasów wykonania
