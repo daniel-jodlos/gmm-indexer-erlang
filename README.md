@@ -30,11 +30,11 @@ Project template is [Cowboy Rebar3 template](https://github.com/sfinnie/rebar3_c
 9. Zależnie od tego czy w trakcie testu mają być wygenerowany graf oraz operacje należy dokonać następujących zmian w repozytorium *agh-gmmf-prototype*:
   * jeśli chcesz, wygenerować nowy graf i operacje (zakładam że tak), to w pliku *tests-k8s/k8s/kustomization.yaml* zakomentuj dwie ostatnie linie (te z graph.json oraz queries.json.gz)
   * jeśli chcesz istniejącego grafu lub operacji umieść te pliki w katalogu *tests-k8s/k8s/config/* z nazwami *graph.json* i *queries.json.gz*.
-10. W celu zmodyfikoawnia parametrów testowych (np. rozmiar grafu, ilość instancji, wysyłanie obciążenie) należy podać odpowiednie wartości w pliku *tests-k8s/k8s/config/test-config.conf* w repozytorium *agh-gmmf-prototype*:
+10. W celu zmodyfikowania parametrów testowych (np. rozmiar grafu, ilość instancji, obciążenie) należy podać odpowiednie wartości w pliku *tests-k8s/k8s/config/test-config.conf* w repozytorium *agh-gmmf-prototype*:
   * COUNT_ZONES -> liczba instancji w grafie,
   * inter_zone_levels -> współczynnik ilości krawędzi pomiędzy instancjami do liczby wszystkich krawędzi,
   * spaces_per_zone -> liczba wierzchołków typu *Space* na jedną instancję, wprowadzenie wartosci N spowoduje wygenerowanie grafu z około 40 * N wierzchołkami na instancję,
-  * loads -> ilość apytań wysyłanych przez klienta do systemu na sekundę (można podaćkilka wartości liczbowych pooddzielanych spacjami),
+  * loads -> ilość zapytań wysyłanych przez klienta do systemu na sekundę (można podaćkilka wartości liczbowych pooddzielanych spacjami),
   * naive -> true/false, od tego parametru zależy czy użyta będzie wersja naiwna czy z indeksacją,
   * WARMUP_TIME -> liczba sekund działania systemu od uruchomienia, która nie będzie uwzględniania w obliczaniu wyników (służy do "rozgrzania" systemu),
   * TEST_TIME -> liczba sekund działania systemu, podczas ktorych będą zbierane statystyki,
@@ -44,8 +44,8 @@ Project template is [Cowboy Rebar3 template](https://github.com/sfinnie/rebar3_c
   * od członków zespołu OneData należy uzyskać plik z konfiguracją naszego konta na ich platformie Kubernetes.
   * zdefiniować zmienną środowiskową *KUBECONFIG* przechowującą ścieżkę do wyżej wspomnianego pliku z konfiguracją.
 12. W repozytorium *agh-gmmf-prototype* nalezy wykonać komendę: `kubectl apply -k tests-k8s/k8s/` (uruchomi ona przeprowadzany test).
-13. Aby uzyskać listę podów działających w klastrze należy wykonać komendę `kubectl get pod`. Należy zapamiętać dokładną nazwę podu *gmm-tester-#*
-14. Aby uzyskać logi z trwającego obecnie testu należy wykonać komendę: `kubectl logs gmm-tester-#`.
+13. Aby uzyskać listę podów działających w klastrze należy wykonać komendę `kubectl get pod`. Należy zapamiętać dokładną nazwę podu *gmm-tester-<ID>*
+14. Aby uzyskać logi z trwającego obecnie testu należy wykonać komendę: `kubectl logs gmm-tester-<ID>`.
 15. Po ukończeniu testu w logach będzie można zobaczyć komunikat *Finished!*, a powyżej niego komendy potrzebne do pobrania wyników.
 16. Wszystkie zasoby z pominięciem podu gmm-tester są usuwane automatycznie, aby go usunąć po zakończonych testach należy wykonać komendę: `kubectl delete job gmm-tester`.
 17. W przypadku błędu wszystkie pody gmm-tester oraz instancje pozostaną w celu diagnozy problemu.
