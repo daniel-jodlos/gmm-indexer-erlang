@@ -52,3 +52,30 @@ Project template is [Cowboy Rebar3 template](https://github.com/sfinnie/rebar3_c
 
 
 ## Instrukcja uruchomienia testów czasów wykonania
+1. Sklonować repozytoria z serwisu GitHub:
+	- daniel-jodlos/gmm-indexer-erlang
+	- MrPaulMarshall/agh-gmmf-prototype
+i wygenerować dla nich obrazy Dockera (analogicznie, jak w poprzedniej części README)
+
+2. analogicznie jak w poprzedniej części należy także zainstalować *kubectl* i je skonfigurować
+
+3. W sklonowanym repozytorium MrPaulMarshall/agh-gmmf-prototype:
+
+* Wygenerować graf (przy użyciu klasy GraphGeneratorMain) i listy zapytań dla niego (przy użyciu klasy QuerySequenceGeneratorMain) i umieścić je w katalogu głównym
+parametry do generacji list zapytań odpowiednich typów:
+	- MEMBERS: -t members -g graph.json -n 200000 -o queries_members.json -e 1
+	- EFFECTIVE PERMISSIONS: -t ep -g graph.json -n 200000 -o queries_ep.json -e 1
+	- REACHES (existing): -t reaches -g graph.json -n 200000 -o queries_reaches_exist.json -e 1
+	- REACHES: (nonexisting): -t reaches -g graph.json -n 200000 -o queries_reaches_exist.json -e 0
+
+	parametr -n oznacza ilość zapytań, jakie chcemy wygenerować, a -g ścieżkę do danego grafu
+
+* utworzyć N podów z wybranym obrazem serwera oraz jeden pod klienta przy użyciu klasy KubernetesClient
+	- jGMMF: -z 10 -c C:\Users\48512\.kube\student-k8s-cyf.yaml -n gmm-awojciak -i pmarszal/agh-gmmf-prototype:latest -a pmarszal/agh-gmmf-prototype:latest
+	- eGMMF: -z 10 -c C:\Users\48512\.kube\student-k8s-cyf.yaml -n gmm-awojciak -i pmarszal/gmm-indexer-erlang:latest -a pmarszal/agh-gmmf-prototype:latest
+
+	parametry: -z (ilość zon), -i (obraz dla podów serwerów) -a (obraz dla poda klienta) -c (ścieżka do configu kubernetesa) -n (namespace w klastrze)
+
+* w katalogu głównym  wykonać polecenie "./tests-k8s/tests-queries-withuout-generating.sh <<N>>", gdzie N oznacza liczbę wszystkich utworzonych podów (np. dla powyższych przykładów - 11)
+
+* czekać aż w podzie klienta (ten o numerze N - dla przykładów wyżej nazwa będzie zaczynać się od "zone10") pojawi się plik "results.txt" zawierający uśrednione rezultaty wszystkich wywołań QueryClientMaina dla wszystkich zapytań (powinno to zająć ok. 4 godzin)
