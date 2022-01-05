@@ -44,7 +44,7 @@ Project template is [Cowboy Rebar3 template](https://github.com/sfinnie/rebar3_c
   * od członków zespołu OneData należy uzyskać plik z konfiguracją naszego konta na ich platformie Kubernetes.
   * zdefiniować zmienną środowiskową *KUBECONFIG* przechowującą ścieżkę do wyżej wspomnianego pliku z konfiguracją.
 12. W repozytorium *agh-gmmf-prototype* nalezy wykonać komendę: `kubectl apply -k tests-k8s/k8s/` (uruchomi ona przeprowadzany test).
-13. Aby uzyskać listę podów działających w klastrze należy wykonać komendę `kubectl get pod`. Należy zapamiętać dokładną nazwę podu *gmm-tester-<ID>*
+13. Aby uzyskać listę podów działających w klastrze należy wykonać komendę `kubectl get pod`. Należy zapamiętać dokładną nazwę podu `gmm-tester-<ID>`
 14. Aby uzyskać logi z trwającego obecnie testu należy wykonać komendę: `kubectl logs gmm-tester-<ID>`.
 15. Po ukończeniu testu w logach będzie można zobaczyć komunikat *Finished!*, a powyżej niego komendy potrzebne do pobrania wyników.
 16. Wszystkie zasoby z pominięciem podu gmm-tester są usuwane automatycznie, aby go usunąć po zakończonych testach należy wykonać komendę: `kubectl delete job gmm-tester`.
