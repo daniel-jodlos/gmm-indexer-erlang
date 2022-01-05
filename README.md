@@ -31,6 +31,15 @@ Project template is [Cowboy Rebar3 template](https://github.com/sfinnie/rebar3_c
   * jeśli chcesz, wygenerować nowy graf i operacje (zakładam że tak), to w pliku *tests-k8s/k8s/kustomization.yaml* zakomentuj dwie ostatnie linie (te z graph.json oraz queries.json.gz)
   * jeśli chcesz istniejącego grafu lub operacji umieść te pliki w katalogu *tests-k8s/k8s/config/* z nazwami *graph.json* i *queries.json.gz*.
 10. W celu zmodyfikoawnia parametrów testowych (np. rozmiar grafu, ilość instancji, wysyłanie obciążenie) należy podać odpowiednie wartości w pliku *tests-k8s/k8s/config/test-config.conf* w repozytorium *agh-gmmf-prototype*:
+  * COUNT_ZONES -> liczba instancji w grafie,
+  * inter_zone_levels -> współczynnik ilości krawędzi pomiędzy instancjami do liczby wszystkich krawędzi,
+  * spaces_per_zone -> liczba wierzchołków typu *Space* na jedną instancję, wprowadzenie wartosci N spowoduje wygenerowanie grafu z około 40 * N wierzchołkami na instancję,
+  * loads -> ilość apytań wysyłanych przez klienta do systemu na sekundę (można podaćkilka wartości liczbowych pooddzielanych spacjami),
+  * naive -> true/false, od tego parametru zależy czy użyta będzie wersja naiwna czy z indeksacją,
+  * WARMUP_TIME -> liczba sekund działania systemu od uruchomienia, która nie będzie uwzględniania w obliczaniu wyników (służy do "rozgrzania" systemu),
+  * TEST_TIME -> liczba sekund działania systemu, podczas ktorych będą zbierane statystyki,
+  * REPETITIONS -> liczba powtórzeń testu (zalecana liczba to 1 - w wyniku wcześniejszych modyfikacji ta opcja nie jest wspierana),
+  * ZONE_IMAGE -> nazwa obrazu instancji z serwisu DockerHub (którą chcemy testować), należy podać np. `abc/agh-gmmf-prototype:latest`
 11. Należy zainstalować narzędzie *kubectl* służące do komunikacji z platformą Kubernetes oraz skonfigurować to narzędzie:
   * od członków zespołu OneData należy uzyskać plik z konfiguracją naszego konta na ich platformie Kubernetes.
   * zdefiniować zmienną środowiskową *KUBECONFIG* przechowującą ścieżkę do wyżej wspomnianego pliku z konfiguracją.
